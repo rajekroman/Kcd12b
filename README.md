@@ -2,7 +2,7 @@
 
 Originální 12bitové historické arkádové RPG pro prohlížeč a mobilní zařízení.
 
-![Vizuální koncept](docs/visual-concept.png)
+![Vizuální koncept](docs/visual-concept.svg)
 
 ## Spuštění
 
