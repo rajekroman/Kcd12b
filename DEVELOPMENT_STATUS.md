@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M4.1 Weather and Lighting — světový čas nyní deterministicky řídí jasno, zataženo, déšť a bouři. Prostředí používá samostatné barevné světlo pro noc, úsvit, den a soumrak, pohyblivé oblačné stíny, srážky, mokré odlesky a bouřkové záblesky.
+M4.2 Hunting and Fauna — svět nyní obsahuje zajíce, srnce a kance s vlastními pixely, denní aktivitou, touláním a útěkem. Lov používá skutečně potvrzený směrový útok, přidává kořist do existující ekonomiky a ukládá ulovené kusy v save verzi 5.
 
 ## Funguje
 
@@ -11,43 +11,48 @@ M4.1 Weather and Lighting — světový čas nyní deterministicky řídí jasno
 - Pixel-perfect viewport 480 × 270.
 - Pohyb WASD/šipky i dotyková tlačítka.
 - Kolize, kamera a testovací oblast Záhoří.
+- Tři lovné druhy: zajíc, srnec a kanec.
+- Tři stabilní world spawny a druhově odlišné denní intervaly aktivity.
+- Ručně komponované fauna atlasy 24 × 18 px se stavy klid, dva kroky, zranění a smrt.
+- Deterministické toulání v teritoriu a útěk podle vzdálenosti hráče.
+- Viditelnost počasí ovlivňuje vzdálenost, na kterou zvěř hráče zpozoruje.
+- Potvrzený útok sjednocený pro přímou klávesnici, mobilní ovládání i fallback.
+- Lovný zásah kontroluje skutečný dosah i zvolený směr útoku.
+- Zaječí a kančí maso, srnčí zvěřina a dvě kůže jako standardní ekonomické předměty.
+- Kořist atomicky respektuje nosnost a stack limity inventáře.
+- Ulovené kusy jsou uložené v `world.huntedAnimals` a po reloadu se neobnoví.
+- Save formát 5 s validací a migracemi verzí 1, 2, 3 a 4.
 - Deterministický cyklus jasno, zataženo, déšť a bouře.
 - Světelné fáze noc, úsvit, den a soumrak.
-- Barevné tónování, stmívání, pohyblivé oblačné stíny a mokré odlesky.
-- Až 96 dešťových kapek s rychlostí a větrem podle intenzity počasí.
-- Dvoufázové bouřkové záblesky.
-- HUD štítek počasí a denní fáze.
-- Obnovení stejného počasí z uloženého světového času bez změny save formátu.
-- Runtime hodnoty srážek, mokra, viditelnosti a blesku pro testy a přístupnost.
+- Barevné tónování, stmívání, oblačné stíny, srážky, mokré odlesky a blesky.
 - Dvanáct samostatných charakterových atlasů a šest animovaných stavů.
-- Deset profesních NPC se skutečně odlišnou siluetou, pokrývkou hlavy a nástrojem.
+- Deset profesních NPC se skutečně odlišnou siluetou a nástrojem.
 - Deset portrétních identit se šesti výrazovými variantami.
-- Dialogové uzly explicitně určují portrétní emoci.
-- Quest „První ocel“ je definován daty a publikuje jednorázovou událost dokončení.
-- Pět směrů útoku, směrový kryt, dokonalý kryt a úhyb.
-- Inventář, tři sloty vybavení, spotřební předměty a atomický obchod.
-- Oddělená pověst sedláků, měšťanů a šlechty s vlivem na dialogy a ceny.
+- Quest „První ocel“, pětisměrný boj, obrana a úhyb.
+- Inventář, vybavení, spotřební předměty a atomický obchod.
+- Oddělená pověst sedláků, měšťanů a šlechty.
 - Vojtěchův zorný kužel, podezření a poplach.
-- Adaptivní procedurální hudba pro denní dobu, podezření a poplach.
+- Adaptivní procedurální hudba.
 - IndexedDB jako primární save úložiště a localStorage fallback.
-- Verzovaný save formát 4 s migracemi verzí 1, 2 a 3.
 - Jednotkové a Playwright E2E testy.
 - PWA konfigurace, CI a GitHub Pages workflow.
 
 ## Známé limity
 
-- Počasí je deterministicky odvozené pouze z denní hodiny a zatím nemá vícedenní seed ani náhodné fronty.
-- Déšť, mraky a mokré odlesky jsou screen-space vrstvy; budovy zatím nevytvářejí závětří ani střechy neblokují srážky.
-- Počasí zatím neovlivňuje pohyb, stealth, NPC rozvrhy, ceny ani boj.
-- Bouřka používá vizuální záblesky bez samostatného hromového zvuku.
-- Herní a portrétní atlasy vznikají za běhu z kódu a nejsou exportované jako externí PNG assety.
-- Postavy používají boční zrcadlení namísto samostatných čtyřsměrných sad.
-- Navigace NPC používá přímý pohyb s Arcade Physics, nikoli pathfinding.
-- První stealth pozorovatel je pouze strážný Vojtěch a kužel neprovádí okluzi přes překážky.
+- Zvěř má po jednom stabilním kusu každého druhu, nikoli populační simulaci nebo vícedenní respawn.
+- Zajíc, srnec i kanec při přiblížení pouze prchají; kanec zatím nezaútočí proti hráči.
+- Lov používá stávající zbraně na blízko a zatím neobsahuje luk, šípy, pasti ani stopování.
+- Kořist se přidá ihned po usmrcení a nevyžaduje stažení nebo porcování těla.
+- Čerstvost masa se zatím nesnižuje časem a počasím.
+- Počasí ovlivňuje detekční vzdálenost zvěře, ale zatím ne stopy, pach nebo rychlost pohybu.
+- Počasí se opakuje každý herní den podle stejného hodinového rozvrhu.
+- Srážky jsou screen-space a střechy je neblokují.
+- Herní, portrétní a fauna atlasy vznikají za běhu z kódu a nejsou exportované jako PNG.
+- Navigace NPC a zvěře používá přímý Arcade Physics pohyb, nikoli pathfinding.
 - Quest state je stále jeden aktivní quest.
 
 ## Další tři priority
 
-1. Přidat lov a faunu.
-2. Přidat alchymii a kovářství.
-3. Přidat koně a jezdecký systém.
+1. Přidat alchymii a kovářství.
+2. Přidat koně a jezdecký systém.
+3. Rozšířit lov o luk, stopy, porcování a populační respawn.
