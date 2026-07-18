@@ -15,7 +15,6 @@ import {
   equipItem,
   getEquipmentStats,
   getInventoryWeight,
-  getItemQuantity,
   sellItem,
   unequipSlot,
   useConsumable,
