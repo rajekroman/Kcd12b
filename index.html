@@ -7,9 +7,29 @@
     <meta name="description" content="Chronicles of Bohemia — 12bitové historické arkádové RPG." />
     <title>Chronicles of Bohemia</title>
   </head>
-  <body>
+  <body data-economy-open="false">
     <div id="app" aria-label="Herní obrazovka"></div>
     <div id="game-status" class="sr-only" role="status" aria-live="polite">Načítání hry.</div>
+
+    <div id="economy-overlay" class="economy-overlay" role="dialog" aria-modal="true" aria-labelledby="economy-title" hidden>
+      <section class="economy-panel">
+        <header class="economy-header">
+          <div>
+            <p class="economy-kicker">Výbava a majetek</p>
+            <h2 id="economy-title">Inventář</h2>
+          </div>
+          <button type="button" class="economy-close" data-economy-close aria-label="Zavřít inventář">×</button>
+        </header>
+        <nav class="economy-tabs" aria-label="Inventář a obchod">
+          <button type="button" data-economy-tab="inventory">Inventář</button>
+          <button type="button" data-economy-tab="trade">Obchod</button>
+        </nav>
+        <div id="economy-summary" class="economy-summary" aria-label="Souhrn majetku"></div>
+        <div id="economy-content" class="economy-content"></div>
+        <p id="economy-message" class="economy-message" aria-live="polite">Inventář připraven.</p>
+      </section>
+    </div>
+
     <div id="mobile-controls" aria-label="Dotykové ovládání">
       <div class="dpad" aria-label="Pohyb">
         <button type="button" data-control="up" aria-label="Nahoru">▲</button>
@@ -19,6 +39,7 @@
       </div>
       <div class="actions" aria-label="Akce">
         <button type="button" data-control="interact">Mluv</button>
+        <button type="button" data-control="inventory">Batoh</button>
         <button type="button" data-control="block">Kryt</button>
         <button type="button" data-control="dodge">Úhyb</button>
         <button

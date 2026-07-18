@@ -150,6 +150,13 @@ export class NpcManager {
         );
     }
 
+    const nearestId = this.getNearestInteractable()?.definition.id;
+    if (nearestId && document.body.dataset.nearNpc !== nearestId) {
+      document.body.dataset.nearNpc = nearestId;
+    } else if (!nearestId && document.body.dataset.nearNpc !== undefined) {
+      delete document.body.dataset.nearNpc;
+    }
+
     const hour = worldClockToHour(dayClock);
     const bucket = Math.floor(hour * 4);
     if (forceSnapshot || bucket !== this.snapshotBucket) {
@@ -201,6 +208,7 @@ export class NpcManager {
     delete document.body.dataset.npcCount;
     delete document.body.dataset.worldHour;
     delete document.body.dataset.npcSchedules;
+    delete document.body.dataset.nearNpc;
   }
 
   private getRuntimeTarget(schedule: NpcScheduleState, offset: WorldPoint): WorldPoint {
