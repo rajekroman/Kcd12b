@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateDamage,
   getAttackDirectionFromVector,
+  isWithinMeleeImpactRange,
   resolveDefense,
   resolveDirectionalAttack
 } from '../systems/CombatSystem';
@@ -114,6 +115,20 @@ describe('resolveDefense', () => {
 
     expect(result.outcome).toBe('guard-break');
     expect(result.damage).toBeGreaterThan(20);
+  });
+});
+
+describe('isWithinMeleeImpactRange', () => {
+  it('povolí zásah na hranici dosahu a odmítne vzdálený cíl', () => {
+    expect(isWithinMeleeImpactRange(46)).toBe(true);
+    expect(isWithinMeleeImpactRange(46.01)).toBe(false);
+    expect(isWithinMeleeImpactRange(60, 64)).toBe(true);
+  });
+
+  it('odmítne neplatné vzdálenosti', () => {
+    expect(isWithinMeleeImpactRange(-1)).toBe(false);
+    expect(isWithinMeleeImpactRange(Number.NaN)).toBe(false);
+    expect(isWithinMeleeImpactRange(Number.POSITIVE_INFINITY)).toBe(false);
   });
 });
 
