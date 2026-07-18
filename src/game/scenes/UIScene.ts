@@ -76,6 +76,13 @@ export class UIScene extends Phaser.Scene {
       EventBus.off(GameEvents.MESSAGE, this.onMessage, this);
       EventBus.off(GameEvents.DIALOGUE_OPEN, this.onDialogueOpen, this);
       delete document.body.dataset.uiScene;
+      delete document.body.dataset.health;
+      delete document.body.dataset.stamina;
+      delete document.body.dataset.attackDirection;
+      delete document.body.dataset.blocking;
+      delete document.body.dataset.dodgeReady;
+      delete document.body.dataset.dialogue;
+      delete document.body.dataset.lastMessage;
     });
   }
 
@@ -95,6 +102,12 @@ export class UIScene extends Phaser.Scene {
       .setText(payload.banditHealth > 0 ? `Lapka ${payload.banditHealth}` : '')
       .setVisible(payload.banditHealth > 0);
 
+    document.body.dataset.health = String(payload.health);
+    document.body.dataset.stamina = String(payload.stamina);
+    document.body.dataset.attackDirection = payload.attackDirection;
+    document.body.dataset.blocking = String(payload.blocking);
+    document.body.dataset.dodgeReady = String(payload.dodgeReady);
+
     this.updateAccessibleStatus(
       `Zdraví ${payload.health}. Výdrž ${payload.stamina}. Postoj ${direction}. ${payload.objective}`
     );
@@ -104,6 +117,7 @@ export class UIScene extends Phaser.Scene {
     this.messageText.setText(message).setAlpha(1);
     this.tweens.killTweensOf(this.messageText);
     this.tweens.add({ targets: this.messageText, alpha: 0, delay: 1700, duration: 450 });
+    document.body.dataset.lastMessage = message;
     this.updateAccessibleStatus(message);
   }
 
@@ -140,11 +154,13 @@ export class UIScene extends Phaser.Scene {
     this.dialogueContainer = this.add
       .container(x, y, [background, speaker, body, button])
       .setDepth(200);
+    document.body.dataset.dialogue = payload.speaker;
     this.updateAccessibleStatus(`${payload.speaker}: ${payload.text}`);
 
     button.once('pointerdown', () => {
       this.dialogueContainer?.destroy(true);
       this.dialogueContainer = undefined;
+      delete document.body.dataset.dialogue;
       payload.onClose();
       EventBus.emit(GameEvents.DIALOGUE_CLOSE);
     });
