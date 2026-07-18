@@ -129,7 +129,7 @@ const drawAccessory = (
       break;
     case 'tankard':
       rect(pixels, rightX - 1, handY, 4, 5, palette.metal);
-      rect(pixels, rightX + 3, handY + 1, 2, 3, palette.metal);
+      rect(pixels, rightX + (active ? 2 : 3), handY + 1, 2, 3, palette.metal);
       rect(pixels, rightX, handY + 1, 2, 1, palette.accent);
       break;
     case 'spear':
