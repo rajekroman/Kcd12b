@@ -1,3 +1,8 @@
+import {
+  getEconomyState,
+  resetEconomyState,
+  setEconomyState
+} from '../core/EconomyStore';
 import { ITEM_DEFINITIONS, type EquipmentSlot, type ItemId } from '../data/items';
 import {
   createInitialEconomyState,
@@ -30,7 +35,9 @@ export interface GameSave {
   savedAt: string;
 }
 
-export type GameSaveInput = Omit<GameSave, 'version' | 'savedAt'>;
+export type GameSaveInput = Omit<GameSave, 'version' | 'savedAt' | 'economy'> & {
+  economy?: EconomyState;
+};
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -335,7 +342,10 @@ export class SaveSystem {
   async save(data: GameSaveInput): Promise<GameSave> {
     const payload: GameSave = {
       version: CURRENT_SAVE_VERSION,
-      ...data,
+      player: data.player,
+      quest: data.quest,
+      world: data.world,
+      economy: data.economy ?? getEconomyState(),
       savedAt: (this.options.now ?? (() => new Date()))().toISOString()
     };
 
@@ -360,6 +370,7 @@ export class SaveSystem {
         if ((primary as UnknownSaveRecord).version !== CURRENT_SAVE_VERSION) {
           await this.tryPrimarySet(migrated);
         }
+        setEconomyState(migrated.economy);
         return migrated;
       }
     }
@@ -375,6 +386,7 @@ export class SaveSystem {
         this.safeRemove(LEGACY_SAVE_KEY);
         this.safeRemove(LEGACY_SAVE_KEY_V2);
       }
+      setEconomyState(fallback.economy);
       return fallback;
     }
 
@@ -394,6 +406,7 @@ export class SaveSystem {
       }
     }
     this.cleanupFallbackKeys();
+    resetEconomyState();
   }
 
   private async tryPrimaryGet(): Promise<unknown | null> {
