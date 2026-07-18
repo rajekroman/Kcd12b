@@ -7,6 +7,12 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    document.body.classList.remove('game-active');
+    document.body.dataset.scene = 'menu';
+    delete document.body.dataset.uiScene;
+    if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
+    this.updateAccessibleStatus('Hlavní menu. Nová hra.');
+
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#0b0a08');
 
@@ -39,6 +45,7 @@ export class MenuScene extends Phaser.Scene {
       this.createButton(width / 2, height * 0.77, 'POKRAČOVAT', () => {
         this.scene.start('GameScene', { continueGame: true });
       });
+      this.updateAccessibleStatus('Hlavní menu. Nová hra nebo pokračovat.');
     }
   }
 
@@ -57,5 +64,10 @@ export class MenuScene extends Phaser.Scene {
     button.on('pointerover', () => button.setBackgroundColor('#e0c689'));
     button.on('pointerout', () => button.setBackgroundColor('#c8aa6a'));
     button.on('pointerdown', action);
+  }
+
+  private updateAccessibleStatus(text: string): void {
+    const status = document.querySelector<HTMLElement>('#game-status');
+    if (status) status.textContent = text;
   }
 }
