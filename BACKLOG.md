@@ -30,6 +30,6 @@
 - [x] Nahradit generované placeholdery ručně vytvořenými sprite atlasy.
 - [x] Přidat portréty a výrazové varianty.
 - [x] Přidat počasí a dynamické světelné změny prostředí.
-- [ ] Přidat lov a faunu.
+- [x] Přidat lov a faunu.
 - [ ] Přidat alchymii a kovářství.
 - [ ] Přidat koně a jezdecký systém.
