@@ -2,9 +2,10 @@
 
 ## Architektura
 
-- `game/scenes`: boot, menu, svět a UI; scény orchestruji systémy, ale nevlastní textový obsah.
-- `data`: deklarativní definice questů, dialogů a budoucího obsahu.
-- `systems`: čistá doménová logika dialogů, questů, ukládání a soubojů.
+- `game/scenes`: boot, menu, svět a UI; scény orchestrují systémy, ale nevlastní textový obsah.
+- `game/NpcManager`: runtime správa obyvatel, pohybu, popisků a interakčního výběru.
+- `data`: deklarativní definice questů, dialogů, NPC, míst a denních režimů.
+- `systems`: čistá doménová logika dialogů, questů, NPC rozvrhů, ukládání a soubojů.
 - `core/EventBus`: oddělení herní scény a UI.
 - `tests`: jednotkové regresní testy.
 - `e2e`: browserové scénáře proti produkčnímu buildu v GitHub Pages podadresáři.
@@ -21,16 +22,23 @@
 
 `QuestSystem.applyQuestEvent` vybere první přechod odpovídající questu, kroku, události a podmínkám. `GameScene` pouze hlásí doménové události, například `bandit-defeated`.
 
-`src/data/dialogues.ts` obsahuje samostatné uzly s:
+`src/data/dialogues.ts` obsahuje samostatné uzly se stabilním ID, NPC ID, prioritou, textem, podmínkami a deklarativními efekty. `DialogueSystem.getDialogueForNpc` vybere nejvyšší odpovídající prioritu.
 
-- stabilním ID,
-- NPC ID,
-- prioritou,
-- textem a popiskem akce,
-- podmínkami nad questovým kontextem,
-- deklarativními efekty.
+## Obyvatelé a denní režimy
 
-`DialogueSystem.getDialogueForNpc` vybere nejvyšší odpovídající prioritu. `applyDialogueEffects` převádí efekty na questové události. Rozšiřování obsahu proto nesmí přidávat textové `if/switch` větve do herních scén.
+`src/data/npcs.ts` definuje deset obyvatel, 21 míst a jejich časové úseky. Každý úsek obsahuje počáteční a koncovou hodinu, aktivitu a cílové místo.
+
+`NpcScheduleSystem`:
+
+- normalizuje herní hodinu do rozsahu 0–24,
+- převádí 120sekundový světový cyklus na denní hodinu,
+- podporuje intervaly přes půlnoc,
+- vrací aktivitu a cílové souřadnice,
+- vyhodí chybu, pokud rozvrh nepokrývá některou hodinu.
+
+`NpcManager` vytváří fyzické postavy, při pokračování je okamžitě umístí podle save, průběžně je vede k cíli a vybírá nejbližšího obyvatele pro interakci. Stabilní crowd offsety zabraňují úplnému překrytí postav na trhu, v hostinci a na dalších sdílených místech.
+
+Navigace zatím používá přímý pohyb Arcade Physics. Pathfinding bude samostatný milník, až budou mapy obsahovat složitější uzavřené prostory.
 
 ## Stav hry a persistence
 
