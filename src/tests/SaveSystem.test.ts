@@ -27,6 +27,20 @@ class MemoryStorage implements StorageLike {
   }
 }
 
+class ThrowingStorage implements StorageLike {
+  getItem(): string | null {
+    throw new Error('fallback read failed');
+  }
+
+  setItem(): void {
+    throw new Error('fallback write failed');
+  }
+
+  removeItem(): void {
+    throw new Error('fallback delete failed');
+  }
+}
+
 class MemoryAsyncStore implements AsyncSaveStore {
   value: unknown | null = null;
   getFailures = 0;
@@ -134,6 +148,32 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect((await saves.load())?.player.y).toBe(34);
+  });
+
+  it('neplatný primární záznam nezakryje platný fallback', async () => {
+    const primary = new MemoryAsyncStore();
+    primary.value = { version: 2, player: null };
+    const fallback = new MemoryStorage();
+    fallback.setItem(
+      FALLBACK_SAVE_KEY,
+      JSON.stringify({
+        version: 2,
+        ...input,
+        savedAt: '2026-07-18T08:00:00.000Z'
+      })
+    );
+    const saves = new SaveSystem({ primary, fallback });
+
+    expect((await saves.load())?.player.health).toBe(90);
+    expect((primary.value as GameSave).player.health).toBe(90);
+  });
+
+  it('ohlásí chybu, když nelze zapisovat do žádného úložiště', async () => {
+    const primary = new MemoryAsyncStore();
+    primary.setFailures = 1;
+    const saves = new SaveSystem({ primary, fallback: new ThrowingStorage(), now: fixedNow });
+
+    await expect(saves.save(input)).rejects.toThrow('Save could not be written');
   });
 
   it('bezpečně odmítne poškozená a nekompletní data', async () => {
