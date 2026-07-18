@@ -18,8 +18,15 @@ const reputationController = new ReputationController();
 const stealthController = new StealthController(game);
 const keyboardInputFallback = new KeyboardInputFallbackController();
 const audioController = new AdaptiveAudioController();
+const audioButton = document.querySelector<HTMLButtonElement>('[data-audio-toggle]');
+
+const releasePointerFocus = (event: MouseEvent): void => {
+  if (event.detail > 0 && document.body.dataset.scene === 'game') audioButton?.blur();
+};
+audioButton?.addEventListener('click', releasePointerFocus);
 
 window.addEventListener('pagehide', () => {
+  audioButton?.removeEventListener('click', releasePointerFocus);
   void audioController.destroy();
   keyboardInputFallback.destroy();
   stealthController.destroy();
