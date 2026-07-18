@@ -38,6 +38,7 @@ jobs:
           tar -xzf /tmp/kcd12b-project.tar.gz -C .
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap.yml
+          rm -f .github/workflows/deploy.yml
 
       - name: Commit verified project sources
         shell: bash
