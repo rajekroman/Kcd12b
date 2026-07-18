@@ -8,6 +8,7 @@ import {
   resetReputationState,
   setReputationState
 } from '../core/ReputationStore';
+import { ANIMAL_SPAWNS, type AnimalId } from '../data/fauna';
 import { ITEM_DEFINITIONS, type EquipmentSlot, type ItemId } from '../data/items';
 import {
   createInitialEconomyState,
@@ -35,10 +36,15 @@ export interface PlayerSaveState {
 
 export interface WorldSaveState {
   dayClock: number;
+  huntedAnimals: AnimalId[];
+}
+
+interface LegacyWorldSaveState {
+  dayClock: number;
 }
 
 export interface GameSave {
-  version: 4;
+  version: 5;
   player: PlayerSaveState;
   quest: QuestState;
   world: WorldSaveState;
@@ -73,11 +79,12 @@ export interface SaveSystemOptions {
   now?: () => Date;
 }
 
-export const CURRENT_SAVE_VERSION = 4;
+export const CURRENT_SAVE_VERSION = 5;
 export const LEGACY_SAVE_KEY = 'chronicles-of-bohemia.save.v1';
 export const LEGACY_SAVE_KEY_V2 = 'chronicles-of-bohemia.save.v2';
 export const LEGACY_SAVE_KEY_V3 = 'chronicles-of-bohemia.save.v3';
-export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v4';
+export const LEGACY_SAVE_KEY_V4 = 'chronicles-of-bohemia.save.v4';
+export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v5';
 
 const DATABASE_NAME = 'chronicles-of-bohemia';
 const DATABASE_VERSION = 1;
@@ -130,28 +137,50 @@ const isQuestState = (value: unknown): value is QuestState => {
   );
 };
 
-const isWorldState = (value: unknown): value is WorldSaveState => {
+const isAnimalId = (value: unknown): value is AnimalId =>
+  typeof value === 'string' && ANIMAL_SPAWNS.some((animal) => animal.id === value);
+
+const isHuntedAnimals = (value: unknown): value is AnimalId[] =>
+  Array.isArray(value) &&
+  value.every(isAnimalId) &&
+  new Set(value).size === value.length;
+
+const isLegacyWorldState = (value: unknown): value is LegacyWorldSaveState => {
   if (!value || typeof value !== 'object') return false;
-  return isFiniteNumber((value as Partial<WorldSaveState>).dayClock);
+  return isFiniteNumber((value as Partial<LegacyWorldSaveState>).dayClock);
 };
+
+const isWorldState = (value: unknown): value is WorldSaveState => {
+  if (!isLegacyWorldState(value)) return false;
+  return isHuntedAnimals((value as Partial<WorldSaveState>).huntedAnimals);
+};
+
+const normalizeWorldState = (world: LegacyWorldSaveState | WorldSaveState): WorldSaveState => ({
+  dayClock: world.dayClock,
+  huntedAnimals: isHuntedAnimals((world as Partial<WorldSaveState>).huntedAnimals)
+    ? [...(world as WorldSaveState).huntedAnimals].sort()
+    : []
+});
 
 const isItemId = (value: unknown): value is ItemId =>
   typeof value === 'string' && Object.prototype.hasOwnProperty.call(ITEM_DEFINITIONS, value);
 
-const isStackArray = (value: unknown, enforcePlayerStackLimit: boolean): value is InventoryStack[] => {
+const isStackArray = (
+  value: unknown,
+  enforcePlayerStackLimit: boolean
+): value is InventoryStack[] => {
   if (!Array.isArray(value)) return false;
   const seen = new Set<ItemId>();
 
   for (const candidate of value) {
     if (!candidate || typeof candidate !== 'object') return false;
     const stack = candidate as Partial<InventoryStack>;
-    const itemId = stack.itemId;
-    const quantity = stack.quantity;
-
-    if (!isItemId(itemId) || !isPositiveInteger(quantity)) return false;
-    if (seen.has(itemId)) return false;
-    if (enforcePlayerStackLimit && quantity > ITEM_DEFINITIONS[itemId].maxStack) return false;
-    seen.add(itemId);
+    if (!isItemId(stack.itemId) || !isPositiveInteger(stack.quantity)) return false;
+    if (seen.has(stack.itemId)) return false;
+    if (enforcePlayerStackLimit && stack.quantity > ITEM_DEFINITIONS[stack.itemId].maxStack) {
+      return false;
+    }
+    seen.add(stack.itemId);
   }
   return true;
 };
@@ -159,48 +188,38 @@ const isStackArray = (value: unknown, enforcePlayerStackLimit: boolean): value i
 const isEquipmentState = (value: unknown): value is EquipmentState => {
   if (!value || typeof value !== 'object') return false;
   const equipment = value as Partial<EquipmentState>;
-
   return EQUIPMENT_SLOTS.every((slot) => {
     const itemId = equipment[slot];
-    if (itemId === null) return true;
-    return isItemId(itemId) && ITEM_DEFINITIONS[itemId].equipmentSlot === slot;
+    return itemId === null || (isItemId(itemId) && ITEM_DEFINITIONS[itemId].equipmentSlot === slot);
   });
 };
 
 const isInventoryState = (value: unknown): value is InventoryState => {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<InventoryState>;
-  const groschen = candidate.groschen;
-  const maxWeight = candidate.maxWeight;
-  const items = candidate.items;
-  const equipment = candidate.equipment;
-
+  const inventory = value as Partial<InventoryState>;
   if (
-    !isNonNegativeNumber(groschen) ||
-    !isFiniteNumber(maxWeight) ||
-    maxWeight <= 0 ||
-    !isStackArray(items, true) ||
-    !isEquipmentState(equipment)
+    !isNonNegativeNumber(inventory.groschen) ||
+    !isFiniteNumber(inventory.maxWeight) ||
+    inventory.maxWeight <= 0 ||
+    !isStackArray(inventory.items, true) ||
+    !isEquipmentState(inventory.equipment)
   ) {
     return false;
   }
 
   return EQUIPMENT_SLOTS.every((slot) => {
-    const itemId = equipment[slot];
-    return itemId === null || getItemQuantity(items, itemId) > 0;
+    const itemId = inventory.equipment?.[slot];
+    return itemId === null || getItemQuantity(inventory.items ?? [], itemId) > 0;
   });
 };
 
 const isMerchantState = (value: unknown): value is MerchantState => {
   if (!value || typeof value !== 'object') return false;
   const merchant = value as Partial<MerchantState>;
-  const groschen = merchant.groschen;
-  const stock = merchant.stock;
-
   return (
     merchant.id === 'trader-katerina' &&
-    isNonNegativeNumber(groschen) &&
-    isStackArray(stock, false)
+    isNonNegativeNumber(merchant.groschen) &&
+    isStackArray(merchant.stock, false)
   );
 };
 
@@ -231,14 +250,14 @@ const isTimestamp = (value: unknown): value is string =>
 
 const buildMigratedSave = (
   candidate: UnknownSaveRecord,
-  world: WorldSaveState,
+  world: LegacyWorldSaveState | WorldSaveState,
   economy: EconomyState,
   reputation: ReputationState
 ): GameSave => ({
-  version: 4,
+  version: 5,
   player: candidate.player as PlayerSaveState,
   quest: candidate.quest as QuestState,
-  world,
+  world: normalizeWorldState(world),
   economy,
   reputation,
   savedAt: candidate.savedAt as string
@@ -249,7 +268,7 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
   const candidate = value as UnknownSaveRecord;
 
   if (
-    candidate.version === 4 &&
+    candidate.version === 5 &&
     isPlayerState(candidate.player) &&
     isQuestState(candidate.quest) &&
     isWorldState(candidate.world) &&
@@ -266,10 +285,27 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
   }
 
   if (
+    candidate.version === 4 &&
+    isPlayerState(candidate.player) &&
+    isQuestState(candidate.quest) &&
+    isLegacyWorldState(candidate.world) &&
+    isEconomyState(candidate.economy) &&
+    isReputationState(candidate.reputation) &&
+    isTimestamp(candidate.savedAt)
+  ) {
+    return buildMigratedSave(
+      candidate,
+      candidate.world,
+      candidate.economy,
+      candidate.reputation
+    );
+  }
+
+  if (
     candidate.version === 3 &&
     isPlayerState(candidate.player) &&
     isQuestState(candidate.quest) &&
-    isWorldState(candidate.world) &&
+    isLegacyWorldState(candidate.world) &&
     isEconomyState(candidate.economy) &&
     isTimestamp(candidate.savedAt)
   ) {
@@ -285,7 +321,7 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     candidate.version === 2 &&
     isPlayerState(candidate.player) &&
     isQuestState(candidate.quest) &&
-    isWorldState(candidate.world) &&
+    isLegacyWorldState(candidate.world) &&
     isTimestamp(candidate.savedAt)
   ) {
     return buildMigratedSave(
@@ -316,8 +352,7 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
 const parseFallback = (storage: StorageLike, key: string): GameSave | null => {
   try {
     const raw = storage.getItem(key);
-    if (!raw) return null;
-    return migrateGameSave(JSON.parse(raw));
+    return raw ? migrateGameSave(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
@@ -395,19 +430,12 @@ export class SaveSystem {
   constructor(private readonly options: SaveSystemOptions) {}
 
   static forBrowser(indexedDB: IDBFactory | undefined, fallback: StorageLike): SaveSystem {
+    const unavailable = async (): Promise<never> => {
+      throw new Error('IndexedDB is unavailable.');
+    };
     const primary: AsyncSaveStore = indexedDB
       ? new IndexedDbSaveStore(indexedDB)
-      : {
-          get: async () => {
-            throw new Error('IndexedDB is unavailable.');
-          },
-          set: async () => {
-            throw new Error('IndexedDB is unavailable.');
-          },
-          delete: async () => {
-            throw new Error('IndexedDB is unavailable.');
-          }
-        };
+      : { get: unavailable, set: unavailable, delete: unavailable };
     return new SaveSystem({ primary, fallback });
   }
 
@@ -416,7 +444,7 @@ export class SaveSystem {
       version: CURRENT_SAVE_VERSION,
       player: data.player,
       quest: data.quest,
-      world: data.world,
+      world: normalizeWorldState(data.world),
       economy: data.economy ?? getEconomyState(),
       reputation: data.reputation ?? getReputationState(),
       savedAt: (this.options.now ?? (() => new Date()))().toISOString()
@@ -426,7 +454,6 @@ export class SaveSystem {
       this.cleanupFallbackKeys();
       return payload;
     }
-
     if (!writeFallback(this.options.fallback, payload)) {
       throw new Error('Save could not be written to IndexedDB or fallback storage.');
     }
@@ -449,6 +476,7 @@ export class SaveSystem {
 
     const fallbackKeys = [
       FALLBACK_SAVE_KEY,
+      LEGACY_SAVE_KEY_V4,
       LEGACY_SAVE_KEY_V3,
       LEGACY_SAVE_KEY_V2,
       LEGACY_SAVE_KEY
@@ -457,7 +485,6 @@ export class SaveSystem {
     for (const key of fallbackKeys) {
       const fallback = parseFallback(this.options.fallback, key);
       if (!fallback) continue;
-
       if (await this.tryPrimarySet(fallback)) {
         this.cleanupFallbackKeys();
       } else if (key !== FALLBACK_SAVE_KEY && writeFallback(this.options.fallback, fallback)) {
@@ -466,7 +493,6 @@ export class SaveSystem {
       this.restoreRuntimeStores(fallback);
       return fallback;
     }
-
     return null;
   }
 
@@ -519,6 +545,7 @@ export class SaveSystem {
   }
 
   private removeLegacyKeys(): void {
+    this.safeRemove(LEGACY_SAVE_KEY_V4);
     this.safeRemove(LEGACY_SAVE_KEY_V3);
     this.safeRemove(LEGACY_SAVE_KEY_V2);
     this.safeRemove(LEGACY_SAVE_KEY);
