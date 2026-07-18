@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — melee impact range
+
+- Telegrafovaný nepřátelský útok při dopadu znovu měří skutečnou vzdálenost.
+- Hráč, který během nápřahu ustoupí mimo dosah, již neobdrží poškození.
+- Přidána čistá validace dosahu s testy hranice, vlastního dosahu a neplatných hodnot.
+
 ## 0.2.0 — directional combat
 
 - Přidáno pět směrů útoku s rozdílnou spotřebou výdrže.
