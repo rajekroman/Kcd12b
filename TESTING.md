@@ -14,6 +14,12 @@ npm run build
 
 Vitest ověřuje mimo jiné:
 
+- dvanáct unikátních charakterových definic,
+- šest stavů a všech 72 ručně komponovaných pixelových snímků,
+- celočíselné souřadnice a úplné zachování rámce 20 × 28 px,
+- minimální vizuální hustotu a unikátnost kompletních atlasů,
+- rozdílnou siluetu chůze, klidu a akce,
+- stabilní indexy frameů a názvy Phaser animací,
 - zorný kužel, dosah, úhel a floating-point hranice,
 - růst, prahy a úplný rozpad podezření,
 - rozdělení dne na úsvit, den, soumrak a noc,
@@ -42,6 +48,11 @@ npm run test:e2e
 
 Playwright ověřuje na desktopovém Chromium profilu i mobilní emulaci iPhone 14:
 
+- registraci dvanácti charakterových atlasů během bootu,
+- deset unikátních profesních atlasových klíčů obyvatel,
+- odstranění společného runtime placeholderu `smith`,
+- přechod hráče mezi animacemi klidu, chůze, útoku a návratu do klidu,
+- zachování stabilního třípolového formátu NPC rozvrhového snapshotu,
 - přechod menu → hra,
 - počáteční HUD, ekonomiku, neutrální pověst a deset NPC,
 - otevření inventáře a reputační karty,
