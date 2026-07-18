@@ -15,6 +15,7 @@ export class MenuScene extends Phaser.Scene {
     document.body.classList.remove('game-active');
     document.body.dataset.scene = 'menu';
     document.body.dataset.menuReady = 'false';
+    document.body.dataset.hasSave = 'false';
     delete document.body.dataset.uiScene;
     if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
     this.updateAccessibleStatus('Hlavní menu. Nová hra. Kontroluji uloženou pozici.');
@@ -49,6 +50,7 @@ export class MenuScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.sceneActive = false;
       delete document.body.dataset.menuReady;
+      delete document.body.dataset.hasSave;
     });
   }
 
@@ -62,6 +64,7 @@ export class MenuScene extends Phaser.Scene {
     const hasSave = await this.saveSystem.hasSave();
     if (!this.sceneActive) return;
 
+    document.body.dataset.hasSave = String(hasSave);
     if (hasSave) {
       this.createButton(width / 2, height * 0.77, 'POKRAČOVAT', () => {
         this.scene.start('GameScene', { continueGame: true });
