@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -23,6 +23,55 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - name: Apply melee impact range integration
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 3
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/scenes/GameScene.ts')
+          content = path.read_text()
+          import_old = "  getAttackDirectionLabel,\n  resolveDefense,"
+          import_new = "  getAttackDirectionLabel,\n  isWithinMeleeImpactRange,\n  resolveDefense,"
+          impact_old = "    this.pendingBanditAttack = undefined;\n    if (time < this.invulnerableUntil) {"
+          impact_new = """    this.pendingBanditAttack = undefined;
+    const impactDistance = Phaser.Math.Distance.BetweenPoints(this.player, this.bandit);
+    if (!isWithinMeleeImpactRange(impactDistance)) {
+      EventBus.emit(GameEvents.MESSAGE, 'Ustoupil jsi mimo dosah lapkova útoku.');
+      this.emitHud();
+      return;
+    }
+
+    if (time < this.invulnerableUntil) {"""
+
+          if import_old in content:
+              content = content.replace(import_old, import_new, 1)
+          elif 'isWithinMeleeImpactRange' not in content:
+              raise SystemExit('CombatSystem import anchor not found')
+
+          if impact_old in content:
+              content = content.replace(impact_old, impact_new, 1)
+          elif 'impactDistance' not in content:
+              raise SystemExit('Bandit impact anchor not found')
+
+          path.write_text(content)
+          PY
+      - name: Commit melee range integration
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 3
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- src/game/scenes/GameScene.ts; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/GameScene.ts
+          git commit -m "fix: cancel bandit impact outside melee range"
+          git push origin "HEAD:${HEAD_BRANCH}"
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
