@@ -112,8 +112,8 @@ export const createInitialEconomyState = (): EconomyState => ({
 
 export const getItemQuantity = (
   stacks: readonly InventoryStack[],
-  itemId: ItemId
-): number => stacks.find((stack) => stack.itemId === itemId)?.quantity ?? 0;
+  itemId: ItemId | null | undefined
+): number => itemId ? stacks.find((stack) => stack.itemId === itemId)?.quantity ?? 0 : 0;
 
 export const getInventoryWeight = (inventory: InventoryState): number =>
   inventory.items.reduce(
