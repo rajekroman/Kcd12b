@@ -1,3 +1,4 @@
+import { getReputationState } from '../core/ReputationStore';
 import {
   DIALOGUE_DEFINITIONS,
   type DialogueCondition,
@@ -5,10 +6,7 @@ import {
 } from '../data/dialogues';
 import type { NpcId } from '../data/npcs';
 import { applyQuestEvent, type QuestState } from './QuestSystem';
-import {
-  createInitialReputationState,
-  type ReputationState
-} from './ReputationSystem';
+import type { ReputationState } from './ReputationSystem';
 
 export interface DialogueContext {
   quest: QuestState;
@@ -18,7 +16,7 @@ export interface DialogueContext {
 const matchesCondition = (context: DialogueContext, condition?: DialogueCondition): boolean => {
   if (!condition) return true;
   const { quest } = context;
-  const reputation = context.reputation ?? createInitialReputationState();
+  const reputation = context.reputation ?? getReputationState();
 
   if (condition.questId !== undefined && condition.questId !== quest.id) return false;
   if (condition.questSteps && !condition.questSteps.includes(quest.step)) return false;
