@@ -1,3 +1,13 @@
+import { ITEM_DEFINITIONS, type EquipmentSlot, type ItemId } from '../data/items';
+import {
+  createInitialEconomyState,
+  getItemQuantity,
+  type EconomyState,
+  type EquipmentState,
+  type InventoryStack,
+  type InventoryState,
+  type MerchantState
+} from './InventorySystem';
 import type { QuestState } from './QuestSystem';
 
 export interface PlayerSaveState {
@@ -12,10 +22,11 @@ export interface WorldSaveState {
 }
 
 export interface GameSave {
-  version: 2;
+  version: 3;
   player: PlayerSaveState;
   quest: QuestState;
   world: WorldSaveState;
+  economy: EconomyState;
   savedAt: string;
 }
 
@@ -39,14 +50,16 @@ export interface SaveSystemOptions {
   now?: () => Date;
 }
 
-export const CURRENT_SAVE_VERSION = 2;
+export const CURRENT_SAVE_VERSION = 3;
 export const LEGACY_SAVE_KEY = 'chronicles-of-bohemia.save.v1';
-export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v2';
+export const LEGACY_SAVE_KEY_V2 = 'chronicles-of-bohemia.save.v2';
+export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v3';
 
 const DATABASE_NAME = 'chronicles-of-bohemia';
 const DATABASE_VERSION = 1;
 const OBJECT_STORE_NAME = 'saves';
 const PRIMARY_SAVE_ID = 'primary';
+const EQUIPMENT_SLOTS: readonly EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
 
 interface StoredSaveRecord {
   id: string;
@@ -58,11 +71,15 @@ interface UnknownSaveRecord {
   player?: unknown;
   quest?: unknown;
   world?: unknown;
+  economy?: unknown;
   savedAt?: unknown;
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
+
+const isNonNegativeNumber = (value: unknown): value is number =>
+  isFiniteNumber(value) && value >= 0;
 
 const isPlayerState = (value: unknown): value is PlayerSaveState => {
   if (!value || typeof value !== 'object') return false;
@@ -90,12 +107,96 @@ const isWorldState = (value: unknown): value is WorldSaveState => {
   return isFiniteNumber((value as Partial<WorldSaveState>).dayClock);
 };
 
+const isItemId = (value: unknown): value is ItemId =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(ITEM_DEFINITIONS, value);
+
+const isStackArray = (value: unknown, enforcePlayerStackLimit: boolean): value is InventoryStack[] => {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<ItemId>();
+
+  for (const candidate of value) {
+    if (!candidate || typeof candidate !== 'object') return false;
+    const stack = candidate as Partial<InventoryStack>;
+    if (!isItemId(stack.itemId) || !Number.isInteger(stack.quantity) || (stack.quantity ?? 0) <= 0) {
+      return false;
+    }
+    if (seen.has(stack.itemId)) return false;
+    if (enforcePlayerStackLimit && (stack.quantity ?? 0) > ITEM_DEFINITIONS[stack.itemId].maxStack) {
+      return false;
+    }
+    seen.add(stack.itemId);
+  }
+  return true;
+};
+
+const isEquipmentState = (value: unknown): value is EquipmentState => {
+  if (!value || typeof value !== 'object') return false;
+  const equipment = value as Partial<EquipmentState>;
+  return EQUIPMENT_SLOTS.every((slot) => {
+    const itemId = equipment[slot];
+    return itemId === null || (isItemId(itemId) && ITEM_DEFINITIONS[itemId].equipmentSlot === slot);
+  });
+};
+
+const isInventoryState = (value: unknown): value is InventoryState => {
+  if (!value || typeof value !== 'object') return false;
+  const inventory = value as Partial<InventoryState>;
+  if (
+    !isNonNegativeNumber(inventory.groschen) ||
+    !isFiniteNumber(inventory.maxWeight) ||
+    (inventory.maxWeight ?? 0) <= 0 ||
+    !isStackArray(inventory.items, true) ||
+    !isEquipmentState(inventory.equipment)
+  ) {
+    return false;
+  }
+
+  return EQUIPMENT_SLOTS.every((slot) => {
+    const itemId = inventory.equipment?.[slot];
+    return itemId === null || getItemQuantity(inventory.items ?? [], itemId) > 0;
+  });
+};
+
+const isMerchantState = (value: unknown): value is MerchantState => {
+  if (!value || typeof value !== 'object') return false;
+  const merchant = value as Partial<MerchantState>;
+  return (
+    merchant.id === 'trader-katerina' &&
+    isNonNegativeNumber(merchant.groschen) &&
+    isStackArray(merchant.stock, false)
+  );
+};
+
+const isEconomyState = (value: unknown): value is EconomyState => {
+  if (!value || typeof value !== 'object') return false;
+  const economy = value as Partial<EconomyState>;
+  return isInventoryState(economy.inventory) && isMerchantState(economy.merchant);
+};
+
 const isTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value));
 
 export const migrateGameSave = (value: unknown): GameSave | null => {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as UnknownSaveRecord;
+
+  if (
+    candidate.version === 3 &&
+    isPlayerState(candidate.player) &&
+    isQuestState(candidate.quest) &&
+    isWorldState(candidate.world) &&
+    isEconomyState(candidate.economy) &&
+    isTimestamp(candidate.savedAt)
+  ) {
+    return {
+      version: 3,
+      player: candidate.player,
+      quest: candidate.quest,
+      world: candidate.world,
+      economy: candidate.economy,
+      savedAt: candidate.savedAt
+    };
+  }
 
   if (
     candidate.version === 2 &&
@@ -105,10 +206,11 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isTimestamp(candidate.savedAt)
   ) {
     return {
-      version: 2,
+      version: 3,
       player: candidate.player,
       quest: candidate.quest,
       world: candidate.world,
+      economy: createInitialEconomyState(),
       savedAt: candidate.savedAt
     };
   }
@@ -120,10 +222,11 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isTimestamp(candidate.savedAt)
   ) {
     return {
-      version: 2,
+      version: 3,
       player: candidate.player,
       quest: candidate.quest,
       world: { dayClock: 0 },
+      economy: createInitialEconomyState(),
       savedAt: candidate.savedAt
     };
   }
@@ -237,14 +340,15 @@ export class SaveSystem {
     };
 
     if (await this.tryPrimarySet(payload)) {
-      this.safeRemove(FALLBACK_SAVE_KEY);
-      this.safeRemove(LEGACY_SAVE_KEY);
+      this.cleanupFallbackKeys();
       return payload;
     }
 
     if (!writeFallback(this.options.fallback, payload)) {
       throw new Error('Save could not be written to IndexedDB or fallback storage.');
     }
+    this.safeRemove(LEGACY_SAVE_KEY);
+    this.safeRemove(LEGACY_SAVE_KEY_V2);
     return payload;
   }
 
@@ -260,21 +364,21 @@ export class SaveSystem {
       }
     }
 
-    const fallbackCurrent = parseFallback(this.options.fallback, FALLBACK_SAVE_KEY);
-    if (fallbackCurrent) {
-      if (await this.tryPrimarySet(fallbackCurrent)) this.safeRemove(FALLBACK_SAVE_KEY);
-      return fallbackCurrent;
+    const fallbackKeys = [FALLBACK_SAVE_KEY, LEGACY_SAVE_KEY_V2, LEGACY_SAVE_KEY] as const;
+    for (const key of fallbackKeys) {
+      const fallback = parseFallback(this.options.fallback, key);
+      if (!fallback) continue;
+
+      if (await this.tryPrimarySet(fallback)) {
+        this.cleanupFallbackKeys();
+      } else if (key !== FALLBACK_SAVE_KEY && writeFallback(this.options.fallback, fallback)) {
+        this.safeRemove(LEGACY_SAVE_KEY);
+        this.safeRemove(LEGACY_SAVE_KEY_V2);
+      }
+      return fallback;
     }
 
-    const legacy = parseFallback(this.options.fallback, LEGACY_SAVE_KEY);
-    if (!legacy) return null;
-
-    if (await this.tryPrimarySet(legacy)) {
-      this.safeRemove(LEGACY_SAVE_KEY);
-    } else if (writeFallback(this.options.fallback, legacy)) {
-      this.safeRemove(LEGACY_SAVE_KEY);
-    }
-    return legacy;
+    return null;
   }
 
   async hasSave(): Promise<boolean> {
@@ -289,8 +393,7 @@ export class SaveSystem {
         this.primaryAvailable = false;
       }
     }
-    this.safeRemove(FALLBACK_SAVE_KEY);
-    this.safeRemove(LEGACY_SAVE_KEY);
+    this.cleanupFallbackKeys();
   }
 
   private async tryPrimaryGet(): Promise<unknown | null> {
@@ -312,6 +415,12 @@ export class SaveSystem {
       this.primaryAvailable = false;
       return false;
     }
+  }
+
+  private cleanupFallbackKeys(): void {
+    this.safeRemove(FALLBACK_SAVE_KEY);
+    this.safeRemove(LEGACY_SAVE_KEY_V2);
+    this.safeRemove(LEGACY_SAVE_KEY);
   }
 
   private safeRemove(key: string): void {
