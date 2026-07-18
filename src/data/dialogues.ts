@@ -1,10 +1,18 @@
+import type { ReputationFaction } from '../systems/ReputationSystem';
 import type { NpcId } from './npcs';
 import type { QuestEvent, QuestId, QuestStep } from './quests';
+
+export interface DialogueReputationCondition {
+  faction: ReputationFaction;
+  min?: number;
+  max?: number;
+}
 
 export interface DialogueCondition {
   questId?: QuestId;
   questSteps?: readonly QuestStep[];
   banditDefeated?: boolean;
+  reputation?: DialogueReputationCondition;
 }
 
 export interface DialogueEffect {
@@ -123,6 +131,28 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Otec Matěj',
     text: 'Modlitba člověka nezbaví práce. Jen mu připomene, proč ji má dokončit.',
     actionLabel: 'Odejít'
+  },
+  {
+    id: 'katerina-honored',
+    npcId: 'trader-katerina',
+    priority: 40,
+    speaker: 'Kupkyně Kateřina',
+    text: 'Pro člověka s takovým jménem mám nejlepší kusy i poctivější cenu.',
+    actionLabel: 'Poděkovat',
+    when: {
+      reputation: { faction: 'townsfolk', min: 60 }
+    }
+  },
+  {
+    id: 'katerina-distrusted',
+    npcId: 'trader-katerina',
+    priority: 40,
+    speaker: 'Kupkyně Kateřina',
+    text: 'Zboží ti ukážu, ale ruce nech na očích a smlouvat dnes nebudeš.',
+    actionLabel: 'Odejít',
+    when: {
+      reputation: { faction: 'townsfolk', max: -20 }
+    }
   },
   {
     id: 'katerina-ambient',
