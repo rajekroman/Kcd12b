@@ -28,31 +28,31 @@ const installCraftingSave = async (
       JSON.stringify({
         version: 5,
         player: {
-          x: value.player.x,
-          y: value.player.y,
-          health: value.player.health ?? 100,
+          x: value.options.player.x,
+          y: value.options.player.y,
+          health: value.options.player.health ?? 100,
           stamina: 100
         },
         quest: { id: 'first-steel', step: 'complete', banditDefeated: true },
-        world: { dayClock: value.dayClock, huntedAnimals: [] },
+        world: { dayClock: value.options.dayClock, huntedAnimals: [] },
         economy: {
           inventory: {
             groschen: 85,
             maxWeight: 25,
-            items: value.items,
-            equipment: value.equipment ?? {
+            items: value.options.items,
+            equipment: value.options.equipment ?? {
               weapon: 'bohdan-sword',
               armor: null,
               accessory: null
             }
           },
-          merchant
+          merchant: value.merchant
         },
         reputation: { peasants: 15, townsfolk: 8, nobility: 2 },
         savedAt: '2026-07-18T08:00:00.000Z'
       })
     );
-  }, options);
+  }, { options, merchant });
 };
 
 const continueGame = async (page: Page): Promise<void> => {
@@ -182,7 +182,7 @@ test('Bohdanova kovárna nahradí vybavený meč a uloží nový výrobek', asyn
   await expect(page.locator('[data-item="tempered-sword"]')).toContainText('Kalený Bohdanův meč');
   await page.locator('[data-item="tempered-sword"] [data-economy-action="equip"]').click();
   await expect(body).toHaveAttribute('data-equipped-weapon', 'tempered-sword');
-  await expect(body).toHaveAttribute('data-attack-bonus', '8');
+  await expect(page.locator('#economy-summary')).toContainText('Útok +8');
 
   const save = await readPrimarySave(page);
   expect(JSON.stringify(save)).toContain('tempered-sword');
