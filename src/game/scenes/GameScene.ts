@@ -69,6 +69,8 @@ export class GameScene extends Phaser.Scene {
   private dayClock = 0;
   private nightOverlay!: Phaser.GameObjects.Rectangle;
   private saveSystem!: SaveSystem;
+  private saveQueue: Promise<void> = Promise.resolve();
+  private saveReady = false;
   private continueGame = false;
   private controlCleanup: Array<() => void> = [];
   private attackDirection: AttackDirection = 'high';
@@ -92,10 +94,11 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     document.body.classList.add('game-active');
     document.body.dataset.scene = 'game';
+    document.body.dataset.saveReady = 'false';
     this.physics.world.setBounds(0, 0, 1200, 800);
     this.cameras.main.setBounds(0, 0, 1200, 800);
     this.cameras.main.setBackgroundColor('#3f4c31');
-    this.saveSystem = new SaveSystem(window.localStorage);
+    this.saveSystem = SaveSystem.forBrowser(window.indexedDB, window.localStorage);
 
     this.createWorld();
     this.player = this.physics.add
@@ -135,20 +138,22 @@ export class GameScene extends Phaser.Scene {
 
     this.bindControls();
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
-    this.loadIfRequested();
     this.emitHud();
+    void this.initializeSaveState();
 
     this.time.addEvent({ delay: 10000, loop: true, callback: () => this.save() });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unbindControls();
       document.body.classList.remove('game-active');
       delete document.body.dataset.scene;
+      delete document.body.dataset.saveReady;
+      delete document.body.dataset.lastSave;
       if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
     });
   }
 
   update(time: number, delta: number): void {
-    if (this.dialogueOpen) {
+    if (!this.saveReady || this.dialogueOpen) {
       this.player.setVelocity(0);
       return;
     }
@@ -356,6 +361,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private interact = (): void => {
+    if (!this.saveReady) return;
     const distance = Phaser.Math.Distance.BetweenPoints(this.player, this.smith);
     if (distance > 55) {
       EventBus.emit(GameEvents.MESSAGE, 'Nikdo není dost blízko.');
@@ -385,7 +391,9 @@ export class GameScene extends Phaser.Scene {
   };
 
   private attack = (direction = this.attackDirection, time = this.time.now): void => {
-    if (time < this.playerAttackReadyAt || this.dialogueOpen || this.blocking) return;
+    if (!this.saveReady || time < this.playerAttackReadyAt || this.dialogueOpen || this.blocking) {
+      return;
+    }
 
     const resolution = resolveDirectionalAttack({
       baseDamage: 24,
@@ -452,7 +460,9 @@ export class GameScene extends Phaser.Scene {
   };
 
   private startBlock = (time = this.time.now): void => {
-    if (this.dialogueOpen || time < this.dodgingUntil || this.stamina < 5) return;
+    if (!this.saveReady || this.dialogueOpen || time < this.dodgingUntil || this.stamina < 5) {
+      return;
+    }
     if (!this.blocking) this.blockStartedAt = time;
     this.blocking = true;
     this.player.setTint(0xd8e4ff);
@@ -468,6 +478,7 @@ export class GameScene extends Phaser.Scene {
 
   private dodge = (time = this.time.now): void => {
     if (
+      !this.saveReady ||
       this.dialogueOpen ||
       time < this.dodgeCooldownUntil ||
       time < this.dodgingUntil ||
@@ -637,24 +648,43 @@ export class GameScene extends Phaser.Scene {
     this.emitHud();
   };
 
-  private save(): void {
-    this.saveSystem.save({
-      player: { x: this.player.x, y: this.player.y, health: this.health, stamina: this.stamina },
-      quest: this.quest
-    });
+  private async initializeSaveState(): Promise<void> {
+    if (this.continueGame) {
+      const save = await this.saveSystem.load();
+      if (save) {
+        this.player.setPosition(save.player.x, save.player.y);
+        this.health = save.player.health;
+        this.stamina = save.player.stamina;
+        this.quest = save.quest;
+        this.dayClock = save.world.dayClock;
+        if (this.quest.banditDefeated) {
+          this.bandit.disableBody(true, true);
+          this.banditGuardIndicator.setVisible(false);
+        }
+      }
+    }
+
+    this.saveReady = true;
+    document.body.dataset.saveReady = 'true';
+    this.emitHud();
   }
 
-  private loadIfRequested(): void {
-    if (!this.continueGame) return;
-    const save = this.saveSystem.load();
-    if (!save) return;
-    this.player.setPosition(save.player.x, save.player.y);
-    this.health = save.player.health;
-    this.stamina = save.player.stamina;
-    this.quest = save.quest;
-    if (this.quest.banditDefeated) {
-      this.bandit.disableBody(true, true);
-      this.banditGuardIndicator.setVisible(false);
-    }
+  private save(): void {
+    if (!this.saveReady) return;
+    const snapshot = {
+      player: { x: this.player.x, y: this.player.y, health: this.health, stamina: this.stamina },
+      quest: this.quest,
+      world: { dayClock: this.dayClock }
+    };
+
+    this.saveQueue = this.saveQueue
+      .then(async () => {
+        await this.saveSystem.save(snapshot);
+        document.body.dataset.lastSave = 'ok';
+      })
+      .catch(() => {
+        document.body.dataset.lastSave = 'error';
+        EventBus.emit(GameEvents.MESSAGE, 'Uložení hry se nezdařilo.');
+      });
   }
 }
