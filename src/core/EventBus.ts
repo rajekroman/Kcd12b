@@ -13,5 +13,7 @@ export const GameEvents = {
   BLOCK_START: 'input:block-start',
   BLOCK_END: 'input:block-end',
   DODGE: 'input:dodge',
-  ATTACK_DIRECTION: 'input:attack-direction'
+  ATTACK_DIRECTION: 'input:attack-direction',
+  ECONOMY_CHANGED: 'economy:changed',
+  CONSUMABLE_USED: 'economy:consumable-used'
 } as const;
