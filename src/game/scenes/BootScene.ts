@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { registerCharacterAtlases } from '../../systems/CharacterAtlasSystem';
+import { registerPortraitAtlases } from '../../systems/PortraitSystem';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     registerCharacterAtlases(this);
+    registerPortraitAtlases(this);
     this.createGroundTexture('grass', 0x4b5b37, 0x38452d);
     this.createGroundTexture('road', 0x75664f, 0x594c3c);
     this.createObstacleTexture('tree', 0x2f3e27, 0x5b3f28);
