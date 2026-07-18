@@ -33,6 +33,7 @@ npm run test:e2e
 - Směr útoku/krytu: pohyb postavy nebo klávesy 1–5.
 - Kryt: držet F.
 - Úhyb: Shift.
+- Adaptivní hudba: M nebo tlačítko Hudba.
 
 ### Mobil
 
@@ -41,6 +42,7 @@ npm run test:e2e
 - Útok: klepnutí na tlačítko Útok.
 - Směr útoku: táhnout po tlačítku Útok směrem nahoru, doleva, doprava nebo šikmo dolů.
 - Obrana: držet Kryt; tlačítko Úhyb provede rychlý pohyb posledním směrem.
+- Hudba: samostatné tlačítko v pravém horním rohu.
 
 ## Inventář a obchod
 
@@ -60,8 +62,14 @@ Strážný Vojtěch má viditelný zorný kužel odvozený z aktuálního směru
 
 První verze systému vyhodnocuje úhel a vzdálenost. Budovy a stromy zatím výhled fyzicky nezakrývají a hra ještě nepoužívá přikrčení, hluk nebo světelnost prostředí.
 
+## Adaptivní hudba
+
+Hudba je syntetizovaná přímo v prohlížeči pomocí WebAudio a nepoužívá externí nebo převzaté nahrávky. Samostatné autorské motivy reagují na úsvit, den, soumrak a noc. Při podezření přibude temný pulz a při poplachu se zvýší tempo, basová aktivita i perkuse.
+
+Zvuk musí být kvůli pravidlům prohlížeče poprvé spuštěn uživatelským gestem. Tlačítko následně ukazuje aktuální hudební náladu a umožňuje hudbu ztlumit nebo obnovit bez restartu hry.
+
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření a poplach, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.
