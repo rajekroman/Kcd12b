@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M3.1 Character Art — původní společné procedurální panáčky nahradil systém dvanácti ručně definovaných pixelových atlasů. Hráč, lapka i všech deset profesí obyvatel mají vlastní siluetu, paletu, oděv, pokrývku hlavy, pracovní nástroj a animované stavy.
+M3.2 Expressive Portraits — všech deset obyvatel má samostatný ručně komponovaný portrétní atlas 48 × 56 px se šesti výrazy. Dialogová data explicitně volí emoci a panel zobrazuje správnou tvář podle questu, obsahu rozhovoru a reputace.
 
 ## Funguje
 
@@ -12,10 +12,15 @@ M3.1 Character Art — původní společné procedurální panáčky nahradil sy
 - Pohyb WASD/šipky i dotyková tlačítka.
 - Kolize, kamera a testovací oblast Záhoří.
 - Dvanáct samostatných charakterových atlasů ve formátu 20 × 28 px.
-- Šest ručně definovaných stavů na postavu: klid, dva kroky, akce, zranění a spánek.
+- Šest animovaných stavů na herní postavu.
 - Deset profesních NPC se skutečně odlišnou siluetou, pokrývkou hlavy a nástrojem.
-- Obyvatelé přepínají chůzi, spánek a profesní pracovní akce podle denního režimu.
-- Hráč a lapka reagují animačně na pohyb, útok a zásah.
+- Deset samostatných portrétních identit ve formátu 48 × 56 px.
+- Šest výrazů na portrét: klidný, vlídný, přísný, ustaraný, nedůvěřivý a hrdý.
+- Celkem 60 ručně komponovaných výrazových frameů.
+- Dialogové uzly explicitně určují portrétní emoci.
+- Bohdan mění výraz mezi zadáním úkolu, varováním a pochvalou.
+- Kateřinin portrét reaguje na nízkou, neutrální a vysokou měšťanskou pověst.
+- Přístupný dialogový stav obsahuje jméno, text i slovní popis emoce.
 - Quest „První ocel“ je definován daty a publikuje jednorázovou událost dokončení.
 - Pět směrů útoku, směrový kryt, dokonalý kryt a úhyb.
 - Inventář, tři sloty vybavení, spotřební předměty a atomický obchod.
@@ -30,9 +35,10 @@ M3.1 Character Art — původní společné procedurální panáčky nahradil sy
 
 ## Známé limity
 
-- Atlasy jsou ručně kreslené kódem z pixelových obdélníků; zatím nejsou exportované jako externí PNG assety pro úpravy v grafickém editoru.
+- Herní a portrétní atlasy vznikají za běhu z kódu a zatím nejsou exportované jako externí PNG assety.
+- Portréty mají šest výrazů, ale nemají fonémové animace rtů ani mrkání.
+- Dialogový panel zatím zobrazuje pouze mluvící NPC, nikoli protilehlý portrét hráče.
 - Postavy používají boční zrcadlení pro směr doleva a doprava, nikoli samostatné čtyřsměrné sady.
-- Obličejové emoce jsou zatím omezené na herní sprite a nemají samostatné dialogové portréty.
 - Navigace NPC používá přímý pohyb s Arcade Physics, nikoli pathfinding.
 - První stealth pozorovatel je pouze strážný Vojtěch a kužel zatím neprovádí okluzi přes překážky.
 - Hudba je syntetizovaná v prohlížeči a audio nastavení se zatím neukládá.
@@ -40,6 +46,6 @@ M3.1 Character Art — původní společné procedurální panáčky nahradil sy
 
 ## Další tři priority
 
-1. Přidat portréty a výrazové varianty NPC.
-2. Přidat počasí a světelné změny prostředí.
-3. Přidat lov, alchymii, kovářství a koně.
+1. Přidat počasí a světelné změny prostředí.
+2. Přidat lov a faunu.
+3. Přidat alchymii, kovářství a koně.
