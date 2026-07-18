@@ -3,7 +3,7 @@ import { getEconomyState } from '../core/EconomyStore';
 import { EventBus, GameEvents } from '../core/EventBus';
 import type { AttackDirection } from '../systems/CombatSystem';
 import { getEquipmentStats } from '../systems/InventorySystem';
-import { resolveHuntingHit, type HuntingAttack } from '../systems/HuntingSystem';
+import type { HuntingAttack } from '../systems/HuntingSystem';
 
 const DIRECTION_VECTORS: Record<AttackDirection, { x: number; y: number }> = {
   high: { x: 0, y: -1 },
@@ -99,7 +99,7 @@ export class ConfirmedAttackController {
     const direction = document.body.dataset.attackDirection;
     return direction && direction in DIRECTION_VECTORS
       ? (direction as AttackDirection)
-      : 'right';
+      : 'high';
   }
 
   private isFormControl(target: EventTarget | null): boolean {
@@ -107,5 +107,3 @@ export class ConfirmedAttackController {
       target.matches('button, input, textarea, select, [contenteditable="true"]');
   }
 }
-
-void resolveHuntingHit;
