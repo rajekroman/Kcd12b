@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.0 — handcrafted character atlases
+
+- Nahrazen společný procedurální placeholder dvanácti samostatnými charakterovými atlasy.
+- Přidán hráč, lapka a deset unikátních profesních obyvatel.
+- Každá postava má ručně definovanou siluetu, paletu, oděv, pokrývku hlavy a nástroj.
+- Přidáno šest stavů na postavu: klid, dva kroky, akce, zranění a spánek.
+- Celkem je generováno 72 ručně komponovaných pixelových snímků ve formátu 20 × 28 px.
+- Přidáno 60 stabilních Phaser animací pro klid, chůzi, akci, zásah a spánek.
+- Obyvatelé používají atlas přímo podle stabilního NPC ID a již nepoužívají runtime tint.
+- Chůze reaguje na fyzickou rychlost a postavy se zrcadlí podle směru pohybu.
+- Pracující obyvatelé pravidelně spouštějí profesní akce podle svého denního režimu.
+- Hráč a lapka reagují animačně na pohyb, útok, přípravu útoku a zásah.
+- Přidána čistá validační vrstva kontrolující hranice, celočíselné pixely, hustotu a unikátnost atlasů.
+- Zachován původní stabilní formát runtime snapshotu NPC rozvrhů.
+- Přidány desktopové a mobilní Playwright testy registrace atlasů a přechodů hráčových animací.
+
 ## 0.9.0 — adaptive procedural audio
 
 - Přidány autorské procedurální motivy pro úsvit, den, soumrak a noc.
