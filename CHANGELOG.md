@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0 — data-driven content
+
+- Quest „První ocel“ byl přesunut do datové definice stavů, objektivů a přechodů.
+- Přidán generický quest engine vyhodnocující události, podmínky a efekty.
+- Bohdanovy dialogy byly přesunuty do samostatných datových uzlů.
+- Přidán výběr dialogu podle NPC, priority, questového kroku a příznaků.
+- Dialogové efekty deklarativně spouštějí questové události.
+- `GameScene` již nerozhoduje texty dialogů ani questové přechody hardcoded větvením.
+- Opraven text po předčasném poražení lapky: hráč je správně poslán zpět za Bohdanem.
+- Zachována kompatibilita existujících save a veřejných questových pomocných funkcí.
+- Přidány jednotkové testy definic, priorit, podmínek, efektů a přechodů.
+- Přidán Playwright test ověřující stabilní ID vybraného datového dialogového uzlu.
+
 ## 0.3.0 — versioned persistence
 
 - IndexedDB je nyní primární úložiště rozehrané hry.

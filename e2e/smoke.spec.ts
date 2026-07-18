@@ -26,6 +26,22 @@ const startNewGame = async (page: Page): Promise<void> => {
   await expect(page.locator('#game-status')).toContainText('Promluv s kovářem Bohdanem');
 };
 
+const continueGame = async (page: Page): Promise<void> => {
+  await page.goto('/Kcd12b/');
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-scene', 'menu');
+  await expect(body).toHaveAttribute('data-menu-ready', 'true');
+  await expect(body).toHaveAttribute('data-has-save', 'true');
+
+  const canvas = page.locator('canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Canvas bounds are not available.');
+  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.77);
+
+  await expect(body).toHaveAttribute('data-scene', 'game');
+  await expect(body).toHaveAttribute('data-save-ready', 'true');
+};
+
 test('přechod menu → hra spustí UI scénu a aktuální HUD', async ({ page }, testInfo) => {
   await startNewGame(page);
 
@@ -63,6 +79,29 @@ test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
   expect(staminaAfterDodge).toBeLessThanOrEqual(staminaBeforeDodge - 20);
 });
 
+test('datové podmínky vyberou správný Bohdanův dialog', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'chronicles-of-bohemia.save.v2',
+      JSON.stringify({
+        version: 2,
+        player: { x: 370, y: 340, health: 92, stamina: 81 },
+        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
+        world: { dayClock: 18 },
+        savedAt: '2026-07-18T08:00:00.000Z'
+      })
+    );
+  });
+
+  await continueGame(page);
+  const body = page.locator('body');
+  await page.keyboard.press('e');
+
+  await expect(body).toHaveAttribute('data-dialogue', 'Kovář Bohdan');
+  await expect(body).toHaveAttribute('data-dialogue-id', 'bohdan-offer-first-steel');
+  await expect(page.locator('#game-status')).toContainText('Na východní cestě se usadil lapka');
+});
+
 test('legacy save verze 1 se migruje do IndexedDB a pokračování jej obnoví', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem(
@@ -76,19 +115,8 @@ test('legacy save verze 1 se migruje do IndexedDB a pokračování jej obnoví',
     );
   });
 
-  await page.goto('/Kcd12b/');
+  await continueGame(page);
   const body = page.locator('body');
-  await expect(body).toHaveAttribute('data-scene', 'menu');
-  await expect(body).toHaveAttribute('data-menu-ready', 'true');
-  await expect(body).toHaveAttribute('data-has-save', 'true');
-
-  const canvas = page.locator('canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) throw new Error('Canvas bounds are not available.');
-  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.77);
-
-  await expect(body).toHaveAttribute('data-scene', 'game');
-  await expect(body).toHaveAttribute('data-save-ready', 'true');
   await expect(body).toHaveAttribute('data-health', '77');
   await expect(body).toHaveAttribute('data-stamina', '44');
   await expect(page.locator('#game-status')).toContainText('Vyžeň lapku');

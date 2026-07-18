@@ -2,11 +2,35 @@
 
 ## Architektura
 
-- `game/scenes`: boot, menu, svět a UI.
-- `systems`: čistá doménová logika questů, ukládání a souboje.
+- `game/scenes`: boot, menu, svět a UI; scény orchestruji systémy, ale nevlastní textový obsah.
+- `data`: deklarativní definice questů, dialogů a budoucího obsahu.
+- `systems`: čistá doménová logika dialogů, questů, ukládání a soubojů.
 - `core/EventBus`: oddělení herní scény a UI.
 - `tests`: jednotkové regresní testy.
 - `e2e`: browserové scénáře proti produkčnímu buildu v GitHub Pages podadresáři.
+
+## Datově řízený obsah
+
+`src/data/quests.ts` obsahuje definice:
+
+- počátečního stavu,
+- kroků a jejich podmíněných objektivů,
+- událostí,
+- podmíněných přechodů,
+- změn příznaků.
+
+`QuestSystem.applyQuestEvent` vybere první přechod odpovídající questu, kroku, události a podmínkám. `GameScene` pouze hlásí doménové události, například `bandit-defeated`.
+
+`src/data/dialogues.ts` obsahuje samostatné uzly s:
+
+- stabilním ID,
+- NPC ID,
+- prioritou,
+- textem a popiskem akce,
+- podmínkami nad questovým kontextem,
+- deklarativními efekty.
+
+`DialogueSystem.getDialogueForNpc` vybere nejvyšší odpovídající prioritu. `applyDialogueEffects` převádí efekty na questové události. Rozšiřování obsahu proto nesmí přidávat textové `if/switch` větve do herních scén.
 
 ## Stav hry a persistence
 

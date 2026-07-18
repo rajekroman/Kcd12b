@@ -10,9 +10,9 @@ import {
   resolveDirectionalAttack,
   type AttackDirection
 } from '../../systems/CombatSystem';
+import { applyDialogueEffects, getDialogueForNpc } from '../../systems/DialogueSystem';
 import {
   advanceQuestAfterBanditDefeat,
-  advanceQuestAfterDialogue,
   createInitialQuestState,
   getQuestObjective,
   type QuestState
@@ -368,20 +368,23 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const dialogue = getDialogueForNpc('smith-bohdan', { quest: this.quest });
+    if (!dialogue) {
+      EventBus.emit(GameEvents.MESSAGE, 'Bohdan teď nemá co říct.');
+      return;
+    }
+
     this.dialogueOpen = true;
     this.endBlock();
-    const firstMeeting = this.quest.step === 'meet-smith';
     EventBus.emit(GameEvents.DIALOGUE_OPEN, {
-      speaker: 'Kovář Bohdan',
-      text: firstMeeting
-        ? 'Na východní cestě se usadil lapka. Vezmi tenhle meč a ukaž, že nejsi jen učedník.'
-        : this.quest.step === 'complete'
-          ? 'Dobrá práce. Ocel poslouchá toho, kdo nezaváhá.'
-          : 'Lapka je stále na cestě. Směr útoku vyber pohybem nebo klávesami 1–5.',
-      actionLabel: 'Pokračovat',
+      dialogueId: dialogue.id,
+      speaker: dialogue.speaker,
+      text: dialogue.text,
+      actionLabel: dialogue.actionLabel,
       onClose: () => {
-        if (firstMeeting) {
-          this.quest = advanceQuestAfterDialogue(this.quest);
+        const nextQuest = applyDialogueEffects(this.quest, dialogue);
+        if (nextQuest !== this.quest) {
+          this.quest = nextQuest;
           this.emitHud();
           this.save();
         }
@@ -453,7 +456,13 @@ export class GameScene extends Phaser.Scene {
       this.banditGuardIndicator.setVisible(false);
       this.pendingBanditAttack = undefined;
       this.quest = advanceQuestAfterBanditDefeat(this.quest);
-      EventBus.emit(GameEvents.MESSAGE, 'Lapka byl poražen. Úkol dokončen.');
+      const questComplete = this.quest.step === 'complete';
+      EventBus.emit(
+        GameEvents.MESSAGE,
+        questComplete
+          ? 'Lapka byl poražen. Úkol dokončen.'
+          : 'Lapka byl poražen. Vrať se za kovářem Bohdanem.'
+      );
       this.save();
     }
     this.emitHud();
