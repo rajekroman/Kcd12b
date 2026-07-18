@@ -31,11 +31,20 @@ Směr kuželu sleduje fyzickou rychlost strážného a při stání zachovává 
 - `data-suspicion`,
 - `data-stealth-level`.
 
-Změna úrovně vyvolá stavovou zprávu. Poplach navíc krátce otřese kamerou.
+Změna úrovně vyvolá stavovou zprávu. Poplach navíc krátce otřese kamerou a adaptivní audio systém přepne do naléhavější hudební nálady.
 
 ## Robustnost vstupů
 
-`CoarseKeyboardFallbackController` zachytí velmi krátký stisk mezerníku na zařízení s hrubým ukazatelem. Na následujícím animačním snímku odešle útok pouze tehdy, když Phaser mezitím nezměnil výdrž. Záloha proto nezdvojuje úspěšně zachycený útok.
+`KeyboardInputFallbackController` chrání krátké jednorázové vstupy, které mohou začít i skončit mezi dvěma snímky Phaseru. Po dvou animačních snímcích porovná přístupný herní stav před a po stisku. Záložní událost vyšle pouze tehdy, když Phaser vstup nezpracoval.
+
+Controller pokrývá:
+
+- interakci E,
+- útok Space,
+- úhyb Shift,
+- volbu směru klávesami 1–5.
+
+Úspěšně zachycený vstup se nezdvojí. Pohybové klávesy zůstávají přímo spravované Phaserem, protože jde o držený stav, nikoli jednorázovou akci.
 
 ## Automatická validace
 
@@ -43,8 +52,9 @@ Playwright v desktopovém i mobilním profilu ověřuje:
 
 1. hráče za strážným, který zůstane neviditelný a v klidu,
 2. hráče před strážným, který přejde do podezření a poplachu,
-3. diagonální fyzický únik z kuželu a následný návrat podezření na nulu,
-4. stabilní útok mezerníkem také na mobilním emulačním profilu.
+3. fyzický únik z dosahu a následný návrat podezření na nulu,
+4. stabilní jednorázové herní vstupy na desktopovém i mobilním emulačním profilu,
+5. hudební reakci na stavy Podezření a Poplach.
 
 ## Současná omezení
 
