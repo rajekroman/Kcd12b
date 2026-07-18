@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getEconomyState } from '../../core/EconomyStore';
 import { EventBus, GameEvents } from '../../core/EventBus';
 import {
   ATTACK_DIRECTIONS,
@@ -11,6 +12,7 @@ import {
   type AttackDirection
 } from '../../systems/CombatSystem';
 import { applyDialogueEffects, getDialogueForNpc } from '../../systems/DialogueSystem';
+import { getEquipmentStats } from '../../systems/InventorySystem';
 import {
   advanceQuestAfterBanditDefeat,
   createInitialQuestState,
@@ -34,6 +36,10 @@ interface TouchState {
 interface PendingBanditAttack {
   direction: AttackDirection;
   landsAt: number;
+}
+
+interface ConsumableUsedPayload {
+  healing: number;
 }
 
 type MovementKeys = Record<'W' | 'A' | 'S' | 'D' | 'E' | 'SPACE', Phaser.Input.Keyboard.Key>;
@@ -339,12 +345,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const incomingDamage = calculateDamage({
-      baseDamage: 12,
-      staminaRatio: 0.8,
-      type: 'slash',
-      armor: 'cloth'
-    });
+    const equipment = getEquipmentStats(getEconomyState().inventory);
+    const incomingDamage = Math.max(
+      1,
+      calculateDamage({
+        baseDamage: 12,
+        staminaRatio: 0.8,
+        type: 'slash',
+        armor: 'cloth'
+      }) - equipment.armor
+    );
     const defense = resolveDefense({
       incomingDamage,
       incomingDirection: pending.direction,
@@ -414,8 +424,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const equipment = getEquipmentStats(getEconomyState().inventory);
     const resolution = resolveDirectionalAttack({
-      baseDamage: 24,
+      baseDamage: 19 + equipment.attack,
       staminaRatio: this.stamina / 100,
       type: 'slash',
       armor: 'cloth',
@@ -647,6 +658,8 @@ export class GameScene extends Phaser.Scene {
     EventBus.on(GameEvents.DODGE, this.dodge);
     EventBus.on(GameEvents.ATTACK_DIRECTION, this.onAttackDirection);
     EventBus.on(GameEvents.UI_READY, this.onUiReady);
+    EventBus.on(GameEvents.ECONOMY_CHANGED, this.onEconomyChanged);
+    EventBus.on(GameEvents.CONSUMABLE_USED, this.onConsumableUsed);
   }
 
   private unbindControls(): void {
@@ -659,6 +672,8 @@ export class GameScene extends Phaser.Scene {
     EventBus.off(GameEvents.DODGE, this.dodge);
     EventBus.off(GameEvents.ATTACK_DIRECTION, this.onAttackDirection);
     EventBus.off(GameEvents.UI_READY, this.onUiReady);
+    EventBus.off(GameEvents.ECONOMY_CHANGED, this.onEconomyChanged);
+    EventBus.off(GameEvents.CONSUMABLE_USED, this.onConsumableUsed);
   }
 
   private onAttackInput = (direction?: AttackDirection): void => {
@@ -671,6 +686,22 @@ export class GameScene extends Phaser.Scene {
 
   private onUiReady = (): void => {
     this.emitHud();
+  };
+
+  private onEconomyChanged = (): void => {
+    this.save();
+  };
+
+  private onConsumableUsed = ({ healing }: ConsumableUsedPayload): void => {
+    const previousHealth = this.health;
+    this.health = Math.min(100, this.health + Math.max(0, healing));
+    const restored = this.health - previousHealth;
+    EventBus.emit(
+      GameEvents.MESSAGE,
+      restored > 0 ? `Obnoveno ${restored} zdraví.` : 'Zdraví je již plné.'
+    );
+    this.emitHud();
+    this.save();
   };
 
   private async initializeSaveState(): Promise<void> {
