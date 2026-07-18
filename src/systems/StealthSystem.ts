@@ -51,6 +51,9 @@ export const DEFAULT_SUSPICION_CONFIG: SuspicionConfig = {
   closeRangeMultiplier: 1.2
 };
 
+const VISION_DISTANCE_EPSILON = 1e-7;
+const VISION_ANGLE_EPSILON_DEGREES = 1e-7;
+
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.max(minimum, Math.min(maximum, value));
 
@@ -101,7 +104,9 @@ export const sampleVisionCone = (cone: VisionCone, target: WorldVector): VisionS
   const distanceRatio = validRange > 0 ? distance / validRange : Number.POSITIVE_INFINITY;
 
   return {
-    visible: distance <= validRange && angleDegrees <= halfAngle,
+    visible:
+      distance <= validRange + VISION_DISTANCE_EPSILON &&
+      angleDegrees <= halfAngle + VISION_ANGLE_EPSILON_DEGREES,
     distance,
     distanceRatio,
     angleDegrees
