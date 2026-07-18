@@ -28,6 +28,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "Bootstrap chunk hashes:"
+          for file in .bootstrap/chunk-*; do
+            printf '%s ' "$(basename "$file")"
+            git hash-object "$file"
+          done
           cat .bootstrap/chunk-* | base64 --decode > /tmp/kcd12b-project.tar.gz
           echo "9d7cbd7afd9fbd2f6fbcb6a622bb0d9611f8b210e7635b15977fdf0f5e832b07  /tmp/kcd12b-project.tar.gz" | sha256sum --check -
           tar -xzf /tmp/kcd12b-project.tar.gz -C .
