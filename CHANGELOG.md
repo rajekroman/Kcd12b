@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — versioned persistence
+
+- IndexedDB je nyní primární úložiště rozehrané hry.
+- Přidán localStorage fallback pro nedostupné nebo chybující IndexedDB.
+- Save formát byl povýšen na verzi 2 a ukládá také fázi denního cyklu.
+- Legacy save verze 1 se automaticky validuje, migruje a po úspěšném přenosu odstraní.
+- Poškozený primární záznam již nezakryje validní fallback.
+- Úplné selhání obou úložišť je nahlášeno místo tichého předstírání úspěchu.
+- Autosavy jsou serializované a nemohou přepsat novější stav starším dokončeným zápisem.
+- Menu kontroluje save asynchronně a herní vstupy čekají na dokončení načtení.
+- Přidán Playwright test skutečné migrace localStorage → IndexedDB a obnovení pokračování.
+
 ## 0.2.1 — melee impact range
 
 - Telegrafovaný nepřátelský útok při dopadu znovu měří skutečnou vzdálenost.
