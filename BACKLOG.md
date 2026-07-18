@@ -31,5 +31,6 @@
 - [x] Přidat portréty a výrazové varianty.
 - [x] Přidat počasí a dynamické světelné změny prostředí.
 - [x] Přidat lov a faunu.
-- [ ] Přidat alchymii a kovářství.
+- [x] Přidat alchymii a kovářství.
 - [ ] Přidat koně a jezdecký systém.
+- [ ] Rozšířit lov o luk, stopy, porcování a populační respawn.
