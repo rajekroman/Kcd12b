@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { createInitialEconomyState } from '../systems/InventorySystem';
 import {
   CURRENT_SAVE_VERSION,
   FALLBACK_SAVE_KEY,
   LEGACY_SAVE_KEY,
+  LEGACY_SAVE_KEY_V2,
   SaveSystem,
   migrateGameSave,
   type AsyncSaveStore,
@@ -75,13 +77,14 @@ class MemoryAsyncStore implements AsyncSaveStore {
 const input = {
   player: { x: 12, y: 34, health: 90, stamina: 55 },
   quest: createInitialQuestState(),
-  world: { dayClock: 27 }
+  world: { dayClock: 27 },
+  economy: createInitialEconomyState()
 };
 
 const fixedNow = () => new Date('2026-07-18T08:00:00.000Z');
 
 describe('SaveSystem', () => {
-  it('uloží, načte a smaže stav v primárním async úložišti', async () => {
+  it('uloží, načte a smaže stav verze 3 v primárním async úložišti', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
     const saves = new SaveSystem({ primary, fallback, now: fixedNow });
@@ -90,6 +93,7 @@ describe('SaveSystem', () => {
 
     expect(stored.version).toBe(CURRENT_SAVE_VERSION);
     expect(stored.savedAt).toBe('2026-07-18T08:00:00.000Z');
+    expect(stored.economy.inventory.equipment.weapon).toBe('bohdan-sword');
     expect((await saves.load())?.player.x).toBe(12);
     expect(fallback.getItem(FALLBACK_SAVE_KEY)).toBeNull();
 
@@ -97,7 +101,7 @@ describe('SaveSystem', () => {
     expect(await saves.load()).toBeNull();
   });
 
-  it('migruje legacy localStorage verzi 1 do IndexedDB verze 2', async () => {
+  it('migruje legacy verzi 1 na verzi 3 s výchozí ekonomikou', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
     fallback.setItem(
@@ -113,13 +117,37 @@ describe('SaveSystem', () => {
 
     const migrated = await saves.load();
 
-    expect(migrated?.version).toBe(2);
+    expect(migrated?.version).toBe(3);
     expect(migrated?.world.dayClock).toBe(0);
-    expect((primary.value as GameSave).version).toBe(2);
+    expect(migrated?.economy.inventory.groschen).toBe(85);
+    expect((primary.value as GameSave).version).toBe(3);
     expect(fallback.getItem(LEGACY_SAVE_KEY)).toBeNull();
   });
 
-  it('použije fallback, když primární úložiště selže', async () => {
+  it('migruje verzi 2 a zachová světový čas', async () => {
+    const primary = new MemoryAsyncStore();
+    const fallback = new MemoryStorage();
+    fallback.setItem(
+      LEGACY_SAVE_KEY_V2,
+      JSON.stringify({
+        version: 2,
+        player: input.player,
+        quest: input.quest,
+        world: { dayClock: 61 },
+        savedAt: '2026-07-18T07:00:00.000Z'
+      })
+    );
+    const saves = new SaveSystem({ primary, fallback });
+
+    const migrated = await saves.load();
+
+    expect(migrated?.version).toBe(3);
+    expect(migrated?.world.dayClock).toBe(61);
+    expect(migrated?.economy.merchant.stock.length).toBeGreaterThan(0);
+    expect(fallback.getItem(LEGACY_SAVE_KEY_V2)).toBeNull();
+  });
+
+  it('použije fallback verze 3, když primární úložiště selže', async () => {
     const primary = new MemoryAsyncStore();
     primary.setFailures = 1;
     const fallback = new MemoryStorage();
@@ -129,7 +157,7 @@ describe('SaveSystem', () => {
 
     const raw = fallback.getItem(FALLBACK_SAVE_KEY);
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw ?? '{}').version).toBe(2);
+    expect(JSON.parse(raw ?? '{}').version).toBe(3);
     expect((await saves.load())?.world.dayClock).toBe(27);
   });
 
@@ -140,7 +168,7 @@ describe('SaveSystem', () => {
     fallback.setItem(
       FALLBACK_SAVE_KEY,
       JSON.stringify({
-        version: 2,
+        version: 3,
         ...input,
         savedAt: '2026-07-18T08:00:00.000Z'
       })
@@ -152,12 +180,12 @@ describe('SaveSystem', () => {
 
   it('neplatný primární záznam nezakryje platný fallback', async () => {
     const primary = new MemoryAsyncStore();
-    primary.value = { version: 2, player: null };
+    primary.value = { version: 3, player: null };
     const fallback = new MemoryStorage();
     fallback.setItem(
       FALLBACK_SAVE_KEY,
       JSON.stringify({
-        version: 2,
+        version: 3,
         ...input,
         savedAt: '2026-07-18T08:00:00.000Z'
       })
@@ -165,7 +193,24 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect((await saves.load())?.player.health).toBe(90);
-    expect((primary.value as GameSave).player.health).toBe(90);
+    expect((primary.value as GameSave).economy.inventory.groschen).toBe(85);
+  });
+
+  it('odmítne neplatné ekonomické vybavení', () => {
+    const invalid = {
+      version: 3,
+      ...input,
+      economy: {
+        ...input.economy,
+        inventory: {
+          ...input.economy.inventory,
+          equipment: { weapon: 'bread', armor: null, accessory: null }
+        }
+      },
+      savedAt: '2026-07-18T08:00:00.000Z'
+    };
+
+    expect(migrateGameSave(invalid)).toBeNull();
   });
 
   it('ohlásí chybu, když nelze zapisovat do žádného úložiště', async () => {
@@ -183,7 +228,7 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect(await saves.load()).toBeNull();
-    expect(migrateGameSave({ version: 2 })).toBeNull();
+    expect(migrateGameSave({ version: 3 })).toBeNull();
     expect(migrateGameSave(null)).toBeNull();
   });
 });
