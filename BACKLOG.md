@@ -20,7 +20,7 @@
 - [x] Převést save systém na IndexedDB s migracemi.
 - [x] Přidat datově řízené dialogy a questy.
 - [x] Přidat 10 NPC a jejich denní režimy.
-- [ ] Přidat inventář, vybavení a obchod.
+- [x] Přidat inventář, vybavení a obchod.
 - [ ] Přidat pověst pro sedláky, měšťany a šlechtu.
 - [ ] Přidat stealth indikátor, světelné kužely a stav podezření.
 - [ ] Přidat dynamické vrstvy hudby přes WebAudio.
