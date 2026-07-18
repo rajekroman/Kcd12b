@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { registerSW } from 'virtual:pwa-register';
 import { AdaptiveAudioController } from './game/AdaptiveAudioController';
+import { CharacterAnimationController } from './game/CharacterAnimationController';
 import { gameConfig } from './game/config';
 import { InventoryUiController } from './game/InventoryUiController';
 import { KeyboardInputFallbackController } from './game/KeyboardInputFallbackController';
@@ -16,6 +17,7 @@ const game = new Phaser.Game(gameConfig);
 const inventoryUi = new InventoryUiController(game);
 const reputationController = new ReputationController();
 const stealthController = new StealthController(game);
+const characterAnimationController = new CharacterAnimationController(game);
 const keyboardInputFallback = new KeyboardInputFallbackController();
 const audioController = new AdaptiveAudioController();
 const audioButton = document.querySelector<HTMLButtonElement>('[data-audio-toggle]');
@@ -29,6 +31,7 @@ window.addEventListener('pagehide', () => {
   audioButton?.removeEventListener('click', releasePointerFocus);
   void audioController.destroy();
   keyboardInputFallback.destroy();
+  characterAnimationController.destroy();
   stealthController.destroy();
   reputationController.destroy();
   inventoryUi.destroy();

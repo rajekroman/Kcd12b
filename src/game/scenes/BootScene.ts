@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { registerCharacterAtlases } from '../../systems/CharacterAtlasSystem';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,23 +7,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.createCharacterTexture('player', 0xc38a3f, 0x273646);
-    this.createCharacterTexture('smith', 0x8c5b32, 0x4b3023);
-    this.createCharacterTexture('bandit', 0x51463b, 0x321d1d);
+    registerCharacterAtlases(this);
     this.createGroundTexture('grass', 0x4b5b37, 0x38452d);
     this.createGroundTexture('road', 0x75664f, 0x594c3c);
     this.createObstacleTexture('tree', 0x2f3e27, 0x5b3f28);
     this.createObstacleTexture('house', 0x755039, 0x3b2b25, 32, 28);
+    document.body.dataset.characterAtlases = '12';
     this.scene.start('MenuScene');
-  }
-
-  private createCharacterTexture(key: string, tunic: number, trousers: number): void {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0xd5b08a).fillRect(5, 1, 6, 5);
-    graphics.fillStyle(tunic).fillRect(3, 6, 10, 8);
-    graphics.fillStyle(trousers).fillRect(4, 14, 3, 5).fillRect(9, 14, 3, 5);
-    graphics.generateTexture(key, 16, 20);
-    graphics.destroy();
   }
 
   private createGroundTexture(key: string, base: number, detail: number): void {

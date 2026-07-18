@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 import {
+  getCharacterAnimationKey,
+  type CharacterAtlasKey
+} from '../data/characterAtlases';
+import {
   NPC_DEFINITIONS,
   type NpcActivity,
   type NpcDefinition,
@@ -39,13 +43,26 @@ const CROWD_OFFSETS: readonly WorldPoint[] = [
   { x: 18, y: 6 }
 ];
 
+const ACTION_ACTIVITIES = new Set<NpcActivity>([
+  'eating',
+  'working',
+  'serving',
+  'praying',
+  'trading',
+  'gathering',
+  'washing',
+  'closing'
+]);
+
 export interface NpcRuntime {
   definition: NpcDefinition;
+  atlasKey: CharacterAtlasKey;
   sprite: Phaser.Physics.Arcade.Sprite;
   nameLabel: Phaser.GameObjects.Text;
   activityLabel: Phaser.GameObjects.Text;
   schedule: NpcScheduleState;
   crowdOffset: WorldPoint;
+  nextActionAt: number;
 }
 
 export class NpcManager {
@@ -63,17 +80,18 @@ export class NpcManager {
       const schedule = getNpcScheduleStateFromClock(definition, dayClock);
       const crowdOffset = CROWD_OFFSETS[index] ?? { x: 0, y: 0 };
       const target = this.getRuntimeTarget(schedule, crowdOffset);
+      const atlasKey = definition.id as CharacterAtlasKey;
       const sprite = this.scene.physics.add
-        .sprite(target.x, target.y, definition.texture)
+        .sprite(target.x, target.y, atlasKey, 0)
         .setDepth(10)
-        .setTint(definition.tint)
         .setCollideWorldBounds(true);
-      sprite.body?.setSize(12, 12).setOffset(2, 8);
+      sprite.body?.setSize(14, 14).setOffset(3, 13);
       sprite.setData('npcId', definition.id);
+      sprite.setData('atlasKey', atlasKey);
       this.scene.physics.add.collider(sprite, this.obstacles);
 
       const nameLabel = this.scene.add
-        .text(sprite.x, sprite.y - 19, definition.name, {
+        .text(sprite.x, sprite.y - 24, definition.name, {
           fontFamily: 'monospace',
           fontSize: '7px',
           color: '#f2dfba',
@@ -83,7 +101,7 @@ export class NpcManager {
         .setOrigin(0.5)
         .setDepth(19);
       const activityLabel = this.scene.add
-        .text(sprite.x, sprite.y + 16, NPC_ACTIVITY_LABELS[schedule.activity], {
+        .text(sprite.x, sprite.y + 20, NPC_ACTIVITY_LABELS[schedule.activity], {
           fontFamily: 'monospace',
           fontSize: '6px',
           color: '#d2bc91',
@@ -96,17 +114,22 @@ export class NpcManager {
 
       const runtime: NpcRuntime = {
         definition,
+        atlasKey,
         sprite,
         nameLabel,
         activityLabel,
         schedule,
-        crowdOffset
+        crowdOffset,
+        nextActionAt: this.scene.time.now + 500 + index * 170
       };
       this.runtimes.set(definition.id, runtime);
-      this.applyAppearance(runtime);
+      this.applyAppearance(runtime, true);
     });
 
     document.body.dataset.npcCount = String(this.runtimes.size);
+    document.body.dataset.npcAtlasKeys = JSON.stringify(
+      [...this.runtimes.values()].map((runtime) => runtime.atlasKey)
+    );
     this.update(dayClock, true);
   }
 
@@ -120,7 +143,8 @@ export class NpcManager {
       if (scheduleChanged) {
         runtime.schedule = nextSchedule;
         runtime.activityLabel.setText(NPC_ACTIVITY_LABELS[nextSchedule.activity]);
-        this.applyAppearance(runtime);
+        runtime.nextActionAt = this.scene.time.now + 350;
+        this.applyAppearance(runtime, true);
       }
 
       const target = this.getRuntimeTarget(runtime.schedule, runtime.crowdOffset);
@@ -130,7 +154,8 @@ export class NpcManager {
         target.x,
         target.y
       );
-      if (distanceToTarget > 5) {
+      const moving = distanceToTarget > 5 && runtime.schedule.activity !== 'sleeping';
+      if (moving) {
         this.scene.physics.moveTo(
           runtime.sprite,
           target.x,
@@ -141,9 +166,10 @@ export class NpcManager {
         runtime.sprite.setVelocity(0);
       }
 
-      runtime.nameLabel.setPosition(runtime.sprite.x, runtime.sprite.y - 19);
+      this.updateAnimation(runtime, moving);
+      runtime.nameLabel.setPosition(runtime.sprite.x, runtime.sprite.y - 24);
       runtime.activityLabel
-        .setPosition(runtime.sprite.x, runtime.sprite.y + 16)
+        .setPosition(runtime.sprite.x, runtime.sprite.y + 20)
         .setVisible(
           Phaser.Math.Distance.BetweenPoints(this.player, runtime.sprite) <=
             runtime.definition.interactionRadius * 1.8
@@ -178,7 +204,8 @@ export class NpcManager {
       const target = this.getRuntimeTarget(runtime.schedule, runtime.crowdOffset);
       runtime.sprite.setPosition(target.x, target.y).setVelocity(0);
       runtime.activityLabel.setText(NPC_ACTIVITY_LABELS[runtime.schedule.activity]);
-      this.applyAppearance(runtime);
+      runtime.nextActionAt = this.scene.time.now + 350;
+      this.applyAppearance(runtime, true);
     }
     this.update(dayClock, true);
   }
@@ -206,6 +233,7 @@ export class NpcManager {
   destroy(): void {
     this.runtimes.clear();
     delete document.body.dataset.npcCount;
+    delete document.body.dataset.npcAtlasKeys;
     delete document.body.dataset.worldHour;
     delete document.body.dataset.npcSchedules;
     delete document.body.dataset.nearNpc;
@@ -218,9 +246,55 @@ export class NpcManager {
     };
   }
 
-  private applyAppearance(runtime: NpcRuntime): void {
+  private applyAppearance(runtime: NpcRuntime, forceAnimation = false): void {
     const sleeping = runtime.schedule.activity === 'sleeping';
-    runtime.sprite.setAlpha(sleeping ? 0.58 : 1);
+    runtime.sprite.setAlpha(sleeping ? 0.72 : 1);
     runtime.nameLabel.setAlpha(sleeping ? 0.62 : 1);
+    if (forceAnimation) {
+      runtime.sprite.play(
+        getCharacterAnimationKey(runtime.atlasKey, sleeping ? 'sleep' : 'idle'),
+        true
+      );
+    }
+  }
+
+  private updateAnimation(runtime: NpcRuntime, moving: boolean): void {
+    const velocityX = runtime.sprite.body?.velocity.x ?? 0;
+    if (Math.abs(velocityX) > 1) runtime.sprite.setFlipX(velocityX < 0);
+
+    if (runtime.schedule.activity === 'sleeping') {
+      this.playIfDifferent(runtime, 'sleep');
+      return;
+    }
+    if (moving) {
+      this.playIfDifferent(runtime, 'walk');
+      return;
+    }
+
+    const actionKey = getCharacterAnimationKey(runtime.atlasKey, 'action');
+    if (runtime.sprite.anims.currentAnim?.key === actionKey && runtime.sprite.anims.isPlaying) {
+      return;
+    }
+
+    if (
+      ACTION_ACTIVITIES.has(runtime.schedule.activity) &&
+      this.scene.time.now >= runtime.nextActionAt
+    ) {
+      runtime.sprite.play(actionKey, true);
+      runtime.nextActionAt = this.scene.time.now + Phaser.Math.Between(1400, 2600);
+      return;
+    }
+
+    this.playIfDifferent(runtime, 'idle');
+  }
+
+  private playIfDifferent(
+    runtime: NpcRuntime,
+    animation: 'idle' | 'walk' | 'action' | 'hurt' | 'sleep'
+  ): void {
+    const key = getCharacterAnimationKey(runtime.atlasKey, animation);
+    if (runtime.sprite.anims.currentAnim?.key !== key || !runtime.sprite.anims.isPlaying) {
+      runtime.sprite.play(key, true);
+    }
   }
 }
