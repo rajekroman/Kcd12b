@@ -50,6 +50,12 @@ Hráč, lapka a všech deset obyvatel používají vlastní ručně definovaný 
 
 Každá postava má šest stavů: klid, dva kroky chůze, profesní nebo bojovou akci, zranění a spánek. NPC přepínají animace podle pohybu a denního režimu; hráč a lapka reagují na útok a zásah. Vizuál už není založený na jednom společném spritu s barevným tintem.
 
+## Dialogové portréty
+
+Všech deset obyvatel má vlastní ručně komponovaný portrétní atlas 48 × 56 px. Každý atlas obsahuje šest výrazů: klidný, vlídný, přísný, ustaraný, nedůvěřivý a hrdý. Portréty zachovávají profesní oděv a pokrývku hlavy a používají individuální rysy jako vousy, jizvy, vrásky, pihy, mouku nebo špínu.
+
+Výraz není odhadován z textu. Je uložený přímo v datovém dialogovém uzlu, takže se mění podle situace, questu a reputace. Bohdan je při zadání úkolu přísný, při varování ustaraný a po vítězství hrdý nebo vlídný. Kateřina při nízké měšťanské pověsti působí nedůvěřivě, zatímco při vysoké pověsti hrdě a vstřícně.
+
 ## Inventář a obchod
 
 Batoh obsahuje vybavení, zásoby, nosnost a groše. Zbraň, zbroj a doplněk lze vybavit do samostatných slotů; spotřební předměty se používají přímo z inventáře.
@@ -60,7 +66,7 @@ Obchodní záložka se aktivuje pouze v blízkosti kupkyně Kateřiny během jej
 
 Hráč má oddělenou pověst u sedláků, měšťanů a šlechty. Každá hodnota se pohybuje od −100 do +100 a odpovídá jedné z pěti úrovní důvěry: nepřátelská, nedůvěřivá, neutrální, vážená nebo ctěná.
 
-Dokončení úkolu „První ocel“ zvýší pověst u všech tří skupin. Měšťanská pověst společně s charismatem vybavení ovlivňuje Kateřininy nákupní a prodejní ceny a může změnit její dialog.
+Dokončení úkolu „První ocel“ zvýší pověst u všech tří skupin. Měšťanská pověst společně s charismatem vybavení ovlivňuje Kateřininy nákupní a prodejní ceny, dialog i portrétní výraz.
 
 ## Nenápadnost
 
@@ -76,6 +82,6 @@ Zvuk musí být kvůli pravidlům prohlížeče poprvé spuštěn uživatelským
 
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, šedesát výrazových portrétních frameů, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.
