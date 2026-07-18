@@ -4,6 +4,11 @@ import {
   setEconomyState
 } from '../core/EconomyStore';
 import {
+  getHuntedAnimals,
+  resetHuntedAnimals,
+  setHuntedAnimals
+} from '../core/FaunaStore';
+import {
   getReputationState,
   resetReputationState,
   setReputationState
@@ -55,8 +60,9 @@ export interface GameSave {
 
 export type GameSaveInput = Omit<
   GameSave,
-  'version' | 'savedAt' | 'economy' | 'reputation'
+  'version' | 'savedAt' | 'economy' | 'reputation' | 'world'
 > & {
+  world: LegacyWorldSaveState | WorldSaveState;
   economy?: EconomyState;
   reputation?: ReputationState;
 };
@@ -141,9 +147,7 @@ const isAnimalId = (value: unknown): value is AnimalId =>
   typeof value === 'string' && ANIMAL_SPAWNS.some((animal) => animal.id === value);
 
 const isHuntedAnimals = (value: unknown): value is AnimalId[] =>
-  Array.isArray(value) &&
-  value.every(isAnimalId) &&
-  new Set(value).size === value.length;
+  Array.isArray(value) && value.every(isAnimalId) && new Set(value).size === value.length;
 
 const isLegacyWorldState = (value: unknown): value is LegacyWorldSaveState => {
   if (!value || typeof value !== 'object') return false;
@@ -161,6 +165,14 @@ const normalizeWorldState = (world: LegacyWorldSaveState | WorldSaveState): Worl
     ? [...(world as WorldSaveState).huntedAnimals].sort()
     : []
 });
+
+const getWorldForSave = (world: LegacyWorldSaveState | WorldSaveState): WorldSaveState => {
+  const normalized = normalizeWorldState(world);
+  if (!isHuntedAnimals((world as Partial<WorldSaveState>).huntedAnimals)) {
+    normalized.huntedAnimals = [...getHuntedAnimals()];
+  }
+  return normalized;
+};
 
 const isItemId = (value: unknown): value is ItemId =>
   typeof value === 'string' && Object.prototype.hasOwnProperty.call(ITEM_DEFINITIONS, value);
@@ -276,12 +288,7 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isReputationState(candidate.reputation) &&
     isTimestamp(candidate.savedAt)
   ) {
-    return buildMigratedSave(
-      candidate,
-      candidate.world,
-      candidate.economy,
-      candidate.reputation
-    );
+    return buildMigratedSave(candidate, candidate.world, candidate.economy, candidate.reputation);
   }
 
   if (
@@ -293,12 +300,7 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isReputationState(candidate.reputation) &&
     isTimestamp(candidate.savedAt)
   ) {
-    return buildMigratedSave(
-      candidate,
-      candidate.world,
-      candidate.economy,
-      candidate.reputation
-    );
+    return buildMigratedSave(candidate, candidate.world, candidate.economy, candidate.reputation);
   }
 
   if (
@@ -444,7 +446,7 @@ export class SaveSystem {
       version: CURRENT_SAVE_VERSION,
       player: data.player,
       quest: data.quest,
-      world: normalizeWorldState(data.world),
+      world: getWorldForSave(data.world),
       economy: data.economy ?? getEconomyState(),
       reputation: data.reputation ?? getReputationState(),
       savedAt: (this.options.now ?? (() => new Date()))().toISOString()
@@ -511,11 +513,13 @@ export class SaveSystem {
     this.cleanupFallbackKeys();
     resetEconomyState();
     resetReputationState();
+    resetHuntedAnimals();
   }
 
   private restoreRuntimeStores(save: GameSave): void {
     setEconomyState(save.economy);
     setReputationState(save.reputation);
+    setHuntedAnimals(save.world.huntedAnimals);
   }
 
   private async tryPrimaryGet(): Promise<unknown | null> {
