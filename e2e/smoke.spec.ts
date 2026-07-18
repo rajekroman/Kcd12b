@@ -1,19 +1,28 @@
 import { expect, test, type Page } from '@playwright/test';
 
+interface StoredBrowserSave {
+  version: number;
+  player: { health: number; stamina: number };
+  world: { dayClock: number };
+}
+
 const startNewGame = async (page: Page): Promise<void> => {
   await page.goto('/Kcd12b/');
   await expect(page.locator('canvas')).toBeVisible();
-  await expect(page.locator('body')).toHaveAttribute('data-scene', 'menu');
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-scene', 'menu');
+  await expect(body).toHaveAttribute('data-menu-ready', 'true');
 
   const canvas = page.locator('canvas');
   const bounds = await canvas.boundingBox();
   if (!bounds) throw new Error('Canvas bounds are not available.');
 
   await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.64);
-  await expect(page.locator('body')).toHaveAttribute('data-scene', 'game');
-  await expect(page.locator('body')).toHaveAttribute('data-ui-scene', 'active');
-  await expect(page.locator('body')).toHaveAttribute('data-health', '100');
-  await expect(page.locator('body')).toHaveAttribute('data-stamina', '100');
+  await expect(body).toHaveAttribute('data-scene', 'game');
+  await expect(body).toHaveAttribute('data-ui-scene', 'active');
+  await expect(body).toHaveAttribute('data-save-ready', 'true');
+  await expect(body).toHaveAttribute('data-health', '100');
+  await expect(body).toHaveAttribute('data-stamina', '100');
   await expect(page.locator('#game-status')).toContainText('Promluv s kovářem Bohdanem');
 };
 
@@ -52,4 +61,58 @@ test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
   const staminaAfterDodge = Number(await body.getAttribute('data-stamina'));
 
   expect(staminaAfterDodge).toBeLessThanOrEqual(staminaBeforeDodge - 20);
+});
+
+test('legacy save verze 1 se migruje do IndexedDB a pokračování jej obnoví', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'chronicles-of-bohemia.save.v1',
+      JSON.stringify({
+        version: 1,
+        player: { x: 412, y: 365, health: 77, stamina: 44 },
+        quest: { id: 'first-steel', step: 'defeat-bandit', banditDefeated: false },
+        savedAt: '2026-07-17T20:00:00.000Z'
+      })
+    );
+  });
+
+  await page.goto('/Kcd12b/');
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-scene', 'menu');
+  await expect(body).toHaveAttribute('data-menu-ready', 'true');
+  await expect(body).toHaveAttribute('data-has-save', 'true');
+
+  const canvas = page.locator('canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Canvas bounds are not available.');
+  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.77);
+
+  await expect(body).toHaveAttribute('data-scene', 'game');
+  await expect(body).toHaveAttribute('data-save-ready', 'true');
+  await expect(body).toHaveAttribute('data-health', '77');
+  await expect(body).toHaveAttribute('data-stamina', '44');
+  await expect(page.locator('#game-status')).toContainText('Vyžeň lapku');
+
+  const stored = await page.evaluate<StoredBrowserSave | null>(
+    () =>
+      new Promise((resolve, reject) => {
+        const openRequest = indexedDB.open('chronicles-of-bohemia', 1);
+        openRequest.onerror = () => reject(openRequest.error);
+        openRequest.onsuccess = () => {
+          const database = openRequest.result;
+          const transaction = database.transaction('saves', 'readonly');
+          const getRequest = transaction.objectStore('saves').get('primary');
+          getRequest.onerror = () => reject(getRequest.error);
+          getRequest.onsuccess = () => {
+            const record = getRequest.result as { payload?: StoredBrowserSave } | undefined;
+            resolve(record?.payload ?? null);
+            database.close();
+          };
+        };
+      })
+  );
+
+  expect(stored?.version).toBe(2);
+  expect(stored?.world.dayClock).toBe(0);
+  expect(await page.evaluate(() => localStorage.getItem('chronicles-of-bohemia.save.v1'))).toBeNull();
 });

@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M1 Combat — dokončeno a ověřeno. GitHub Actions úspěšně provedl instalaci závislostí, lint, TypeScript, jednotkové testy, produkční build, instalaci Chromia a čtyři Playwright E2E scénáře na desktopovém a mobilním profilu.
+M1.1 Persistence — dokončeno a ověřeno. GitHub Actions úspěšně provedl instalaci závislostí, lint, TypeScript, jednotkové testy, produkční build a šest Playwright E2E scénářů na desktopovém a mobilním profilu včetně skutečné migrace do IndexedDB.
 
 ## Funguje
 
@@ -15,9 +15,11 @@ M1 Combat — dokončeno a ověřeno. GitHub Actions úspěšně provedl instala
 - Pět směrů útoku a směrový kryt nepřítele.
 - Kryt, chybný kryt, dokonalý kryt, prolomení krytu a úhyb.
 - Telegrafované nepřátelské útoky kontrolují dosah znovu v okamžiku dopadu.
-- Výdrž, zdraví, porážka hráče a únik z nepřátelského nápřahu.
-- Synchronizovaný životní cyklus `GameScene` a `UIScene`.
-- Automatické ukládání a načítání.
+- IndexedDB jako primární save úložiště a localStorage fallback.
+- Verzovaný save formát 2 s migrací legacy verze 1.
+- Ukládání hráče, questu a fáze denního cyklu.
+- Serializované autosavy bez závodu staršího a novějšího zápisu.
+- Asynchronní menu a pozastavení ovládání do obnovení save.
 - Jednotkové a Playwright E2E testy.
 - PWA konfigurace, CI a GitHub Pages workflow.
 - Veřejný npm lockfile bez interních Artifactory URL.
@@ -26,10 +28,10 @@ M1 Combat — dokončeno a ověřeno. GitHub Actions úspěšně provedl instala
 
 - Grafika je procedurální placeholder.
 - Hudba a ambient ještě nejsou implementované.
-- Save systém stále používá `localStorage`; migrace na IndexedDB je další systémový milník.
+- Dialogy a questy jsou zatím částečně zapsané přímo v herní scéně.
 
 ## Další tři priority
 
-1. Převést save systém na IndexedDB s verzovanými migracemi a fallbackem.
-2. Převést dialogy a questy na datově řízené definice.
-3. Přidat 10 NPC a jejich denní režimy.
+1. Převést dialogy a questy na datově řízené definice.
+2. Přidat 10 NPC a jejich denní režimy.
+3. Přidat inventář, vybavení a obchod.
