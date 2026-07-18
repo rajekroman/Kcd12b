@@ -192,8 +192,7 @@ export class NpcManager {
         [...this.runtimes.values()].map((runtime) => ({
           id: runtime.definition.id,
           activity: runtime.schedule.activity,
-          locationId: runtime.schedule.locationId,
-          atlasKey: runtime.atlasKey
+          locationId: runtime.schedule.locationId
         }))
       );
     }
