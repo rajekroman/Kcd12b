@@ -12,6 +12,8 @@ export const ATTACK_DIRECTIONS: readonly AttackDirection[] = [
   'low-right'
 ];
 
+export const DEFAULT_MELEE_IMPACT_RANGE = 46;
+
 const armorResistance: Record<ArmorType, Record<DamageType, number>> = {
   cloth: { slash: 0.1, pierce: 0.05, blunt: 0.05 },
   mail: { slash: 0.45, pierce: 0.25, blunt: 0.15 },
@@ -162,6 +164,16 @@ export const resolveDefense = ({
     staggerMs: 0
   };
 };
+
+export const isWithinMeleeImpactRange = (
+  distance: number,
+  maximumRange = DEFAULT_MELEE_IMPACT_RANGE
+): boolean =>
+  Number.isFinite(distance) &&
+  Number.isFinite(maximumRange) &&
+  distance >= 0 &&
+  maximumRange >= 0 &&
+  distance <= maximumRange;
 
 export const getAttackDirectionFromVector = (
   x: number,

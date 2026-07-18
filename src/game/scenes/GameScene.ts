@@ -5,6 +5,7 @@ import {
   calculateDamage,
   getAttackDirectionFromVector,
   getAttackDirectionLabel,
+  isWithinMeleeImpactRange,
   resolveDefense,
   resolveDirectionalAttack,
   type AttackDirection
@@ -307,6 +308,13 @@ export class GameScene extends Phaser.Scene {
     if (!pending) return;
 
     this.pendingBanditAttack = undefined;
+    const impactDistance = Phaser.Math.Distance.BetweenPoints(this.player, this.bandit);
+    if (!isWithinMeleeImpactRange(impactDistance)) {
+      EventBus.emit(GameEvents.MESSAGE, 'Ustoupil jsi mimo dosah lapkova útoku.');
+      this.emitHud();
+      return;
+    }
+
     if (time < this.invulnerableUntil) {
       EventBus.emit(GameEvents.MESSAGE, 'Úhyb minul lapkův útok.');
       this.emitHud();
