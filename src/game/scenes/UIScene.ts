@@ -17,6 +17,7 @@ interface HudPayload {
 }
 
 interface DialoguePayload {
+  dialogueId: string;
   speaker: string;
   text: string;
   actionLabel: string;
@@ -82,6 +83,7 @@ export class UIScene extends Phaser.Scene {
       delete document.body.dataset.blocking;
       delete document.body.dataset.dodgeReady;
       delete document.body.dataset.dialogue;
+      delete document.body.dataset.dialogueId;
       delete document.body.dataset.lastMessage;
     });
   }
@@ -155,12 +157,14 @@ export class UIScene extends Phaser.Scene {
       .container(x, y, [background, speaker, body, button])
       .setDepth(200);
     document.body.dataset.dialogue = payload.speaker;
+    document.body.dataset.dialogueId = payload.dialogueId;
     this.updateAccessibleStatus(`${payload.speaker}: ${payload.text}`);
 
     button.once('pointerdown', () => {
       this.dialogueContainer?.destroy(true);
       this.dialogueContainer = undefined;
       delete document.body.dataset.dialogue;
+      delete document.body.dataset.dialogueId;
       payload.onClose();
       EventBus.emit(GameEvents.DIALOGUE_CLOSE);
     });
