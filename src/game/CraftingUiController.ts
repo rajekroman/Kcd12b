@@ -9,6 +9,7 @@ import {
   type RecipeId
 } from '../data/crafting';
 import { ITEM_DEFINITIONS } from '../data/items';
+import type { NpcId } from '../data/npcs';
 import {
   craftRecipe,
   getCraftingStationForNpc,
@@ -216,7 +217,7 @@ export class CraftingUiController {
   }
 
   private getAvailableStation(): CraftingStation | null {
-    return getCraftingStationForNpc(document.body.dataset.nearNpc as never);
+    return getCraftingStationForNpc(document.body.dataset.nearNpc as NpcId | undefined);
   }
 
   private pauseGameScene(): void {
