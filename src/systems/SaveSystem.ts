@@ -60,6 +60,14 @@ interface StoredSaveRecord {
   payload: GameSave;
 }
 
+interface UnknownSaveRecord {
+  version?: unknown;
+  player?: unknown;
+  quest?: unknown;
+  world?: unknown;
+  savedAt?: unknown;
+}
+
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
@@ -94,7 +102,7 @@ const isTimestamp = (value: unknown): value is string =>
 
 export const migrateGameSave = (value: unknown): GameSave | null => {
   if (!value || typeof value !== 'object') return null;
-  const candidate = value as Partial<GameSave & GameSaveV1>;
+  const candidate = value as UnknownSaveRecord;
 
   if (
     candidate.version === 2 &&
@@ -241,7 +249,9 @@ export class SaveSystem {
       return payload;
     }
 
-    writeFallback(this.options.fallback, payload);
+    if (!writeFallback(this.options.fallback, payload)) {
+      throw new Error('Save could not be written to IndexedDB or fallback storage.');
+    }
     return payload;
   }
 
@@ -249,11 +259,12 @@ export class SaveSystem {
     const primary = await this.tryPrimaryGet();
     if (primary) {
       const migrated = migrateGameSave(primary);
-      if (!migrated) return null;
-      if ((primary as Partial<GameSave>).version !== CURRENT_SAVE_VERSION) {
-        await this.tryPrimarySet(migrated);
+      if (migrated) {
+        if ((primary as UnknownSaveRecord).version !== CURRENT_SAVE_VERSION) {
+          await this.tryPrimarySet(migrated);
+        }
+        return migrated;
       }
-      return migrated;
     }
 
     const fallbackCurrent = parseFallback(this.options.fallback, FALLBACK_SAVE_KEY);
