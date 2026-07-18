@@ -1,9 +1,9 @@
 import {
   DIALOGUE_DEFINITIONS,
   type DialogueCondition,
-  type DialogueDefinition,
-  type NpcId
+  type DialogueDefinition
 } from '../data/dialogues';
+import type { NpcId } from '../data/npcs';
 import { applyQuestEvent, type QuestState } from './QuestSystem';
 
 export interface DialogueContext {

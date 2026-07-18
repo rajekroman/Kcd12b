@@ -1,6 +1,5 @@
+import type { NpcId } from './npcs';
 import type { QuestEvent, QuestId, QuestStep } from './quests';
-
-export type NpcId = 'smith-bohdan';
 
 export interface DialogueCondition {
   questId?: QuestId;
@@ -76,5 +75,77 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
       questId: 'first-steel',
       questSteps: ['complete']
     }
+  },
+  {
+    id: 'marta-ambient',
+    npcId: 'innkeeper-marta',
+    priority: 10,
+    speaker: 'Hostinská Marta',
+    text: 'Lavice jsou pro hosty, dluhy pro pobudy. Co z toho budeš ty?',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'vojtech-ambient',
+    npcId: 'guard-vojtech',
+    priority: 10,
+    speaker: 'Strážný Vojtěch',
+    text: 'Vesnice je klidná jen proto, že někdo zůstává vzhůru.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'ondra-ambient',
+    npcId: 'farmer-ondra',
+    priority: 10,
+    speaker: 'Sedlák Ondra',
+    text: 'Pole nepočká na hrdiny ani na válku. Ráno chce pořád totéž.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'agnes-ambient',
+    npcId: 'herbalist-agnes',
+    priority: 10,
+    speaker: 'Bylinkářka Anežka',
+    text: 'Nešlapej mi do záhonu. Některé byliny léčí a jiné si urážku pamatují.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'jakub-ambient',
+    npcId: 'miller-jakub',
+    priority: 10,
+    speaker: 'Mlynář Jakub',
+    text: 'Kolo se točí, mouka padá a lidé si stejně myslí, že chléb roste v peci.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'matej-ambient',
+    npcId: 'priest-matej',
+    priority: 10,
+    speaker: 'Otec Matěj',
+    text: 'Modlitba člověka nezbaví práce. Jen mu připomene, proč ji má dokončit.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'katerina-ambient',
+    npcId: 'trader-katerina',
+    priority: 10,
+    speaker: 'Kupkyně Kateřina',
+    text: 'Dobré zboží se prodá samo. Špatné potřebuje hlasitého obchodníka.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'pavel-ambient',
+    npcId: 'stablehand-pavel',
+    priority: 10,
+    speaker: 'Podkoní Pavel',
+    text: 'Kůň pozná nejistou ruku dřív než člověk. A odpustí ji méně často.',
+    actionLabel: 'Odejít'
+  },
+  {
+    id: 'anna-ambient',
+    npcId: 'washerwoman-anna',
+    priority: 10,
+    speaker: 'Pradlena Anna',
+    text: 'Z bláta dostanu skoro všechno. Z pověsti člověka už méně.',
+    actionLabel: 'Odejít'
   }
 ];

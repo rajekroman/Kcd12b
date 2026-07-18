@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0 — living village
+
+- Přidáno deset datově definovaných obyvatel Záhoří.
+- Každý NPC má vlastní jméno, roli, rychlost, interakční vzdálenost a vizuální odstín.
+- Přidáno 21 pojmenovaných míst pro práci, bydlení, obchod a společenské aktivity.
+- Přidány celodenní rozvrhy včetně intervalů přes půlnoc.
+- Přidán generický převod herního času na aktivitu a cílové místo NPC.
+- `NpcManager` vytváří postavy, přesouvá je, aktualizuje popisky a vybírá nejbližší interakci.
+- Při pokračování se obyvatelé okamžitě rozmístí podle uloženého času světa.
+- Obyvatelé mají na sdílených místech rozestupy, takže se sprity neskládají přes sebe.
+- Všech deset obyvatel má vlastní ambientní dialogový uzel.
+- Interakce již není pevně svázaná s Bohdanem.
+- Přidány testy úplnosti celého 24hodinového rozvrhu všech NPC.
+- Přidány browserové kontroly počtu obyvatel, ranních činností, pracovní doby Bohdana a interakce se strážným na trhu.
+
 ## 0.4.0 — data-driven content
 
 - Quest „První ocel“ byl přesunut do datové definice stavů, objektivů a přechodů.
