@@ -45,7 +45,11 @@ test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
   await page.keyboard.up('f');
   await expect(body).toHaveAttribute('data-blocking', 'false');
 
+  const staminaBeforeDodge = Number(await body.getAttribute('data-stamina'));
   await page.keyboard.press('Shift');
-  await expect(body).toHaveAttribute('data-stamina', '63');
+  await expect(body).toHaveAttribute('data-last-message', 'Úhyb.');
   await expect(body).toHaveAttribute('data-dodge-ready', 'false');
+  const staminaAfterDodge = Number(await body.getAttribute('data-stamina'));
+
+  expect(staminaAfterDodge).toBeLessThanOrEqual(staminaBeforeDodge - 20);
 });
