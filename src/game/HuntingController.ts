@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { updateEconomyState } from '../core/EconomyStore';
+import { getEconomyState, updateEconomyState } from '../core/EconomyStore';
 import { EventBus, GameEvents } from '../core/EventBus';
+import { getHuntedAnimals, markAnimalHunted } from '../core/FaunaStore';
 import {
   ANIMAL_SPAWNS,
   ANIMAL_SPECIES,
   getFaunaAnimationKey,
   getFaunaTextureKey,
   type AnimalId,
-  type AnimalSpawnDefinition,
-  type AnimalSpecies
+  type AnimalSpawnDefinition
 } from '../data/fauna';
+import { ITEM_DEFINITIONS } from '../data/items';
 import {
   addHuntingLoot,
   getEffectiveFleeRadius,
@@ -65,7 +66,7 @@ export class HuntingController {
 
     const hour = Number(document.body.dataset.worldHour ?? 0);
     const visibility = Number(document.body.dataset.weatherVisibility ?? 1);
-    const hunted = this.readHuntedAnimals();
+    const hunted = new Set(getHuntedAnimals());
 
     for (const animal of this.runtime.animals.values()) {
       if (hunted.has(animal.definition.id)) {
@@ -77,6 +78,7 @@ export class HuntingController {
       const species = ANIMAL_SPECIES[animal.definition.species];
       const active = isAnimalActiveAtHour(animal.definition.species, hour);
       animal.sprite.setVisible(active).setActive(active);
+      if (animal.sprite.body) animal.sprite.body.enable = active;
       if (!active) {
         animal.sprite.setVelocity(0);
         continue;
@@ -95,12 +97,10 @@ export class HuntingController {
         animal.nextWanderAt = time + 950;
       } else if (time >= animal.nextWanderAt) {
         const phase = this.stablePhase(animal.definition.id, Math.floor(time / 1800));
-        const targetX = animal.definition.x + Math.cos(phase) * animal.definition.roamRadius;
-        const targetY = animal.definition.y + Math.sin(phase) * animal.definition.roamRadius;
         this.runtime.scene.physics.moveTo(
           animal.sprite,
-          targetX,
-          targetY,
+          animal.definition.x + Math.cos(phase) * animal.definition.roamRadius,
+          animal.definition.y + Math.sin(phase) * animal.definition.roamRadius,
           species.movementSpeed * 0.34
         );
         animal.nextWanderAt = time + 1800;
@@ -109,9 +109,7 @@ export class HuntingController {
       const velocity = animal.sprite.body?.velocity;
       const moving = Boolean(velocity && velocity.lengthSq() > 9);
       if (velocity && Math.abs(velocity.x) > 1) animal.sprite.setFlipX(velocity.x < 0);
-      if (time >= animal.actionLockUntil) {
-        this.playIfDifferent(animal, moving ? 'walk' : 'idle');
-      }
+      if (time >= animal.actionLockUntil) this.playIfDifferent(animal, moving ? 'walk' : 'idle');
     }
 
     this.publishSnapshot();
@@ -159,7 +157,7 @@ export class HuntingController {
     const runtime = this.runtime;
     if (!runtime) return;
 
-    const candidates = [...runtime.animals.values()]
+    const candidate = [...runtime.animals.values()]
       .filter((animal) => animal.sprite.active && !animal.dead)
       .map((animal) => ({
         animal,
@@ -172,16 +170,15 @@ export class HuntingController {
         })
       }))
       .filter(({ resolution }) => resolution.outcome !== 'miss')
-      .sort((left, right) => left.resolution.distance - right.resolution.distance);
+      .sort((left, right) => left.resolution.distance - right.resolution.distance)[0];
 
-    const candidate = candidates[0];
     if (!candidate) return;
     const { animal, resolution } = candidate;
     const species = ANIMAL_SPECIES[animal.definition.species];
 
     if (resolution.outcome === 'killed') {
       const economyResult = addHuntingLoot(
-        structuredClone(updateEconomyState((state) => state).inventory),
+        structuredClone(getEconomyState().inventory),
         animal.definition.species
       );
       if (!economyResult.ok) {
@@ -195,20 +192,21 @@ export class HuntingController {
         return;
       }
 
-      updateEconomyState((state) => ({
-        ...state,
-        inventory: economyResult.value.inventory
-      }));
+      updateEconomyState((state) => ({ ...state, inventory: economyResult.value.inventory }));
+      markAnimalHunted(animal.definition.id);
       animal.health = 0;
       animal.dead = true;
-      animal.sprite.setVelocity(0).play(getFaunaAnimationKey(animal.definition.species, 'dead'), true);
+      animal.sprite
+        .setVelocity(0)
+        .play(getFaunaAnimationKey(animal.definition.species, 'dead'), true);
       animal.actionLockUntil = Number.POSITIVE_INFINITY;
       EventBus.emit(GameEvents.FAUNA_HUNTED, animal.definition.id);
       EventBus.emit(GameEvents.ECONOMY_CHANGED);
       const lootText = economyResult.value.loot
-        .map((loot) => `${loot.quantity}× ${loot.itemId}`)
+        .map((loot) => `${loot.quantity}× ${ITEM_DEFINITIONS[loot.itemId].name}`)
         .join(', ');
       EventBus.emit(GameEvents.MESSAGE, `${species.label} uloven. Kořist: ${lootText}.`);
+      this.publishSnapshot();
       return;
     }
 
@@ -228,19 +226,6 @@ export class HuntingController {
     }
   }
 
-  private readHuntedAnimals(): Set<AnimalId> {
-    try {
-      const value = JSON.parse(document.body.dataset.huntedAnimals ?? '[]') as unknown;
-      return new Set(Array.isArray(value) ? value.filter(this.isAnimalId) : []);
-    } catch {
-      return new Set();
-    }
-  }
-
-  private isAnimalId(value: unknown): value is AnimalId {
-    return typeof value === 'string' && ANIMAL_SPAWNS.some((animal) => animal.id === value);
-  }
-
   private stablePhase(id: AnimalId, bucket: number): number {
     const base = id.split('').reduce((sum, character) => sum + character.charCodeAt(0), 0);
     return ((base + bucket * 97) % 360) * (Math.PI / 180);
@@ -249,6 +234,7 @@ export class HuntingController {
   private publishSnapshot(): void {
     const runtime = this.runtime;
     if (!runtime) return;
+    document.body.dataset.huntedAnimals = JSON.stringify(getHuntedAnimals());
     document.body.dataset.faunaSnapshot = JSON.stringify(
       [...runtime.animals.values()].map((animal) => ({
         id: animal.definition.id,
@@ -266,5 +252,6 @@ export class HuntingController {
     delete document.body.dataset.faunaCount;
     delete document.body.dataset.faunaSpecies;
     delete document.body.dataset.faunaSnapshot;
+    delete document.body.dataset.huntedAnimals;
   }
 }
