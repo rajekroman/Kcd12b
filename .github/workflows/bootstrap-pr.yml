@@ -13,10 +13,15 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: bootstrap-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bootstrap:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/bootstrap'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out bootstrap branch
         uses: actions/checkout@v4
@@ -60,7 +65,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Validate project
         run: |
