@@ -28,5 +28,5 @@
 ## P2
 
 - [x] Nahradit generované placeholdery ručně vytvořenými sprite atlasy.
-- [ ] Přidat portréty a výrazové varianty.
+- [x] Přidat portréty a výrazové varianty.
 - [ ] Přidat počasí, lov, alchymii, kovářství a koně.
