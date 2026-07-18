@@ -29,7 +29,7 @@ const installLegacyHuntingSave = async (page: Page): Promise<void> => {
       'chronicles-of-bohemia.save.v4',
       JSON.stringify({
         version: 4,
-        player: { x: 265, y: 190, health: 100, stamina: 100 },
+        player: { x: 265, y: 165, health: 100, stamina: 100 },
         quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
         world: { dayClock: 30 },
         economy,
