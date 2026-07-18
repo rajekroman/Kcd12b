@@ -23,7 +23,7 @@
 - [x] Přidat inventář, vybavení a obchod.
 - [x] Přidat pověst pro sedláky, měšťany a šlechtu.
 - [x] Přidat stealth indikátor, světelné kužely a stav podezření.
-- [ ] Přidat dynamické vrstvy hudby přes WebAudio.
+- [x] Přidat dynamické vrstvy hudby přes WebAudio.
 
 ## P2
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.9.0 — adaptive procedural audio
+
+- Přidány autorské procedurální motivy pro úsvit, den, soumrak a noc.
+- Přidány prioritní hudební nálady pro podezření a poplach.
+- Přidáno pět nezávislých vrstev: ambience, dron, melodie, pulz a perkuse.
+- Hudební rozhodování je oddělené v čistém `MusicSystem` bez závislosti na DOM a WebAudio.
+- Přidán WebAudio renderer s filtrovaným šumem, oscilátory, kompresorem a lookahead schedulerem.
+- Přechody nálad plynule mění gainy, filtry a dronové frekvence.
+- Zvuk se odemyká uživatelským gestem a ovládá tlačítkem nebo klávesou M.
+- Nedostupné WebAudio deaktivuje pouze hudbu a neshodí hru.
+- Přidány runtime atributy stavu audia a aktuální hudební nálady.
+- Přidán obecný fallback velmi krátkých jednorázových kláves E, Space, Shift a 1–5.
+- Přidány jednotkové testy denních hranic, priorit, mixů a časování.
+- Přidány Playwright testy odemčení, ztlumení, denního/nočního motivu a stealth adaptace.
+
+## 0.8.0 — stealth awareness
+
+- Přidána deterministická geometrie zorného kuželu strážného Vojtěcha.
+- Viditelnost respektuje dosah, úhel a numerickou toleranci přesné hranice.
+- Přidáno podezření v rozsahu 0–100 a stavy klid, podezření a poplach.
+- Podezření roste podle blízkosti a mimo dohled postupně klesá.
+- Přidán světelný kužel, HUD indikátor a přístupné runtime atributy.
+- Přechody stealth stavu zobrazují zprávy a poplach otřese kamerou.
+- Přidány jednotkové testy geometrie, prahů, růstu a rozpadu.
+- Přidány browserové testy viditelnosti, poplachu a fyzického úniku z dosahu.
+
 ## 0.7.0 — faction reputation
 
 - Přidána samostatná pověst sedláků, měšťanů a šlechty v rozsahu −100 až +100.

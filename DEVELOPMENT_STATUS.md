@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M2.3 Stealth awareness — zorný kužel strážného, viditelnost hráče, podezření a poplach jsou implementované. Automatická validace pokrývá geometrii kuželu, numerické hranice, růst a rozpad podezření i skutečné browserové scénáře na desktopovém a mobilním profilu.
+M2.4 Adaptive Audio — autorská procedurální hudba přes WebAudio je implementovaná a adaptuje se na denní dobu, podezření a poplach. P1 rozsah hratelného vertikálního řezu je uzavřený a ověřený statickými, jednotkovými i desktopovými a mobilními browserovými testy.
 
 ## Funguje
 
@@ -16,14 +16,14 @@ M2.3 Stealth awareness — zorný kužel strážného, viditelnost hráče, pode
 - Pět směrů útoku, směrový kryt, dokonalý kryt a úhyb.
 - Inventář, tři sloty vybavení, spotřební předměty a atomický obchod.
 - Oddělená pověst sedláků, měšťanů a šlechty s vlivem na dialogy a ceny.
-- Vojtěchův zorný kužel reaguje na jeho aktuální směr pohybu.
-- Viditelnost respektuje vzdálenost, úhel a floating-point toleranci hranice kuželu.
-- Podezření roste rychleji v blízkosti a mimo dohled postupně klesá.
-- Tři stavy povědomí: klid, podezření a poplach.
-- Světelný kužel mění barvu a intenzitu podle stavu.
-- Pevný HUD indikátor zobrazuje stav a procento podezření.
-- Přechody stavu zobrazují zprávu a poplach aktivuje kamerový otřes.
-- Krátký útok mezerníkem na zařízení s hrubým ukazatelem má bezpečnou jednosnímkovou zálohu.
+- Vojtěchův zorný kužel, podezření a poplach.
+- Autorské motivy pro úsvit, den, soumrak a noc.
+- Adaptivní hudební nálady pro podezření a poplach.
+- Pět WebAudio vrstev: ambience, dron, melodie, pulz a perkuse.
+- Plynulé přechody gainů, filtrů a dronových frekvencí.
+- Explicitní odemčení zvuku uživatelským gestem a ovládání tlačítkem nebo klávesou M.
+- Bezpečné vypnutí ovladače při nedostupném WebAudio bez pádu hry.
+- Obecná jednosnímková záloha krátkých vstupů E, Space, Shift a kláves 1–5.
 - IndexedDB jako primární save úložiště a localStorage fallback.
 - Verzovaný save formát 4 s migracemi verzí 1, 2 a 3.
 - Jednotkové a Playwright E2E testy.
@@ -34,13 +34,13 @@ M2.3 Stealth awareness — zorný kužel strážného, viditelnost hráče, pode
 - Všichni obyvatelé zatím používají společný procedurální základ sprite s barevným odlišením.
 - Navigace NPC používá přímý pohyb s Arcade Physics, nikoli pathfinding.
 - První stealth pozorovatel je pouze strážný Vojtěch.
-- Zorný kužel zatím neprovádí okluzi přes budovy a stromy; kontroluje úhel a vzdálenost.
-- Přikrčení, hluk, světelnost prostředí, úkryty a pátrací chování přijdou jako samostatné vrstvy.
-- Hudba a ambient ještě nejsou implementované.
+- Zorný kužel zatím neprovádí okluzi přes budovy a stromy.
+- Hudba je syntetizovaná v prohlížeči a zatím nepoužívá nahrané historické nástroje ani prostorový ambient.
+- Audio nastavení se zatím neukládá do save ani uživatelských preferencí.
 - Quest state je stále jeden aktivní quest; vícequestový journal přijde s dalším rozšířením obsahu.
 
 ## Další tři priority
 
-1. Přidat dynamické vrstvy hudby přes WebAudio.
-2. Nahradit procedurální placeholdery ručně vytvořenými sprite atlasy.
-3. Přidat portréty a výrazové varianty NPC.
+1. Nahradit procedurální placeholdery ručně vytvořenými sprite atlasy.
+2. Přidat portréty a výrazové varianty NPC.
+3. Přidat počasí a další systémový obsah světa.
