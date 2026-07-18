@@ -6,6 +6,10 @@ import {
   subscribeEconomy
 } from '../core/EconomyStore';
 import {
+  getReputationState,
+  subscribeReputation
+} from '../core/ReputationStore';
+import {
   ITEM_DEFINITIONS,
   type EquipmentSlot,
   type ItemId
@@ -15,18 +19,32 @@ import {
   equipItem,
   getEquipmentStats,
   getInventoryWeight,
+  getItemTradePrice,
   sellItem,
   unequipSlot,
   useConsumable,
   type EconomyState,
   type InventoryStack
 } from '../systems/InventorySystem';
+import {
+  getFactionLabel,
+  getReputationTier,
+  getReputationTierLabel,
+  type ReputationFaction,
+  type TradeReputationContext
+} from '../systems/ReputationSystem';
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   weapon: 'Zbraň',
   armor: 'Zbroj',
   accessory: 'Doplněk'
 };
+
+const REPUTATION_FACTIONS: readonly ReputationFaction[] = [
+  'peasants',
+  'townsfolk',
+  'nobility'
+];
 
 type EconomyMode = 'inventory' | 'trade';
 
@@ -61,6 +79,7 @@ export class InventoryUiController {
       attributeFilter: ['data-scene', 'data-near-npc', 'data-save-ready']
     });
     this.cleanup.push(subscribeEconomy(() => this.render()));
+    this.cleanup.push(subscribeReputation(() => this.render()));
     this.render();
   }
 
@@ -147,12 +166,13 @@ export class InventoryUiController {
       return;
     }
     this.mode = mode;
-    this.setStatus(mode === 'trade' ? 'Obchod s Kateřinou.' : 'Vybavení a zásoby.');
+    this.setStatus(mode === 'trade' ? 'Obchod s Kateřinou.' : 'Vybavení, zásoby a pověst.');
     this.render();
   }
 
   private render(): void {
     const economy = getEconomyState();
+    const reputation = getReputationState();
     const { inventory } = economy;
     const weight = getInventoryWeight(inventory);
     const stats = getEquipmentStats(inventory);
@@ -161,6 +181,10 @@ export class InventoryUiController {
     document.body.dataset.groschen = String(inventory.groschen);
     document.body.dataset.equippedWeapon = inventory.equipment.weapon ?? '';
     document.body.dataset.inventoryWeight = weight.toFixed(2);
+    document.body.dataset.reputationPeasants = String(reputation.peasants);
+    document.body.dataset.reputationTownsfolk = String(reputation.townsfolk);
+    document.body.dataset.reputationNobility = String(reputation.nobility);
+    document.body.dataset.townsfolkTier = getReputationTier(reputation.townsfolk);
     if (!this.openState) return;
 
     if (this.mode === 'trade' && !canTrade) this.mode = 'inventory';
@@ -186,6 +210,7 @@ export class InventoryUiController {
 
   private renderInventory(economy: EconomyState): string {
     const { inventory } = economy;
+    const reputation = getReputationState();
     const equipment = (Object.keys(SLOT_LABELS) as EquipmentSlot[])
       .map((slot) => {
         const itemId = inventory.equipment[slot];
@@ -196,8 +221,23 @@ export class InventoryUiController {
         return `<div class="equipment-slot"><span>${SLOT_LABELS[slot]}</span><strong>${itemName}</strong>${action}</div>`;
       })
       .join('');
+    const reputationCards = REPUTATION_FACTIONS.map((faction) => {
+      const value = reputation[faction];
+      const tier = getReputationTier(value);
+      return `
+        <div class="reputation-card" data-reputation-faction="${faction}">
+          <span>${getFactionLabel(faction)}</span>
+          <strong>${value > 0 ? '+' : ''}${value}</strong>
+          <small>${getReputationTierLabel(tier)}</small>
+        </div>
+      `;
+    }).join('');
 
     return `
+      <section class="economy-section">
+        <h3>Pověst</h3>
+        <div class="reputation-grid">${reputationCards}</div>
+      </section>
       <section class="economy-section">
         <h3>Vybavení</h3>
         <div class="equipment-grid">${equipment}</div>
@@ -210,7 +250,10 @@ export class InventoryUiController {
   }
 
   private renderTrade(economy: EconomyState): string {
+    const reputation = getReputationState();
+    const tier = getReputationTier(reputation.townsfolk);
     return `
+      <p class="trade-standing">Měšťané: <strong>${reputation.townsfolk}</strong> · ${getReputationTierLabel(tier)}</p>
       <div class="trade-columns">
         <section class="economy-section">
           <h3>Kateřina · ${economy.merchant.groschen} grošů</h3>
@@ -233,7 +276,9 @@ export class InventoryUiController {
     return stacks
       .map((stack) => {
         const item = ITEM_DEFINITIONS[stack.itemId];
-        const price = context === 'buy' ? item.buyPrice : item.sellPrice;
+        const price = context === 'inventory'
+          ? 0
+          : getItemTradePrice(stack.itemId, context, this.getTradePricingContext());
         const equipped = Object.values(getEconomyState().inventory.equipment).includes(stack.itemId);
         const actions: string[] = [];
 
@@ -301,7 +346,7 @@ export class InventoryUiController {
     }
 
     if (action === 'buy') {
-      const result = buyItem(economy, itemId);
+      const result = buyItem(economy, itemId, 1, this.getTradePricingContext());
       if (!result.ok) return this.setStatus(result.error.message);
       setEconomyState(result.value);
       this.commitChange(`${ITEM_DEFINITIONS[itemId].name} koupen.`);
@@ -309,11 +354,19 @@ export class InventoryUiController {
     }
 
     if (action === 'sell') {
-      const result = sellItem(economy, itemId);
+      const result = sellItem(economy, itemId, 1, this.getTradePricingContext());
       if (!result.ok) return this.setStatus(result.error.message);
       setEconomyState(result.value);
       this.commitChange(`${ITEM_DEFINITIONS[itemId].name} prodán.`);
     }
+  }
+
+  private getTradePricingContext(): TradeReputationContext {
+    const economy = getEconomyState();
+    return {
+      factionReputation: getReputationState().townsfolk,
+      charisma: getEquipmentStats(economy.inventory).charisma
+    };
   }
 
   private commitChange(message: string): void {
