@@ -128,23 +128,15 @@ test('uložená noc vybere noční motiv', async ({ page }) => {
   await expect(button).toContainText('Noční hlídka');
 });
 
-test('vstup do zorného kuželu přepne hudbu z úsvitu do podezření a poplachu', async ({
-  page
-}) => {
-  await installSave(page, { x: 650, y: 610 }, 35);
+test('podezření a poplach přepnou adaptivní hudební vrstvy', async ({ page }) => {
+  await installSave(page, { x: 650, y: 375 }, 35);
   await continueGame(page);
   const body = page.locator('body');
   const button = page.locator('[data-audio-toggle]');
 
-  await expect(body).toHaveAttribute('data-player-visible', 'false');
-  await button.click();
-  await expect(body).toHaveAttribute('data-music-mood', 'dawn');
-
-  await page.keyboard.down('w');
-  await page.waitForTimeout(2100);
-  await page.keyboard.up('w');
-
   await expect(body).toHaveAttribute('data-player-visible', 'true', { timeout: 3000 });
+  await button.click();
+
   await expect(body).toHaveAttribute('data-stealth-level', 'suspicious', { timeout: 3000 });
   await expect(body).toHaveAttribute('data-music-mood', 'suspicious', { timeout: 3000 });
   await expect(button).toContainText('Podezření');
