@@ -69,10 +69,9 @@ export const resolveHuntingHit = (
   const dy = target.y - attack.y;
   const distance = Math.hypot(dx, dy);
   const directionLength = Math.hypot(attack.directionX, attack.directionY);
-  const targetLength = distance;
   const facingDot =
-    directionLength > 0 && targetLength > 0
-      ? (attack.directionX * dx + attack.directionY * dy) / (directionLength * targetLength)
+    directionLength > 0 && distance > 0
+      ? (attack.directionX * dx + attack.directionY * dy) / (directionLength * distance)
       : 1;
 
   const validDamage = Number.isFinite(attack.damage) ? Math.max(0, attack.damage) : 0;
@@ -99,7 +98,7 @@ export const addHuntingLoot = (
 
   for (const entry of loot) {
     const result = addItem(nextInventory, entry.itemId, entry.quantity);
-    if (!result.ok) return result;
+    if (!result.ok) return { ok: false, error: result.error };
     nextInventory = result.value;
   }
 
