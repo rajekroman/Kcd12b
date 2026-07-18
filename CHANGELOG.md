@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0 — expressive dialogue portraits
+
+- Přidáno deset samostatných portrétních identit pro všechny obyvatele Záhoří.
+- Každý portrétní atlas obsahuje šest výrazů: klidný, vlídný, přísný, ustaraný, nedůvěřivý a hrdý.
+- Celkem je generováno 60 ručně komponovaných portrétních frameů ve formátu 48 × 56 px.
+- Portréty zachovávají profesní oděv, pokrývku hlavy, paletu a individuální rysy postavy.
+- Přidány vousy, kníry, jizvy, vrásky, pihy, mouka a špína jako datově řízené portrétní znaky.
+- Každý produkční dialogový uzel explicitně určuje portrétní výraz.
+- Přidán stabilní lookup kompletního dialogového uzlu podle `dialogueId`.
+- Dialogový panel byl přepracován na portrétní rozložení s názvem, textem, výrazem a akcí.
+- Přístupný herní status nově obsahuje také slovní popis emoce.
+- Bohdan mění výraz podle fáze úkolu a výsledku souboje.
+- Kateřina mění výraz podle nízké, neutrální nebo vysoké měšťanské pověsti.
+- Přidány runtime atributy portrétní identity a výrazu.
+- Přidány jednotkové testy všech 60 frameů, hranic, unikátnosti a výrazových rozdílů.
+- Přidány desktopové a mobilní Playwright scénáře Bohdana a reputačních variant Kateřiny.
+
 ## 0.10.0 — handcrafted character atlases
 
 - Nahrazen společný procedurální placeholder dvanácti samostatnými charakterovými atlasy.

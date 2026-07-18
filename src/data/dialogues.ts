@@ -1,5 +1,6 @@
 import type { ReputationFaction } from '../systems/ReputationSystem';
 import type { NpcId } from './npcs';
+import type { PortraitExpression } from './portraits';
 import type { QuestEvent, QuestId, QuestStep } from './quests';
 
 export interface DialogueReputationCondition {
@@ -27,6 +28,7 @@ export interface DialogueDefinition {
   speaker: string;
   text: string;
   actionLabel: string;
+  expression?: PortraitExpression;
   when?: DialogueCondition;
   effects?: readonly DialogueEffect[];
 }
@@ -39,6 +41,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kovář Bohdan',
     text: 'Tak ty už ses s tím lapkou vypořádal? Dobrá práce. Ocel poslouchá toho, kdo nezaváhá.',
     actionLabel: 'Dokončit úkol',
+    expression: 'proud',
     when: {
       questId: 'first-steel',
       questSteps: ['meet-smith'],
@@ -53,6 +56,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kovář Bohdan',
     text: 'Na východní cestě se usadil lapka. Vezmi tenhle meč a ukaž, že nejsi jen učedník.',
     actionLabel: 'Přijmout úkol',
+    expression: 'stern',
     when: {
       questId: 'first-steel',
       questSteps: ['meet-smith'],
@@ -67,6 +71,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kovář Bohdan',
     text: 'Lapka je stále na cestě. Sleduj jeho kryt a udeř tam, kde se odkryje.',
     actionLabel: 'Rozumím',
+    expression: 'concerned',
     when: {
       questId: 'first-steel',
       questSteps: ['defeat-bandit']
@@ -79,6 +84,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kovář Bohdan',
     text: 'Dobrá práce. Ocel poslouchá toho, kdo nezaváhá.',
     actionLabel: 'Odejít',
+    expression: 'warm',
     when: {
       questId: 'first-steel',
       questSteps: ['complete']
@@ -90,7 +96,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Hostinská Marta',
     text: 'Lavice jsou pro hosty, dluhy pro pobudy. Co z toho budeš ty?',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'suspicious'
   },
   {
     id: 'vojtech-ambient',
@@ -98,7 +105,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Strážný Vojtěch',
     text: 'Vesnice je klidná jen proto, že někdo zůstává vzhůru.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'stern'
   },
   {
     id: 'ondra-ambient',
@@ -106,7 +114,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Sedlák Ondra',
     text: 'Pole nepočká na hrdiny ani na válku. Ráno chce pořád totéž.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'concerned'
   },
   {
     id: 'agnes-ambient',
@@ -114,7 +123,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Bylinkářka Anežka',
     text: 'Nešlapej mi do záhonu. Některé byliny léčí a jiné si urážku pamatují.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'suspicious'
   },
   {
     id: 'jakub-ambient',
@@ -122,7 +132,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Mlynář Jakub',
     text: 'Kolo se točí, mouka padá a lidé si stejně myslí, že chléb roste v peci.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'warm'
   },
   {
     id: 'matej-ambient',
@@ -130,7 +141,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Otec Matěj',
     text: 'Modlitba člověka nezbaví práce. Jen mu připomene, proč ji má dokončit.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'concerned'
   },
   {
     id: 'katerina-honored',
@@ -139,6 +151,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kupkyně Kateřina',
     text: 'Pro člověka s takovým jménem mám nejlepší kusy i poctivější cenu.',
     actionLabel: 'Poděkovat',
+    expression: 'proud',
     when: {
       reputation: { faction: 'townsfolk', min: 60 }
     }
@@ -150,6 +163,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     speaker: 'Kupkyně Kateřina',
     text: 'Zboží ti ukážu, ale ruce nech na očích a smlouvat dnes nebudeš.',
     actionLabel: 'Odejít',
+    expression: 'suspicious',
     when: {
       reputation: { faction: 'townsfolk', max: -20 }
     }
@@ -160,7 +174,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Kupkyně Kateřina',
     text: 'Dobré zboží se prodá samo. Špatné potřebuje hlasitého obchodníka.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'neutral'
   },
   {
     id: 'pavel-ambient',
@@ -168,7 +183,8 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Podkoní Pavel',
     text: 'Kůň pozná nejistou ruku dřív než člověk. A odpustí ji méně často.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'neutral'
   },
   {
     id: 'anna-ambient',
@@ -176,6 +192,7 @@ export const DIALOGUE_DEFINITIONS: readonly DialogueDefinition[] = [
     priority: 10,
     speaker: 'Pradlena Anna',
     text: 'Z bláta dostanu skoro všechno. Z pověsti člověka už méně.',
-    actionLabel: 'Odejít'
+    actionLabel: 'Odejít',
+    expression: 'stern'
   }
 ];
