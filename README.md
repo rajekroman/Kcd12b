@@ -56,6 +56,12 @@ Všech deset obyvatel má vlastní ručně komponovaný portrétní atlas 48 × 
 
 Výraz není odhadován z textu. Je uložený přímo v datovém dialogovém uzlu, takže se mění podle situace, questu a reputace. Bohdan je při zadání úkolu přísný, při varování ustaraný a po vítězství hrdý nebo vlídný. Kateřina při nízké měšťanské pověsti působí nedůvěřivě, zatímco při vysoké pověsti hrdě a vstřícně.
 
+## Počasí a světlo
+
+Uložený světový čas deterministicky řídí čtyři stavy počasí: jasno, zataženo, déšť a bouři. Po pokračování hry se vždy obnoví stejný stav bez přidání dalšího pole do save formátu. Samostatný HUD štítek ukazuje aktuální počasí a světelnou fázi.
+
+Prostředí používá odlišný tón pro noc, úsvit, den a soumrak. Zataženo přidává pohyblivé oblačné stíny, déšť až 58 kapek a mokré odlesky, bouře až 92 kapek, silnější vítr, nižší viditelnost a dvoufázové bleskové záblesky. Vizuální vrstvy jsou deterministické a testovatelné přes veřejné runtime hodnoty.
+
 ## Inventář a obchod
 
 Batoh obsahuje vybavení, zásoby, nosnost a groše. Zbraň, zbroj a doplněk lze vybavit do samostatných slotů; spotřební předměty se používají přímo z inventáře.
@@ -82,6 +88,6 @@ Zvuk musí být kvůli pravidlům prohlížeče poprvé spuštěn uživatelským
 
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, šedesát výrazových portrétních frameů, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, šedesát výrazových portrétních frameů, dynamické počasí a světlo, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.

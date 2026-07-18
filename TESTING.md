@@ -14,19 +14,18 @@ npm run build
 
 Vitest ověřuje mimo jiné:
 
-- deset unikátních portrétních identit a šest výrazů,
-- všech 60 portrétních frameů v celočíselném rámci 48 × 56 px,
-- hustotu a unikátnost portrétních atlasů,
-- rozdíly obočí, očí a úst mezi jednotlivými emocemi,
-- explicitní výraz každého produkčního dialogu,
-- výběr Bohdanova výrazu podle questu,
-- výběr Kateřinina výrazu podle reputace,
-- stabilní lookup dialogu podle `dialogueId`,
-- všech 72 charakterových frameů v rámci 20 × 28 px,
-- pohybové a bojové animace postav,
+- normalizaci světové hodiny,
+- deterministické hranice jasno, zataženo, déšť a bouře,
+- parametry srážek, mokra, větru a viditelnosti,
+- světelné fáze noc, úsvit, den a soumrak,
+- dvoufázový bouřkový záblesk,
+- deset portrétních identit a všech 60 výrazových frameů,
+- všech 72 charakterových frameů,
+- questové a reputační dialogy,
+- pohybové a bojové animace,
 - stealth geometrii a podezření,
 - adaptivní hudební rozhodování,
-- reputaci, ekonomiku, questy a save migrace.
+- ekonomiku a save migrace.
 
 ## E2E
 
@@ -40,11 +39,12 @@ npm run test:e2e
 
 Playwright ověřuje mimo jiné:
 
-- registraci deseti portrétních atlasů a šesti výrazů,
-- Bohdanův přísný portrét při zadání úkolu,
-- Kateřinin hrdý portrét při vysoké pověsti,
-- Kateřinin nedůvěřivý portrét při nízké pověsti,
-- slovní popis emoce v přístupném statusu,
+- jasno a suchý povrch při uloženém úsvitu,
+- zatažené dopoledne bez srážek,
+- odpolední déšť, hustotu kapek, mokro a viditelnost,
+- bouři za soumraku, maximální srážky a bleskový stav,
+- obnovení počasí pouze z uloženého světového času,
+- portrétní výrazy Bohdana a reputační varianty Kateřiny,
 - charakterové atlasy a animaci hráče,
 - questy, inventář, obchod a reputaci,
 - stealth stav, poplach a únik z dosahu,

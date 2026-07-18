@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.0 — deterministic weather and dynamic lighting
+
+- Přidán deterministický cyklus jasno, zataženo, déšť a bouře odvozený ze světové hodiny.
+- Přidány světelné fáze noc, úsvit, den a soumrak.
+- Prostředí používá samostatné barevné tónování a stmívání podle počasí a denní fáze.
+- Zatažené počasí vykresluje pohyblivé oblačné stíny.
+- Déšť používá až 58 deterministických kapek, boční vítr a mokré odlesky.
+- Bouře používá až 92 kapek, nižší viditelnost, silnější vítr a dvoufázové bleskové záblesky.
+- Přidán HUD štítek počasí a světelné fáze.
+- Přidány runtime hodnoty typu počasí, srážek, mokra, viditelnosti, denní fáze a blesku.
+- WeatherSystem je čistý model bez Phaser a DOM závislostí.
+- WeatherController je oddělený od GameScene a spravuje pouze vizuální runtime vrstvy.
+- Save formát zůstává ve verzi 4; počasí se po pokračování obnoví z uloženého světového času.
+- Přidány jednotkové testy hranic počasí, světelných fází, parametrů mokra a bleskového cyklu.
+- Přidány desktopové a mobilní Playwright scénáře pro jasno, zataženo, déšť a bouři.
+
 ## 0.11.0 — expressive dialogue portraits
 
 - Přidáno deset samostatných portrétních identit pro všechny obyvatele Záhoří.

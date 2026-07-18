@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M3.2 Expressive Portraits — všech deset obyvatel má samostatný ručně komponovaný portrétní atlas 48 × 56 px se šesti výrazy. Dialogová data explicitně volí emoci a panel zobrazuje správnou tvář podle questu, obsahu rozhovoru a reputace.
+M4.1 Weather and Lighting — světový čas nyní deterministicky řídí jasno, zataženo, déšť a bouři. Prostředí používá samostatné barevné světlo pro noc, úsvit, den a soumrak, pohyblivé oblačné stíny, srážky, mokré odlesky a bouřkové záblesky.
 
 ## Funguje
 
@@ -11,23 +11,24 @@ M3.2 Expressive Portraits — všech deset obyvatel má samostatný ručně komp
 - Pixel-perfect viewport 480 × 270.
 - Pohyb WASD/šipky i dotyková tlačítka.
 - Kolize, kamera a testovací oblast Záhoří.
-- Dvanáct samostatných charakterových atlasů ve formátu 20 × 28 px.
-- Šest animovaných stavů na herní postavu.
+- Deterministický cyklus jasno, zataženo, déšť a bouře.
+- Světelné fáze noc, úsvit, den a soumrak.
+- Barevné tónování, stmívání, pohyblivé oblačné stíny a mokré odlesky.
+- Až 96 dešťových kapek s rychlostí a větrem podle intenzity počasí.
+- Dvoufázové bouřkové záblesky.
+- HUD štítek počasí a denní fáze.
+- Obnovení stejného počasí z uloženého světového času bez změny save formátu.
+- Runtime hodnoty srážek, mokra, viditelnosti a blesku pro testy a přístupnost.
+- Dvanáct samostatných charakterových atlasů a šest animovaných stavů.
 - Deset profesních NPC se skutečně odlišnou siluetou, pokrývkou hlavy a nástrojem.
-- Deset samostatných portrétních identit ve formátu 48 × 56 px.
-- Šest výrazů na portrét: klidný, vlídný, přísný, ustaraný, nedůvěřivý a hrdý.
-- Celkem 60 ručně komponovaných výrazových frameů.
+- Deset portrétních identit se šesti výrazovými variantami.
 - Dialogové uzly explicitně určují portrétní emoci.
-- Bohdan mění výraz mezi zadáním úkolu, varováním a pochvalou.
-- Kateřinin portrét reaguje na nízkou, neutrální a vysokou měšťanskou pověst.
-- Přístupný dialogový stav obsahuje jméno, text i slovní popis emoce.
 - Quest „První ocel“ je definován daty a publikuje jednorázovou událost dokončení.
 - Pět směrů útoku, směrový kryt, dokonalý kryt a úhyb.
 - Inventář, tři sloty vybavení, spotřební předměty a atomický obchod.
 - Oddělená pověst sedláků, měšťanů a šlechty s vlivem na dialogy a ceny.
 - Vojtěchův zorný kužel, podezření a poplach.
 - Adaptivní procedurální hudba pro denní dobu, podezření a poplach.
-- Obecná jednosnímková záloha krátkých vstupů E, Space, Shift a kláves 1–5.
 - IndexedDB jako primární save úložiště a localStorage fallback.
 - Verzovaný save formát 4 s migracemi verzí 1, 2 a 3.
 - Jednotkové a Playwright E2E testy.
@@ -35,17 +36,18 @@ M3.2 Expressive Portraits — všech deset obyvatel má samostatný ručně komp
 
 ## Známé limity
 
-- Herní a portrétní atlasy vznikají za běhu z kódu a zatím nejsou exportované jako externí PNG assety.
-- Portréty mají šest výrazů, ale nemají fonémové animace rtů ani mrkání.
-- Dialogový panel zatím zobrazuje pouze mluvící NPC, nikoli protilehlý portrét hráče.
-- Postavy používají boční zrcadlení pro směr doleva a doprava, nikoli samostatné čtyřsměrné sady.
+- Počasí je deterministicky odvozené pouze z denní hodiny a zatím nemá vícedenní seed ani náhodné fronty.
+- Déšť, mraky a mokré odlesky jsou screen-space vrstvy; budovy zatím nevytvářejí závětří ani střechy neblokují srážky.
+- Počasí zatím neovlivňuje pohyb, stealth, NPC rozvrhy, ceny ani boj.
+- Bouřka používá vizuální záblesky bez samostatného hromového zvuku.
+- Herní a portrétní atlasy vznikají za běhu z kódu a nejsou exportované jako externí PNG assety.
+- Postavy používají boční zrcadlení namísto samostatných čtyřsměrných sad.
 - Navigace NPC používá přímý pohyb s Arcade Physics, nikoli pathfinding.
-- První stealth pozorovatel je pouze strážný Vojtěch a kužel zatím neprovádí okluzi přes překážky.
-- Hudba je syntetizovaná v prohlížeči a audio nastavení se zatím neukládá.
+- První stealth pozorovatel je pouze strážný Vojtěch a kužel neprovádí okluzi přes překážky.
 - Quest state je stále jeden aktivní quest.
 
 ## Další tři priority
 
-1. Přidat počasí a světelné změny prostředí.
-2. Přidat lov a faunu.
-3. Přidat alchymii, kovářství a koně.
+1. Přidat lov a faunu.
+2. Přidat alchymii a kovářství.
+3. Přidat koně a jezdecký systém.
