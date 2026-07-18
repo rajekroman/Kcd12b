@@ -88,6 +88,9 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isNonNegativeNumber = (value: unknown): value is number =>
   isFiniteNumber(value) && value >= 0;
 
+const isPositiveInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value > 0;
+
 const isPlayerState = (value: unknown): value is PlayerSaveState => {
   if (!value || typeof value !== 'object') return false;
   const player = value as Partial<PlayerSaveState>;
@@ -124,14 +127,13 @@ const isStackArray = (value: unknown, enforcePlayerStackLimit: boolean): value i
   for (const candidate of value) {
     if (!candidate || typeof candidate !== 'object') return false;
     const stack = candidate as Partial<InventoryStack>;
-    if (!isItemId(stack.itemId) || !Number.isInteger(stack.quantity) || (stack.quantity ?? 0) <= 0) {
-      return false;
-    }
-    if (seen.has(stack.itemId)) return false;
-    if (enforcePlayerStackLimit && (stack.quantity ?? 0) > ITEM_DEFINITIONS[stack.itemId].maxStack) {
-      return false;
-    }
-    seen.add(stack.itemId);
+    const itemId = stack.itemId;
+    const quantity = stack.quantity;
+
+    if (!isItemId(itemId) || !isPositiveInteger(quantity)) return false;
+    if (seen.has(itemId)) return false;
+    if (enforcePlayerStackLimit && quantity > ITEM_DEFINITIONS[itemId].maxStack) return false;
+    seen.add(itemId);
   }
   return true;
 };
@@ -139,38 +141,48 @@ const isStackArray = (value: unknown, enforcePlayerStackLimit: boolean): value i
 const isEquipmentState = (value: unknown): value is EquipmentState => {
   if (!value || typeof value !== 'object') return false;
   const equipment = value as Partial<EquipmentState>;
+
   return EQUIPMENT_SLOTS.every((slot) => {
     const itemId = equipment[slot];
-    return itemId === null || (isItemId(itemId) && ITEM_DEFINITIONS[itemId].equipmentSlot === slot);
+    if (itemId === null) return true;
+    return isItemId(itemId) && ITEM_DEFINITIONS[itemId].equipmentSlot === slot;
   });
 };
 
 const isInventoryState = (value: unknown): value is InventoryState => {
   if (!value || typeof value !== 'object') return false;
-  const inventory = value as Partial<InventoryState>;
+  const candidate = value as Partial<InventoryState>;
+  const groschen = candidate.groschen;
+  const maxWeight = candidate.maxWeight;
+  const items = candidate.items;
+  const equipment = candidate.equipment;
+
   if (
-    !isNonNegativeNumber(inventory.groschen) ||
-    !isFiniteNumber(inventory.maxWeight) ||
-    (inventory.maxWeight ?? 0) <= 0 ||
-    !isStackArray(inventory.items, true) ||
-    !isEquipmentState(inventory.equipment)
+    !isNonNegativeNumber(groschen) ||
+    !isFiniteNumber(maxWeight) ||
+    maxWeight <= 0 ||
+    !isStackArray(items, true) ||
+    !isEquipmentState(equipment)
   ) {
     return false;
   }
 
   return EQUIPMENT_SLOTS.every((slot) => {
-    const itemId = inventory.equipment?.[slot];
-    return itemId === null || getItemQuantity(inventory.items ?? [], itemId) > 0;
+    const itemId = equipment[slot];
+    return itemId === null || getItemQuantity(items, itemId) > 0;
   });
 };
 
 const isMerchantState = (value: unknown): value is MerchantState => {
   if (!value || typeof value !== 'object') return false;
   const merchant = value as Partial<MerchantState>;
+  const groschen = merchant.groschen;
+  const stock = merchant.stock;
+
   return (
     merchant.id === 'trader-katerina' &&
-    isNonNegativeNumber(merchant.groschen) &&
-    isStackArray(merchant.stock, false)
+    isNonNegativeNumber(groschen) &&
+    isStackArray(stock, false)
   );
 };
 
