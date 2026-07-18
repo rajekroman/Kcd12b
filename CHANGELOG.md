@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0 — inventory and economy
+
+- Přidáno devět datově definovaných předmětů s kategorií, cenou, váhou, stack limitem a statistikami.
+- Přidán startovní inventář, groše, nosnost a tři sloty vybavení.
+- Přidány výpočty bonusu útoku, zbroje a charisma z vybavených předmětů.
+- Vybavená zbraň ovlivňuje skutečné poškození a zbroj snižuje příchozí zásahy.
+- Přidány spotřební předměty obnovující zdraví.
+- Přidán atomický nákup a prodej se zásobami a hotovostí Kateřiny.
+- Neúspěšná transakce nemění inventář, zásoby ani peníze žádné strany.
+- Prodej posledního vybaveného kusu automaticky uvolní příslušný slot.
+- Přidán responzivní inventářový panel pro desktop a mobil.
+- Batoh lze otevřít klávesou I nebo dotykovým tlačítkem.
+- Obchodní režim je dostupný pouze v blízkosti kupkyně Kateřiny.
+- Otevřený inventář pozastaví fyziku a herní klávesy.
+- Save formát byl povýšen na verzi 3 a nově ukládá inventář, vybavení, groše a zásoby obchodníka.
+- Přidány migrace save verzí 1 a 2 do verze 3 s bezpečnou výchozí ekonomikou.
+- Ekonomické změny se okamžitě zařadí do serializované save fronty.
+- Přidány jednotkové testy nosnosti, stacků, vybavení, spotřeby a transakcí.
+- Přidány browserové testy inventáře, léčby, nákupu, vybavení a skutečné persistence verze 3.
+- Opraveno nadbytečné přepisování kontextového NPC atributu, které destabilizovalo interaktivní DOM tlačítka.
+
 ## 0.5.0 — living village
 
 - Přidáno deset datově definovaných obyvatel Záhoří.
