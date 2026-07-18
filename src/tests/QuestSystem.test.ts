@@ -17,4 +17,15 @@ describe('QuestSystem', () => {
     expect(complete.banditDefeated).toBe(true);
     expect(getQuestObjective(complete)).toContain('dokončen');
   });
+
+  it('nezablokuje úkol, když hráč porazí lapku před rozhovorem', () => {
+    const initial = createInitialQuestState();
+    const defeatedEarly = advanceQuestAfterBanditDefeat(initial);
+    const completedAfterDialogue = advanceQuestAfterDialogue(defeatedEarly);
+
+    expect(defeatedEarly.step).toBe('meet-smith');
+    expect(defeatedEarly.banditDefeated).toBe(true);
+    expect(getQuestObjective(defeatedEarly)).toContain('poraženém lapkovi');
+    expect(completedAfterDialogue.step).toBe('complete');
+  });
 });
