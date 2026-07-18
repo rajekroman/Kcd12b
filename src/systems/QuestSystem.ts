@@ -1,38 +1,59 @@
-export type QuestStep = 'meet-smith' | 'defeat-bandit' | 'complete';
+import {
+  QUEST_DEFINITIONS,
+  type QuestCondition,
+  type QuestDefinition,
+  type QuestEvent,
+  type QuestId,
+  type QuestState,
+  type QuestStep
+} from '../data/quests';
 
-export interface QuestState {
-  id: 'first-steel';
-  step: QuestStep;
-  banditDefeated: boolean;
-}
+export type { QuestEvent, QuestId, QuestState, QuestStep } from '../data/quests';
 
-export const createInitialQuestState = (): QuestState => ({
-  id: 'first-steel',
-  step: 'meet-smith',
-  banditDefeated: false
+const matchesCondition = (state: QuestState, condition?: QuestCondition): boolean => {
+  if (!condition) return true;
+  if (
+    condition.banditDefeated !== undefined &&
+    condition.banditDefeated !== state.banditDefeated
+  ) {
+    return false;
+  }
+  return true;
+};
+
+export const getQuestDefinition = (id: QuestId): QuestDefinition => QUEST_DEFINITIONS[id];
+
+export const createInitialQuestState = (id: QuestId = 'first-steel'): QuestState => ({
+  ...getQuestDefinition(id).initialState
 });
 
-export const advanceQuestAfterDialogue = (state: QuestState): QuestState => {
-  if (state.step !== 'meet-smith') return state;
-  if (state.banditDefeated) return { ...state, step: 'complete' };
-  return { ...state, step: 'defeat-bandit' };
+export const applyQuestEvent = (state: QuestState, event: QuestEvent): QuestState => {
+  const definition = getQuestDefinition(state.id);
+  const transition = definition.transitions.find(
+    (candidate) =>
+      candidate.event === event &&
+      candidate.from === state.step &&
+      matchesCondition(state, candidate.when)
+  );
+
+  if (!transition) return state;
+  return {
+    ...state,
+    ...transition.set,
+    step: transition.to
+  };
 };
 
-export const advanceQuestAfterBanditDefeat = (state: QuestState): QuestState => {
-  if (state.step === 'complete') return state;
-  if (state.step === 'meet-smith') return { ...state, banditDefeated: true };
-  return { ...state, step: 'complete', banditDefeated: true };
-};
+export const advanceQuestAfterDialogue = (state: QuestState): QuestState =>
+  applyQuestEvent(state, 'smith-dialogue');
+
+export const advanceQuestAfterBanditDefeat = (state: QuestState): QuestState =>
+  applyQuestEvent(state, 'bandit-defeated');
 
 export const getQuestObjective = (state: QuestState): string => {
-  switch (state.step) {
-    case 'meet-smith':
-      return state.banditDefeated
-        ? 'Promluv s kovářem Bohdanem o poraženém lapkovi.'
-        : 'Promluv s kovářem Bohdanem.';
-    case 'defeat-bandit':
-      return 'Vyžeň lapku z východní cesty.';
-    case 'complete':
-      return 'Úkol dokončen: První ocel.';
-  }
+  const definition = getQuestDefinition(state.id);
+  const step = definition.steps[state.step];
+  const objective = step.objectives.find((candidate) => matchesCondition(state, candidate.when));
+  if (!objective) throw new Error(`Quest ${state.id} step ${state.step} has no matching objective.`);
+  return objective.text;
 };
