@@ -3,6 +3,11 @@ import {
   resetEconomyState,
   setEconomyState
 } from '../core/EconomyStore';
+import {
+  getReputationState,
+  resetReputationState,
+  setReputationState
+} from '../core/ReputationStore';
 import { ITEM_DEFINITIONS, type EquipmentSlot, type ItemId } from '../data/items';
 import {
   createInitialEconomyState,
@@ -14,6 +19,12 @@ import {
   type MerchantState
 } from './InventorySystem';
 import type { QuestState } from './QuestSystem';
+import {
+  MAX_REPUTATION,
+  MIN_REPUTATION,
+  createInitialReputationState,
+  type ReputationState
+} from './ReputationSystem';
 
 export interface PlayerSaveState {
   x: number;
@@ -27,16 +38,21 @@ export interface WorldSaveState {
 }
 
 export interface GameSave {
-  version: 3;
+  version: 4;
   player: PlayerSaveState;
   quest: QuestState;
   world: WorldSaveState;
   economy: EconomyState;
+  reputation: ReputationState;
   savedAt: string;
 }
 
-export type GameSaveInput = Omit<GameSave, 'version' | 'savedAt' | 'economy'> & {
+export type GameSaveInput = Omit<
+  GameSave,
+  'version' | 'savedAt' | 'economy' | 'reputation'
+> & {
   economy?: EconomyState;
+  reputation?: ReputationState;
 };
 
 export interface StorageLike {
@@ -57,10 +73,11 @@ export interface SaveSystemOptions {
   now?: () => Date;
 }
 
-export const CURRENT_SAVE_VERSION = 3;
+export const CURRENT_SAVE_VERSION = 4;
 export const LEGACY_SAVE_KEY = 'chronicles-of-bohemia.save.v1';
 export const LEGACY_SAVE_KEY_V2 = 'chronicles-of-bohemia.save.v2';
-export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v3';
+export const LEGACY_SAVE_KEY_V3 = 'chronicles-of-bohemia.save.v3';
+export const FALLBACK_SAVE_KEY = 'chronicles-of-bohemia.save.v4';
 
 const DATABASE_NAME = 'chronicles-of-bohemia';
 const DATABASE_VERSION = 1;
@@ -79,6 +96,7 @@ interface UnknownSaveRecord {
   quest?: unknown;
   world?: unknown;
   economy?: unknown;
+  reputation?: unknown;
   savedAt?: unknown;
 }
 
@@ -192,12 +210,60 @@ const isEconomyState = (value: unknown): value is EconomyState => {
   return isInventoryState(economy.inventory) && isMerchantState(economy.merchant);
 };
 
+const isReputationValue = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value >= MIN_REPUTATION &&
+  value <= MAX_REPUTATION;
+
+const isReputationState = (value: unknown): value is ReputationState => {
+  if (!value || typeof value !== 'object') return false;
+  const reputation = value as Partial<ReputationState>;
+  return (
+    isReputationValue(reputation.peasants) &&
+    isReputationValue(reputation.townsfolk) &&
+    isReputationValue(reputation.nobility)
+  );
+};
+
 const isTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value));
+
+const buildMigratedSave = (
+  candidate: UnknownSaveRecord,
+  world: WorldSaveState,
+  economy: EconomyState,
+  reputation: ReputationState
+): GameSave => ({
+  version: 4,
+  player: candidate.player as PlayerSaveState,
+  quest: candidate.quest as QuestState,
+  world,
+  economy,
+  reputation,
+  savedAt: candidate.savedAt as string
+});
 
 export const migrateGameSave = (value: unknown): GameSave | null => {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as UnknownSaveRecord;
+
+  if (
+    candidate.version === 4 &&
+    isPlayerState(candidate.player) &&
+    isQuestState(candidate.quest) &&
+    isWorldState(candidate.world) &&
+    isEconomyState(candidate.economy) &&
+    isReputationState(candidate.reputation) &&
+    isTimestamp(candidate.savedAt)
+  ) {
+    return buildMigratedSave(
+      candidate,
+      candidate.world,
+      candidate.economy,
+      candidate.reputation
+    );
+  }
 
   if (
     candidate.version === 3 &&
@@ -207,14 +273,12 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isEconomyState(candidate.economy) &&
     isTimestamp(candidate.savedAt)
   ) {
-    return {
-      version: 3,
-      player: candidate.player,
-      quest: candidate.quest,
-      world: candidate.world,
-      economy: candidate.economy,
-      savedAt: candidate.savedAt
-    };
+    return buildMigratedSave(
+      candidate,
+      candidate.world,
+      candidate.economy,
+      createInitialReputationState()
+    );
   }
 
   if (
@@ -224,14 +288,12 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isWorldState(candidate.world) &&
     isTimestamp(candidate.savedAt)
   ) {
-    return {
-      version: 3,
-      player: candidate.player,
-      quest: candidate.quest,
-      world: candidate.world,
-      economy: createInitialEconomyState(),
-      savedAt: candidate.savedAt
-    };
+    return buildMigratedSave(
+      candidate,
+      candidate.world,
+      createInitialEconomyState(),
+      createInitialReputationState()
+    );
   }
 
   if (
@@ -240,14 +302,12 @@ export const migrateGameSave = (value: unknown): GameSave | null => {
     isQuestState(candidate.quest) &&
     isTimestamp(candidate.savedAt)
   ) {
-    return {
-      version: 3,
-      player: candidate.player,
-      quest: candidate.quest,
-      world: { dayClock: 0 },
-      economy: createInitialEconomyState(),
-      savedAt: candidate.savedAt
-    };
+    return buildMigratedSave(
+      candidate,
+      { dayClock: 0 },
+      createInitialEconomyState(),
+      createInitialReputationState()
+    );
   }
 
   return null;
@@ -358,6 +418,7 @@ export class SaveSystem {
       quest: data.quest,
       world: data.world,
       economy: data.economy ?? getEconomyState(),
+      reputation: data.reputation ?? getReputationState(),
       savedAt: (this.options.now ?? (() => new Date()))().toISOString()
     };
 
@@ -369,8 +430,7 @@ export class SaveSystem {
     if (!writeFallback(this.options.fallback, payload)) {
       throw new Error('Save could not be written to IndexedDB or fallback storage.');
     }
-    this.safeRemove(LEGACY_SAVE_KEY);
-    this.safeRemove(LEGACY_SAVE_KEY_V2);
+    this.removeLegacyKeys();
     return payload;
   }
 
@@ -382,12 +442,18 @@ export class SaveSystem {
         if ((primary as UnknownSaveRecord).version !== CURRENT_SAVE_VERSION) {
           await this.tryPrimarySet(migrated);
         }
-        setEconomyState(migrated.economy);
+        this.restoreRuntimeStores(migrated);
         return migrated;
       }
     }
 
-    const fallbackKeys = [FALLBACK_SAVE_KEY, LEGACY_SAVE_KEY_V2, LEGACY_SAVE_KEY] as const;
+    const fallbackKeys = [
+      FALLBACK_SAVE_KEY,
+      LEGACY_SAVE_KEY_V3,
+      LEGACY_SAVE_KEY_V2,
+      LEGACY_SAVE_KEY
+    ] as const;
+
     for (const key of fallbackKeys) {
       const fallback = parseFallback(this.options.fallback, key);
       if (!fallback) continue;
@@ -395,10 +461,9 @@ export class SaveSystem {
       if (await this.tryPrimarySet(fallback)) {
         this.cleanupFallbackKeys();
       } else if (key !== FALLBACK_SAVE_KEY && writeFallback(this.options.fallback, fallback)) {
-        this.safeRemove(LEGACY_SAVE_KEY);
-        this.safeRemove(LEGACY_SAVE_KEY_V2);
+        this.removeLegacyKeys();
       }
-      setEconomyState(fallback.economy);
+      this.restoreRuntimeStores(fallback);
       return fallback;
     }
 
@@ -419,6 +484,12 @@ export class SaveSystem {
     }
     this.cleanupFallbackKeys();
     resetEconomyState();
+    resetReputationState();
+  }
+
+  private restoreRuntimeStores(save: GameSave): void {
+    setEconomyState(save.economy);
+    setReputationState(save.reputation);
   }
 
   private async tryPrimaryGet(): Promise<unknown | null> {
@@ -444,6 +515,11 @@ export class SaveSystem {
 
   private cleanupFallbackKeys(): void {
     this.safeRemove(FALLBACK_SAVE_KEY);
+    this.removeLegacyKeys();
+  }
+
+  private removeLegacyKeys(): void {
+    this.safeRemove(LEGACY_SAVE_KEY_V3);
     this.safeRemove(LEGACY_SAVE_KEY_V2);
     this.safeRemove(LEGACY_SAVE_KEY);
   }
