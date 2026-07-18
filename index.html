@@ -9,6 +9,7 @@
   </head>
   <body>
     <div id="app" aria-label="Herní obrazovka"></div>
+    <div id="game-status" class="sr-only" role="status" aria-live="polite">Načítání hry.</div>
     <div id="mobile-controls" aria-label="Dotykové ovládání">
       <div class="dpad" aria-label="Pohyb">
         <button type="button" data-control="up" aria-label="Nahoru">▲</button>
@@ -18,7 +19,15 @@
       </div>
       <div class="actions" aria-label="Akce">
         <button type="button" data-control="interact">Mluv</button>
-        <button type="button" data-control="attack">Útok</button>
+        <button type="button" data-control="block">Kryt</button>
+        <button type="button" data-control="dodge">Úhyb</button>
+        <button
+          type="button"
+          data-control="attack"
+          aria-label="Útok; tažením zvolíš směr"
+        >
+          Útok
+        </button>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
