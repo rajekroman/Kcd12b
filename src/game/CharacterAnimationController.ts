@@ -27,6 +27,8 @@ export class CharacterAnimationController {
     EventBus.off(GameEvents.ATTACK, this.onPlayerAttack, this);
     EventBus.off(GameEvents.MESSAGE, this.onMessage, this);
     this.runtime = undefined;
+    delete document.body.dataset.playerAtlas;
+    delete document.body.dataset.banditAtlas;
     delete document.body.dataset.playerAnimation;
     delete document.body.dataset.banditAnimation;
   }
@@ -95,16 +97,22 @@ export class CharacterAnimationController {
   }
 
   private onPlayerAttack(): void {
-    const runtime = this.runtime;
-    if (!runtime) return;
-    runtime.player.play(getCharacterAnimationKey('player', 'action'), true);
-    runtime.playerLockUntil = runtime.scene.time.now + 240;
+    this.playPlayerAction();
   }
 
   private onMessage(message: unknown): void {
     const runtime = this.runtime;
     if (!runtime || typeof message !== 'string') return;
     const now = runtime.scene.time.now;
+
+    if (
+      message === 'Útok minul.' ||
+      message.includes('zásah za') ||
+      message.startsWith('Zásah do odkrytého') ||
+      message.startsWith('Lapka vykryl')
+    ) {
+      this.playPlayerAction();
+    }
 
     if (message.startsWith('Lapka chystá')) {
       runtime.bandit.play(getCharacterAnimationKey('bandit', 'action'), true);
@@ -129,6 +137,13 @@ export class CharacterAnimationController {
       runtime.player.play(getCharacterAnimationKey('player', 'hurt'), true);
       runtime.playerLockUntil = now + 220;
     }
+  }
+
+  private playPlayerAction(): void {
+    const runtime = this.runtime;
+    if (!runtime) return;
+    runtime.player.play(getCharacterAnimationKey('player', 'action'), true);
+    runtime.playerLockUntil = runtime.scene.time.now + 240;
   }
 
   private playIfDifferent(
