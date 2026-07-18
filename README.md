@@ -58,15 +58,23 @@ Výraz není odhadován z textu. Je uložený přímo v datovém dialogovém uzl
 
 ## Počasí a světlo
 
-Uložený světový čas deterministicky řídí čtyři stavy počasí: jasno, zataženo, déšť a bouři. Po pokračování hry se vždy obnoví stejný stav bez přidání dalšího pole do save formátu. Samostatný HUD štítek ukazuje aktuální počasí a světelnou fázi.
+Uložený světový čas deterministicky řídí čtyři stavy počasí: jasno, zataženo, déšť a bouři. Po pokračování hry se vždy obnoví stejný stav. Samostatný HUD štítek ukazuje aktuální počasí a světelnou fázi.
 
-Prostředí používá odlišný tón pro noc, úsvit, den a soumrak. Zataženo přidává pohyblivé oblačné stíny, déšť až 58 kapek a mokré odlesky, bouře až 92 kapek, silnější vítr, nižší viditelnost a dvoufázové bleskové záblesky. Vizuální vrstvy jsou deterministické a testovatelné přes veřejné runtime hodnoty.
+Prostředí používá odlišný tón pro noc, úsvit, den a soumrak. Zataženo přidává pohyblivé oblačné stíny, déšť až 58 kapek a mokré odlesky, bouře až 92 kapek, silnější vítr, nižší viditelnost a dvoufázové bleskové záblesky.
+
+## Lov a fauna
+
+Záhoří obývá zajíc, srnec a kanec. Každý druh má vlastní ručně komponovaný atlas 24 × 18 px, zdraví, rychlost, teritorium a intervaly denní aktivity. Zvěř se deterministicky toulá a při přiblížení prchá; za deště nebo bouře si hráče kvůli nižší viditelnosti všimne na kratší vzdálenost.
+
+Lov používá stejný potvrzený směrový útok jako souboj. Zásah musí být v dosahu a ve správném směru. Ulovený kus přidá do standardního inventáře zaječí nebo kančí maso, srnčí zvěřinu či kůži. Kořist respektuje nosnost a stack limit atomicky — při nedostatku místa se částečný obsah nepřidá.
+
+Save verze 5 ukládá seznam ulovených kusů do `world.huntedAnimals`. Po pokračování se mrtvá zvěř znovu neobjeví a kořist zůstává v inventáři. Starší save verze 1–4 se automaticky migrují s prázdným seznamem fauny.
 
 ## Inventář a obchod
 
 Batoh obsahuje vybavení, zásoby, nosnost a groše. Zbraň, zbroj a doplněk lze vybavit do samostatných slotů; spotřební předměty se používají přímo z inventáře.
 
-Obchodní záložka se aktivuje pouze v blízkosti kupkyně Kateřiny během jejího denního režimu. Nákup i prodej kontroluje hotovost, zásoby, nosnost a maximální množství v jednom stacku.
+Obchodní záložka se aktivuje pouze v blízkosti kupkyně Kateřiny během jejího denního režimu. Nákup i prodej kontroluje hotovost, zásoby, nosnost a maximální množství v jednom stacku. Loveckou kořist lze prodávat stejným ekonomickým systémem jako ostatní materiály.
 
 ## Pověst
 
@@ -88,6 +96,6 @@ Zvuk musí být kvůli pravidlům prohlížeče poprvé spuštěn uživatelským
 
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, šedesát výrazových portrétních frameů, dynamické počasí a světlo, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče, lapky a tří druhů zvěře, šedesát výrazových portrétních frameů, dynamické počasí a světlo, lov a kořist, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, obchod, tři reputační skupiny, stealth, adaptivní hudbu, save verze 5, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.
