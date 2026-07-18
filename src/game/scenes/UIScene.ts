@@ -1,9 +1,15 @@
 import Phaser from 'phaser';
 import { EventBus, GameEvents } from '../../core/EventBus';
 import {
+  getPortraitFrameIndex,
+  getPortraitTextureKey,
+  type PortraitExpression
+} from '../../data/portraits';
+import {
   getAttackDirectionLabel,
   type AttackDirection
 } from '../../systems/CombatSystem';
+import { getDialogueDefinitionById } from '../../systems/DialogueSystem';
 
 interface HudPayload {
   health: number;
@@ -84,6 +90,8 @@ export class UIScene extends Phaser.Scene {
       delete document.body.dataset.dodgeReady;
       delete document.body.dataset.dialogue;
       delete document.body.dataset.dialogueId;
+      delete document.body.dataset.dialoguePortrait;
+      delete document.body.dataset.dialogueExpression;
       delete document.body.dataset.lastMessage;
     });
   }
@@ -125,25 +133,56 @@ export class UIScene extends Phaser.Scene {
 
   private onDialogueOpen(payload: DialoguePayload): void {
     this.dialogueContainer?.destroy(true);
-    const width = Math.min(420, this.scale.width - 30);
+    const definition = getDialogueDefinitionById(payload.dialogueId);
+    const expression: PortraitExpression = definition?.expression ?? 'neutral';
+    const width = Math.min(438, this.scale.width - 24);
+    const height = 132;
     const x = this.scale.width / 2;
-    const y = this.scale.height - 95;
+    const y = this.scale.height - 99;
+    const portraitWidth = 64;
+    const leftEdge = -width / 2;
+    const portraitX = leftEdge + 40;
+    const copyX = leftEdge + portraitWidth + 18;
+    const copyWidth = width - portraitWidth - 42;
+
     const background = this.add
-      .rectangle(0, 0, width, 116, 0x1a130e, 0.96)
+      .rectangle(0, 0, width, height, 0x1a130e, 0.97)
       .setStrokeStyle(2, 0xb99b61);
-    const speaker = this.add.text(-width / 2 + 12, -48, payload.speaker, {
+    const portraitBorder = this.add
+      .rectangle(portraitX, -3, 62, 74, 0x0f0c09, 1)
+      .setStrokeStyle(1, 0xd1b36e);
+    const portrait = definition
+      ? this.add
+          .image(
+            portraitX,
+            -3,
+            getPortraitTextureKey(definition.npcId),
+            getPortraitFrameIndex(expression)
+          )
+          .setScale(1.18)
+      : this.add.rectangle(portraitX, -3, 54, 66, 0x2c2118);
+    const expressionLabel = this.add
+      .text(portraitX, 42, this.expressionLabel(expression), {
+        fontFamily: 'monospace',
+        fontSize: '6px',
+        color: '#c9ad76',
+        backgroundColor: '#120e0bcc',
+        padding: { x: 3, y: 1 }
+      })
+      .setOrigin(0.5);
+    const speaker = this.add.text(copyX, -55, payload.speaker, {
       fontFamily: 'Georgia, serif',
       fontSize: '14px',
       color: '#e9cc8c'
     });
-    const body = this.add.text(-width / 2 + 12, -25, payload.text, {
+    const body = this.add.text(copyX, -31, payload.text, {
       fontFamily: 'Georgia, serif',
       fontSize: '11px',
       color: '#eee2ca',
-      wordWrap: { width: width - 24 }
+      wordWrap: { width: copyWidth }
     });
     const button = this.add
-      .text(width / 2 - 12, 38, payload.actionLabel, {
+      .text(width / 2 - 12, 50, payload.actionLabel, {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#17110d',
@@ -154,20 +193,46 @@ export class UIScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.dialogueContainer = this.add
-      .container(x, y, [background, speaker, body, button])
+      .container(x, y, [
+        background,
+        portraitBorder,
+        portrait,
+        expressionLabel,
+        speaker,
+        body,
+        button
+      ])
       .setDepth(200);
     document.body.dataset.dialogue = payload.speaker;
     document.body.dataset.dialogueId = payload.dialogueId;
-    this.updateAccessibleStatus(`${payload.speaker}: ${payload.text}`);
+    document.body.dataset.dialoguePortrait = definition?.npcId ?? '';
+    document.body.dataset.dialogueExpression = expression;
+    this.updateAccessibleStatus(
+      `${payload.speaker}, výraz ${this.expressionLabel(expression)}: ${payload.text}`
+    );
 
     button.once('pointerdown', () => {
       this.dialogueContainer?.destroy(true);
       this.dialogueContainer = undefined;
       delete document.body.dataset.dialogue;
       delete document.body.dataset.dialogueId;
+      delete document.body.dataset.dialoguePortrait;
+      delete document.body.dataset.dialogueExpression;
       payload.onClose();
       EventBus.emit(GameEvents.DIALOGUE_CLOSE);
     });
+  }
+
+  private expressionLabel(expression: PortraitExpression): string {
+    const labels: Record<PortraitExpression, string> = {
+      neutral: 'klidný',
+      warm: 'vlídný',
+      stern: 'přísný',
+      concerned: 'ustaraný',
+      suspicious: 'nedůvěřivý',
+      proud: 'hrdý'
+    };
+    return labels[expression];
   }
 
   private updateAccessibleStatus(text: string): void {
