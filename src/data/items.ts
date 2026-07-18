@@ -7,7 +7,12 @@ export type ItemId =
   | 'bread'
   | 'bandage'
   | 'healing-herbs'
-  | 'iron-ingot';
+  | 'iron-ingot'
+  | 'hare-meat'
+  | 'venison'
+  | 'deer-hide'
+  | 'boar-meat'
+  | 'boar-hide';
 
 export type ItemCategory = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'material';
 export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
@@ -140,6 +145,61 @@ export const ITEM_DEFINITIONS: Record<ItemId, ItemDefinition> = {
     maxStack: 5,
     buyPrice: 35,
     sellPrice: 17,
+    stats: {}
+  },
+  'hare-meat': {
+    id: 'hare-meat',
+    name: 'Zaječí maso',
+    description: 'Čerstvá drobná zvěřina vhodná k upečení nebo prodeji.',
+    category: 'material',
+    weight: 0.45,
+    maxStack: 10,
+    buyPrice: 9,
+    sellPrice: 4,
+    stats: {}
+  },
+  venison: {
+    id: 'venison',
+    name: 'Srnčí zvěřina',
+    description: 'Hodnotné maso ze srnce, které rychle podléhá zkáze.',
+    category: 'material',
+    weight: 1.1,
+    maxStack: 10,
+    buyPrice: 24,
+    sellPrice: 11,
+    stats: {}
+  },
+  'deer-hide': {
+    id: 'deer-hide',
+    name: 'Srnčí kůže',
+    description: 'Lehká kůže použitelná na měkké rukavice a váčky.',
+    category: 'material',
+    weight: 1.3,
+    maxStack: 5,
+    buyPrice: 31,
+    sellPrice: 15,
+    stats: {}
+  },
+  'boar-meat': {
+    id: 'boar-meat',
+    name: 'Kančí maso',
+    description: 'Těžká a tučná zvěřina z dospělého kance.',
+    category: 'material',
+    weight: 1.4,
+    maxStack: 10,
+    buyPrice: 28,
+    sellPrice: 13,
+    stats: {}
+  },
+  'boar-hide': {
+    id: 'boar-hide',
+    name: 'Kančí kůže',
+    description: 'Hrubá odolná kůže vhodná pro řemeny a výztuhy.',
+    category: 'material',
+    weight: 2.1,
+    maxStack: 5,
+    buyPrice: 42,
+    sellPrice: 20,
     stats: {}
   }
 };

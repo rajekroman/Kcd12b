@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.13.0 — hunting, fauna and persistent world state
+
+- Přidány tři lovné druhy: zajíc, srnec a kanec.
+- Přidány tři stabilní world spawny s druhově odlišnými hodinami aktivity a teritoriem.
+- Přidány tři ručně komponované fauna atlasy 24 × 18 px.
+- Každý druh používá stavy klid, dva kroky, zranění a smrt.
+- Zvěř se deterministicky toulá a při přiblížení prchá od hráče.
+- Viditelnost počasí ovlivňuje vzdálenost, na kterou zvěř hráče zpozoruje.
+- Přidán autoritativní potvrzený útok společný pro klávesnici, mobilní ovládání a input fallback.
+- Lovný zásah kontroluje vzdálenost, směr útoku a skutečně přijaté poškození.
+- Animace hráče se spouští až po potvrzení skutečně provedeného útoku.
+- Přidáno pět kořistních předmětů: zaječí maso, srnčí zvěřina, srnčí kůže, kančí maso a kančí kůže.
+- Kořist používá existující ekonomiku, obchodní ceny, nosnost a stack limity.
+- Celý balík kořisti se přidává atomicky; částečné přidání při nedostatku místa není možné.
+- Přidán observable FaunaStore pro ulovená ID.
+- Save formát byl povýšen na verzi 5 a ukládá `world.huntedAnimals`.
+- Přidány migrace save verzí 1, 2, 3 a 4 do verze 5.
+- Save validátor odmítá neznámá a duplicitní fauna ID.
+- Ulovená zvěř se po reloadu neobnoví a kořist se neduplikuje.
+- CI nově vždy uchovává samostatný artifact s přesnou TypeScript diagnostikou.
+- Přidány jednotkové testy fauna atlasů, aktivity, útěku, zásahů, kořisti a save migrací.
+- Přidány desktopové a mobilní Playwright scénáře útěku, lovu, inventáře, IndexedDB a reloadu.
+
 ## 0.12.0 — deterministic weather and dynamic lighting
 
 - Přidán deterministický cyklus jasno, zataženo, déšť a bouře odvozený ze světové hodiny.

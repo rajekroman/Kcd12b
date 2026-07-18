@@ -10,11 +10,13 @@ export const GameEvents = {
   MESSAGE: 'message',
   INTERACT: 'input:interact',
   ATTACK: 'input:attack',
+  PLAYER_ATTACKED: 'combat:player-attacked',
   BLOCK_START: 'input:block-start',
   BLOCK_END: 'input:block-end',
   DODGE: 'input:dodge',
   ATTACK_DIRECTION: 'input:attack-direction',
   ECONOMY_CHANGED: 'economy:changed',
   CONSUMABLE_USED: 'economy:consumable-used',
-  STEALTH_UPDATE: 'stealth:update'
+  STEALTH_UPDATE: 'stealth:update',
+  FAUNA_HUNTED: 'fauna:hunted'
 } as const;
