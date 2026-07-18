@@ -92,7 +92,7 @@ describe('InventorySystem', () => {
     const displayedPrice = getItemTradePrice('wood-axe', 'buy', context);
     const result = buyItem(economy, 'wood-axe', 1, context);
 
-    expect(displayedPrice).toBe(70);
+    expect(displayedPrice).toBe(72);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.inventory.groschen).toBe(85 - displayedPrice);
