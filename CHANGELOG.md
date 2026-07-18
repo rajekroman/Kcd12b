@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0 — faction reputation
+
+- Přidána samostatná pověst sedláků, měšťanů a šlechty v rozsahu −100 až +100.
+- Přidáno pět úrovní důvěry: nepřátelská, nedůvěřivá, neutrální, vážená a ctěná.
+- Quest engine publikuje dokončení pouze při prvním skutečném přechodu do stavu `complete`.
+- Dokončení „První oceli“ udělí sedlákům +15, měšťanům +8 a šlechtě +2.
+- Přidán observable reputační store a samostatný controller questových odměn.
+- Inventář zobrazuje hodnotu a slovní úroveň všech tří reputačních skupin.
+- Dialogové podmínky podporují minimální a maximální pověst zvolené skupiny.
+- Kateřina má neutrální, nedůvěřivý a ctěný dialogový uzel.
+- Nákupní a prodejní ceny reagují na měšťanskou pověst a charisma vybavení.
+- UI zobrazuje cenu vypočtenou stejnou funkcí, kterou následně používá atomická transakce.
+- Save formát byl povýšen na verzi 4 a ukládá všechny tři reputační hodnoty.
+- Přidány migrace save verzí 1, 2 a 3 do verze 4.
+- Přidána validace rozsahu reputace a odmítnutí poškozených hodnot.
+- Přidány jednotkové testy hranic, úrovní, cen, dialogů, questových událostí a migrací.
+- Přidány browserové testy questové odměny, ctěného dialogu, sociální ceny a persistence verze 4.
+
 ## 0.6.0 — inventory and economy
 
 - Přidáno devět datově definovaných předmětů s kategorií, cenou, váhou, stack limitem a statistikami.
