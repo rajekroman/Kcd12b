@@ -44,6 +44,12 @@ npm run test:e2e
 - Obrana: držet Kryt; tlačítko Úhyb provede rychlý pohyb posledním směrem.
 - Hudba: samostatné tlačítko v pravém horním rohu.
 
+## Vizuální styl postav
+
+Hráč, lapka a všech deset obyvatel používají vlastní ručně definovaný pixelový atlas 20 × 28 px. Každá profese má odlišnou siluetu, paletu, oděv, pokrývku hlavy a pracovní nástroj — například Bohdan kladivo a zástěru, Vojtěch přilbu a kopí, Anežka kápi a košík bylin nebo Kateřina váček kupkyně.
+
+Každá postava má šest stavů: klid, dva kroky chůze, profesní nebo bojovou akci, zranění a spánek. NPC přepínají animace podle pohybu a denního režimu; hráč a lapka reagují na útok a zásah. Vizuál už není založený na jednom společném spritu s barevným tintem.
+
 ## Inventář a obchod
 
 Batoh obsahuje vybavení, zásoby, nosnost a groše. Zbraň, zbroj a doplněk lze vybavit do samostatných slotů; spotřební předměty se používají přímo z inventáře.
@@ -70,6 +76,6 @@ Zvuk musí být kvůli pravidlům prohlížeče poprvé spuštěn uživatelským
 
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti animovanými profesními obyvateli a denními režimy, ručně definované atlasy hráče a lapky, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření, poplach, adaptivní procedurální hudbu, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.
