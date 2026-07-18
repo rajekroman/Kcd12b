@@ -26,6 +26,24 @@ export interface ReputationTradeModifiers {
 export const MIN_REPUTATION = -100;
 export const MAX_REPUTATION = 100;
 
+export const FIRST_STEEL_REPUTATION_REWARD: readonly ReputationChange[] = [
+  {
+    faction: 'peasants',
+    amount: 15,
+    reason: 'Vyhnání lapky z východní cesty'
+  },
+  {
+    faction: 'townsfolk',
+    amount: 8,
+    reason: 'Obnovení bezpečného průchodu pro obchod'
+  },
+  {
+    faction: 'nobility',
+    amount: 2,
+    reason: 'Udržení pořádku v panství'
+  }
+];
+
 export const createInitialReputationState = (): ReputationState => ({
   peasants: 0,
   townsfolk: 0,
