@@ -11,13 +11,6 @@ export interface WorldSaveState {
   dayClock: number;
 }
 
-interface GameSaveV1 {
-  version: 1;
-  player: PlayerSaveState;
-  quest: QuestState;
-  savedAt: string;
-}
-
 export interface GameSave {
   version: 2;
   player: PlayerSaveState;
