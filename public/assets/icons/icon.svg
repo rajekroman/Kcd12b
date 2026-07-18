@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Chronicles of Bohemia</title>
+  <desc id="desc">Stylizovaný středověký štít s mečem.</desc>
+  <rect width="512" height="512" rx="72" fill="#15120d"/>
+  <path d="M256 70 404 126v120c0 92-61 157-148 196-87-39-148-104-148-196V126L256 70Z" fill="#9b2f2f" stroke="#d2b56b" stroke-width="18"/>
+  <path d="M246 126h20v210h-20z" fill="#e5d8ad"/>
+  <path d="m256 105 30 44h-60l30-44Z" fill="#e5d8ad"/>
+  <path d="M180 234h152v22H180z" fill="#e5d8ad"/>
+  <path d="m218 372 38-58 38 58-38 26-38-26Z" fill="#d2b56b"/>
+</svg>

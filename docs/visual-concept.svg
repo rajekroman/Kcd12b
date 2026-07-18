@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Vizuální koncept Chronicles of Bohemia</title>
+  <desc id="desc">12bitová středověká krajina s hradem, vesnicí, lesem a hrdinou.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4d6570"/><stop offset="1" stop-color="#c3a76f"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#52613b"/><stop offset="1" stop-color="#241d15"/></linearGradient>
+    <filter id="pixel"><feComponentTransfer><feFuncR type="discrete" tableValues="0 .25 .5 .75 1"/><feFuncG type="discrete" tableValues="0 .25 .5 .75 1"/><feFuncB type="discrete" tableValues="0 .25 .5 .75 1"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#sky)"/>
+  <circle cx="940" cy="120" r="64" fill="#e8d18d" opacity=".7"/>
+  <path d="M0 360 160 250l120 82 160-145 165 145 115-91 150 104 120-80 110 95v315H0Z" fill="#2e3a31" opacity=".9"/>
+  <rect y="390" width="1200" height="285" fill="url(#ground)"/>
+  <g fill="#40352a" stroke="#1c1712" stroke-width="8">
+    <path d="M785 205h220v210H785z"/>
+    <path d="M760 210h70v-90h55v90h55v-125h58v125h55v-75h55v280H760z"/>
+  </g>
+  <g fill="#6e5138" stroke="#2b2118" stroke-width="7">
+    <path d="M140 430h180v105H140z"/><path d="m120 430 110-85 110 85Z"/>
+    <path d="M390 450h150v90H390z"/><path d="m370 450 95-72 95 72Z"/>
+  </g>
+  <g fill="#1f2f23">
+    <path d="M40 515 100 355l60 160Z"/><path d="M85 530 160 325l75 205Z"/><path d="M940 560 1020 335l80 225Z"/><path d="M1010 575 1100 320l90 255Z"/>
+  </g>
+  <path d="M540 675c25-130 80-205 165-255 55-32 108-45 176-53-91 57-156 129-191 308Z" fill="#98764c" opacity=".9"/>
+  <g transform="translate(530 360)" stroke="#17120d" stroke-width="8">
+    <circle cx="0" cy="-55" r="30" fill="#c49b72"/>
+    <path d="M-28-72 0-105l30 33-8 15h-44Z" fill="#4a3929"/>
+    <path d="M-50-20 0-45l50 25-18 115h-64Z" fill="#7d3030"/>
+    <path d="M-32 95-45 190M32 95l45 190" fill="none"/>
+    <path d="M45-10 105-80" fill="none" stroke="#d6c699" stroke-width="12"/>
+  </g>
+  <rect x="30" y="25" width="640" height="86" rx="8" fill="#17130f" opacity=".82"/>
+  <text x="58" y="80" fill="#ead9aa" font-family="Georgia,serif" font-size="48" letter-spacing="3">CHRONICLES OF BOHEMIA</text>
+  <text x="60" y="132" fill="#e6d7b0" font-family="Georgia,serif" font-size="22">12bitové historické arkádové RPG</text>
+</svg>
