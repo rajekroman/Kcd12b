@@ -20,15 +20,18 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Playwright ověřuje:
+Playwright ověřuje na desktopovém Chromium profilu i mobilní emulaci iPhone 14:
 
-- desktopový Chromium profil,
-- mobilní emulaci iPhone 14 v Chromiu,
 - přechod menu → hra,
 - aktivaci a synchronizaci `UIScene`,
+- asynchronní připravenost menu a save systému,
 - počáteční HUD a questový cíl,
 - volbu směru útoku,
 - kryt a uvolnění krytu,
-- úhyb a spotřebu výdrže.
+- úhyb a spotřebu výdrže,
+- detekci legacy save verze 1,
+- migraci localStorage → IndexedDB verze 2,
+- odstranění legacy klíče,
+- obnovení zdraví, výdrže a questového cíle přes Pokračovat.
 
 Při selhání GitHub Actions uchová na tři dny HTML report, trace a `test-results` jako artefakt `playwright-diagnostics`.
