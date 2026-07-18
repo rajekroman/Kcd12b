@@ -150,10 +150,10 @@ export class NpcManager {
         );
     }
 
-    const nearest = this.getNearestInteractable();
-    if (nearest) {
-      document.body.dataset.nearNpc = nearest.definition.id;
-    } else {
+    const nearestId = this.getNearestInteractable()?.definition.id;
+    if (nearestId && document.body.dataset.nearNpc !== nearestId) {
+      document.body.dataset.nearNpc = nearestId;
+    } else if (!nearestId && document.body.dataset.nearNpc !== undefined) {
       delete document.body.dataset.nearNpc;
     }
 
