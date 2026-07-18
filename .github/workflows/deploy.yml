@@ -20,8 +20,6 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -31,6 +29,8 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm ci --no-audit --no-fund --prefer-offline
       - name: Lint
         run: npm run lint
