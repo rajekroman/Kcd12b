@@ -8,6 +8,7 @@ import {
   getEquipmentStats,
   getInventoryWeight,
   getItemQuantity,
+  getItemTradePrice,
   sellItem,
   unequipSlot,
   useConsumable
@@ -73,7 +74,7 @@ describe('InventorySystem', () => {
     expect(result.error.code).toBe('not-equippable');
   });
 
-  it('provede nákup atomicky a převede zboží i peníze', () => {
+  it('provede neutrální nákup atomicky a převede zboží i peníze', () => {
     const economy = createInitialEconomyState();
     const result = buyItem(economy, 'bandage', 2);
 
@@ -83,6 +84,31 @@ describe('InventorySystem', () => {
     expect(getItemQuantity(result.value.inventory.items, 'bandage')).toBe(3);
     expect(getItemQuantity(result.value.merchant.stock, 'bandage')).toBe(3);
     expect(result.value.merchant.groschen).toBe(528);
+  });
+
+  it('kladná pověst a charisma použijí stejnou cenu v nabídce i transakci', () => {
+    const economy = createInitialEconomyState();
+    const context = { factionReputation: 60, charisma: 4 };
+    const displayedPrice = getItemTradePrice('wood-axe', 'buy', context);
+    const result = buyItem(economy, 'wood-axe', 1, context);
+
+    expect(displayedPrice).toBe(70);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.inventory.groschen).toBe(85 - displayedPrice);
+    expect(result.value.merchant.groschen).toBe(500 + displayedPrice);
+  });
+
+  it('nepřátelská pověst sníží výkupní cenu', () => {
+    const economy = createInitialEconomyState();
+    const context = { factionReputation: -80, charisma: 0 };
+    const price = getItemTradePrice('bohdan-sword', 'sell', context);
+    const result = sellItem(economy, 'bohdan-sword', 1, context);
+
+    expect(price).toBeLessThan(58);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.inventory.groschen).toBe(85 + price);
   });
 
   it('neúspěšný nákup nezmění žádnou stranu transakce', () => {
