@@ -54,8 +54,14 @@ Hráč má oddělenou pověst u sedláků, měšťanů a šlechty. Každá hodno
 
 Dokončení úkolu „První ocel“ zvýší pověst u všech tří skupin. Měšťanská pověst společně s charismatem vybavení ovlivňuje Kateřininy nákupní a prodejní ceny a může změnit její dialog.
 
+## Nenápadnost
+
+Strážný Vojtěch má viditelný zorný kužel odvozený z aktuálního směru jeho pohybu. Pobyt uvnitř kuželu zvyšuje podezření od klidu přes varování až k poplachu; blízký cíl je odhalen rychleji. Po opuštění kuželu podezření postupně vyprchá. Aktuální stav a procento zobrazuje herní HUD.
+
+První verze systému vyhodnocuje úhel a vzdálenost. Budovy a stromy zatím výhled fyzicky nezakrývají a hra ještě nepoužívá přikrčení, hluk nebo světelnost prostředí.
+
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, save verze 4, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, zorný kužel, podezření a poplach, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.
