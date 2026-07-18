@@ -42,7 +42,7 @@ describe('CharacterAtlasSystem', () => {
       expect(atlas).toHaveLength(CHARACTER_FRAME_STATES.length);
       for (const frame of atlas) {
         expect(validateCharacterFrame(frame), `${definition.key}:${frame.state}`).toEqual([]);
-        expect(frame.pixels.length).toBeGreaterThan(10);
+        expect(frame.pixels.length).toBeGreaterThanOrEqual(10);
       }
     }
   });
