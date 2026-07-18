@@ -3,7 +3,8 @@ import {
   NPC_DEFINITIONS,
   type NpcActivity,
   type NpcDefinition,
-  type NpcId
+  type NpcId,
+  type WorldPoint
 } from '../data/npcs';
 import {
   getNpcScheduleStateFromClock,
@@ -25,12 +26,26 @@ export const NPC_ACTIVITY_LABELS: Record<NpcActivity, string> = {
   closing: 'zavírá'
 };
 
+const CROWD_OFFSETS: readonly WorldPoint[] = [
+  { x: 0, y: 0 },
+  { x: 12, y: 0 },
+  { x: -12, y: 0 },
+  { x: 0, y: 12 },
+  { x: 0, y: -12 },
+  { x: 10, y: 10 },
+  { x: -10, y: 10 },
+  { x: 10, y: -10 },
+  { x: -10, y: -10 },
+  { x: 18, y: 6 }
+];
+
 export interface NpcRuntime {
   definition: NpcDefinition;
   sprite: Phaser.Physics.Arcade.Sprite;
   nameLabel: Phaser.GameObjects.Text;
   activityLabel: Phaser.GameObjects.Text;
   schedule: NpcScheduleState;
+  crowdOffset: WorldPoint;
 }
 
 export class NpcManager {
@@ -44,10 +59,12 @@ export class NpcManager {
   ) {}
 
   create(dayClock: number): void {
-    for (const definition of NPC_DEFINITIONS) {
+    NPC_DEFINITIONS.forEach((definition, index) => {
       const schedule = getNpcScheduleStateFromClock(definition, dayClock);
+      const crowdOffset = CROWD_OFFSETS[index] ?? { x: 0, y: 0 };
+      const target = this.getRuntimeTarget(schedule, crowdOffset);
       const sprite = this.scene.physics.add
-        .sprite(schedule.target.x, schedule.target.y, definition.texture)
+        .sprite(target.x, target.y, definition.texture)
         .setDepth(10)
         .setTint(definition.tint)
         .setCollideWorldBounds(true);
@@ -77,10 +94,17 @@ export class NpcManager {
         .setDepth(19)
         .setVisible(false);
 
-      const runtime = { definition, sprite, nameLabel, activityLabel, schedule };
+      const runtime: NpcRuntime = {
+        definition,
+        sprite,
+        nameLabel,
+        activityLabel,
+        schedule,
+        crowdOffset
+      };
       this.runtimes.set(definition.id, runtime);
       this.applyAppearance(runtime);
-    }
+    });
 
     document.body.dataset.npcCount = String(this.runtimes.size);
     this.update(dayClock, true);
@@ -99,17 +123,18 @@ export class NpcManager {
         this.applyAppearance(runtime);
       }
 
+      const target = this.getRuntimeTarget(runtime.schedule, runtime.crowdOffset);
       const distanceToTarget = Phaser.Math.Distance.Between(
         runtime.sprite.x,
         runtime.sprite.y,
-        runtime.schedule.target.x,
-        runtime.schedule.target.y
+        target.x,
+        target.y
       );
       if (distanceToTarget > 5) {
         this.scene.physics.moveTo(
           runtime.sprite,
-          runtime.schedule.target.x,
-          runtime.schedule.target.y,
+          target.x,
+          target.y,
           runtime.definition.movementSpeed
         );
       } else {
@@ -143,9 +168,8 @@ export class NpcManager {
   snapToSchedule(dayClock: number): void {
     for (const runtime of this.runtimes.values()) {
       runtime.schedule = getNpcScheduleStateFromClock(runtime.definition, dayClock);
-      runtime.sprite
-        .setPosition(runtime.schedule.target.x, runtime.schedule.target.y)
-        .setVelocity(0);
+      const target = this.getRuntimeTarget(runtime.schedule, runtime.crowdOffset);
+      runtime.sprite.setPosition(target.x, target.y).setVelocity(0);
       runtime.activityLabel.setText(NPC_ACTIVITY_LABELS[runtime.schedule.activity]);
       this.applyAppearance(runtime);
     }
@@ -177,6 +201,13 @@ export class NpcManager {
     delete document.body.dataset.npcCount;
     delete document.body.dataset.worldHour;
     delete document.body.dataset.npcSchedules;
+  }
+
+  private getRuntimeTarget(schedule: NpcScheduleState, offset: WorldPoint): WorldPoint {
+    return {
+      x: schedule.target.x + offset.x,
+      y: schedule.target.y + offset.y
+    };
   }
 
   private applyAppearance(runtime: NpcRuntime): void {
