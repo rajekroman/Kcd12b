@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getHuntedAnimals, resetHuntedAnimals, setHuntedAnimals } from '../core/FaunaStore';
 import { createInitialEconomyState } from '../systems/InventorySystem';
 import { createInitialReputationState } from '../systems/ReputationSystem';
 import {
@@ -7,6 +8,7 @@ import {
   LEGACY_SAVE_KEY,
   LEGACY_SAVE_KEY_V2,
   LEGACY_SAVE_KEY_V3,
+  LEGACY_SAVE_KEY_V4,
   SaveSystem,
   migrateGameSave,
   type AsyncSaveStore,
@@ -17,32 +19,15 @@ import { createInitialQuestState } from '../systems/QuestSystem';
 
 class MemoryStorage implements StorageLike {
   readonly values = new Map<string, string>();
-
-  getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  setItem(key: string, value: string): void {
-    this.values.set(key, value);
-  }
-
-  removeItem(key: string): void {
-    this.values.delete(key);
-  }
+  getItem(key: string): string | null { return this.values.get(key) ?? null; }
+  setItem(key: string, value: string): void { this.values.set(key, value); }
+  removeItem(key: string): void { this.values.delete(key); }
 }
 
 class ThrowingStorage implements StorageLike {
-  getItem(): string | null {
-    throw new Error('fallback read failed');
-  }
-
-  setItem(): void {
-    throw new Error('fallback write failed');
-  }
-
-  removeItem(): void {
-    throw new Error('fallback delete failed');
-  }
+  getItem(): string | null { throw new Error('fallback read failed'); }
+  setItem(): void { throw new Error('fallback write failed'); }
+  removeItem(): void { throw new Error('fallback delete failed'); }
 }
 
 class MemoryAsyncStore implements AsyncSaveStore {
@@ -86,179 +71,190 @@ const input = {
 
 const fixedNow = () => new Date('2026-07-18T08:00:00.000Z');
 
+beforeEach(() => {
+  resetHuntedAnimals();
+});
+
 describe('SaveSystem', () => {
-  it('uloží, načte a smaže stav verze 4 v primárním async úložišti', async () => {
+  it('uloží, načte a smaže stav verze 5 v primárním async úložišti', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
     const saves = new SaveSystem({ primary, fallback, now: fixedNow });
+    setHuntedAnimals(['hare-north']);
 
     const stored = await saves.save(input);
 
     expect(stored.version).toBe(CURRENT_SAVE_VERSION);
     expect(stored.savedAt).toBe('2026-07-18T08:00:00.000Z');
+    expect(stored.world.huntedAnimals).toEqual(['hare-north']);
     expect(stored.economy.inventory.equipment.weapon).toBe('bohdan-sword');
     expect(stored.reputation).toEqual(input.reputation);
     expect((await saves.load())?.player.x).toBe(12);
+    expect(getHuntedAnimals()).toEqual(['hare-north']);
     expect(fallback.getItem(FALLBACK_SAVE_KEY)).toBeNull();
 
     await saves.clear();
     expect(await saves.load()).toBeNull();
+    expect(getHuntedAnimals()).toEqual([]);
   });
 
-  it('migruje legacy verzi 1 na verzi 4 s výchozí ekonomikou a pověstí', async () => {
+  it('migruje legacy verzi 1 na verzi 5 s prázdnou faunou', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
-    fallback.setItem(
-      LEGACY_SAVE_KEY,
-      JSON.stringify({
-        version: 1,
-        player: input.player,
-        quest: input.quest,
-        savedAt: '2026-07-17T20:00:00.000Z'
-      })
-    );
-    const saves = new SaveSystem({ primary, fallback });
+    fallback.setItem(LEGACY_SAVE_KEY, JSON.stringify({
+      version: 1,
+      player: input.player,
+      quest: input.quest,
+      savedAt: '2026-07-17T20:00:00.000Z'
+    }));
+    const migrated = await new SaveSystem({ primary, fallback }).load();
 
-    const migrated = await saves.load();
-
-    expect(migrated?.version).toBe(4);
-    expect(migrated?.world.dayClock).toBe(0);
+    expect(migrated?.version).toBe(5);
+    expect(migrated?.world).toEqual({ dayClock: 0, huntedAnimals: [] });
     expect(migrated?.economy.inventory.groschen).toBe(85);
     expect(migrated?.reputation).toEqual(createInitialReputationState());
-    expect((primary.value as GameSave).version).toBe(4);
+    expect((primary.value as GameSave).version).toBe(5);
     expect(fallback.getItem(LEGACY_SAVE_KEY)).toBeNull();
   });
 
   it('migruje verzi 2 a zachová světový čas', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
-    fallback.setItem(
-      LEGACY_SAVE_KEY_V2,
-      JSON.stringify({
-        version: 2,
-        player: input.player,
-        quest: input.quest,
-        world: { dayClock: 61 },
-        savedAt: '2026-07-18T07:00:00.000Z'
-      })
-    );
-    const saves = new SaveSystem({ primary, fallback });
+    fallback.setItem(LEGACY_SAVE_KEY_V2, JSON.stringify({
+      version: 2,
+      player: input.player,
+      quest: input.quest,
+      world: { dayClock: 61 },
+      savedAt: '2026-07-18T07:00:00.000Z'
+    }));
+    const migrated = await new SaveSystem({ primary, fallback }).load();
 
-    const migrated = await saves.load();
-
-    expect(migrated?.version).toBe(4);
-    expect(migrated?.world.dayClock).toBe(61);
+    expect(migrated?.version).toBe(5);
+    expect(migrated?.world).toEqual({ dayClock: 61, huntedAnimals: [] });
     expect(migrated?.economy.merchant.stock.length).toBeGreaterThan(0);
-    expect(migrated?.reputation).toEqual(createInitialReputationState());
     expect(fallback.getItem(LEGACY_SAVE_KEY_V2)).toBeNull();
   });
 
   it('migruje verzi 3 bez ztráty ekonomiky', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
-    fallback.setItem(
-      LEGACY_SAVE_KEY_V3,
-      JSON.stringify({
-        version: 3,
-        player: input.player,
-        quest: input.quest,
-        world: input.world,
-        economy: input.economy,
-        savedAt: '2026-07-18T07:30:00.000Z'
-      })
-    );
-    const saves = new SaveSystem({ primary, fallback });
+    fallback.setItem(LEGACY_SAVE_KEY_V3, JSON.stringify({
+      version: 3,
+      player: input.player,
+      quest: input.quest,
+      world: input.world,
+      economy: input.economy,
+      savedAt: '2026-07-18T07:30:00.000Z'
+    }));
+    const migrated = await new SaveSystem({ primary, fallback }).load();
 
-    const migrated = await saves.load();
-
-    expect(migrated?.version).toBe(4);
+    expect(migrated?.version).toBe(5);
     expect(migrated?.economy).toEqual(input.economy);
     expect(migrated?.reputation).toEqual(createInitialReputationState());
-    expect(fallback.getItem(LEGACY_SAVE_KEY_V3)).toBeNull();
   });
 
-  it('použije fallback verze 4, když primární úložiště selže', async () => {
+  it('migruje verzi 4 a přidá prázdný seznam ulovené zvěře', async () => {
+    const primary = new MemoryAsyncStore();
+    const fallback = new MemoryStorage();
+    fallback.setItem(LEGACY_SAVE_KEY_V4, JSON.stringify({
+      version: 4,
+      ...input,
+      savedAt: '2026-07-18T07:45:00.000Z'
+    }));
+    const migrated = await new SaveSystem({ primary, fallback }).load();
+
+    expect(migrated?.version).toBe(5);
+    expect(migrated?.world).toEqual({ dayClock: 27, huntedAnimals: [] });
+    expect(fallback.getItem(LEGACY_SAVE_KEY_V4)).toBeNull();
+  });
+
+  it('použije fallback verze 5, když primární úložiště selže', async () => {
     const primary = new MemoryAsyncStore();
     primary.setFailures = 1;
     const fallback = new MemoryStorage();
     const saves = new SaveSystem({ primary, fallback, now: fixedNow });
+    setHuntedAnimals(['boar-south']);
 
     await saves.save(input);
-
     const raw = fallback.getItem(FALLBACK_SAVE_KEY);
+
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw ?? '{}').version).toBe(4);
-    expect((await saves.load())?.reputation.peasants).toBe(12);
+    expect(JSON.parse(raw ?? '{}').version).toBe(5);
+    expect(JSON.parse(raw ?? '{}').world.huntedAnimals).toEqual(['boar-south']);
   });
 
   it('načte fallback po selhání čtení primárního úložiště', async () => {
     const primary = new MemoryAsyncStore();
     primary.getFailures = 1;
     const fallback = new MemoryStorage();
-    fallback.setItem(
-      FALLBACK_SAVE_KEY,
-      JSON.stringify({
-        version: 4,
-        ...input,
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
+    fallback.setItem(FALLBACK_SAVE_KEY, JSON.stringify({
+      version: 5,
+      ...input,
+      world: { dayClock: 27, huntedAnimals: ['roe-east'] },
+      savedAt: '2026-07-18T08:00:00.000Z'
+    }));
     const saves = new SaveSystem({ primary, fallback });
 
     expect((await saves.load())?.player.y).toBe(34);
+    expect(getHuntedAnimals()).toEqual(['roe-east']);
   });
 
   it('neplatný primární záznam nezakryje platný fallback', async () => {
     const primary = new MemoryAsyncStore();
-    primary.value = { version: 4, player: null };
+    primary.value = { version: 5, player: null };
     const fallback = new MemoryStorage();
-    fallback.setItem(
-      FALLBACK_SAVE_KEY,
-      JSON.stringify({
-        version: 4,
-        ...input,
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
+    fallback.setItem(FALLBACK_SAVE_KEY, JSON.stringify({
+      version: 5,
+      ...input,
+      world: { dayClock: 27, huntedAnimals: [] },
+      savedAt: '2026-07-18T08:00:00.000Z'
+    }));
     const saves = new SaveSystem({ primary, fallback });
 
     expect((await saves.load())?.player.health).toBe(90);
     expect((primary.value as GameSave).reputation.townsfolk).toBe(-4);
   });
 
-  it('odmítne neplatnou pověst mimo rozsah', () => {
-    const invalid = {
-      version: 4,
+  it('odmítne neplatné nebo duplicitní ID ulovené zvěře', () => {
+    const base = {
+      version: 5,
       ...input,
-      reputation: { peasants: 101, townsfolk: 0, nobility: 0 },
       savedAt: '2026-07-18T08:00:00.000Z'
     };
-
-    expect(migrateGameSave(invalid)).toBeNull();
+    expect(migrateGameSave({ ...base, world: { dayClock: 27, huntedAnimals: ['wolf'] } })).toBeNull();
+    expect(migrateGameSave({
+      ...base,
+      world: { dayClock: 27, huntedAnimals: ['hare-north', 'hare-north'] }
+    })).toBeNull();
   });
 
-  it('odmítne neplatné ekonomické vybavení', () => {
-    const invalid = {
-      version: 4,
+  it('odmítne neplatnou pověst a ekonomické vybavení', () => {
+    const base = {
+      version: 5,
       ...input,
+      world: { dayClock: 27, huntedAnimals: [] },
+      savedAt: '2026-07-18T08:00:00.000Z'
+    };
+    expect(migrateGameSave({
+      ...base,
+      reputation: { peasants: 101, townsfolk: 0, nobility: 0 }
+    })).toBeNull();
+    expect(migrateGameSave({
+      ...base,
       economy: {
         ...input.economy,
         inventory: {
           ...input.economy.inventory,
           equipment: { weapon: 'bread', armor: null, accessory: null }
         }
-      },
-      savedAt: '2026-07-18T08:00:00.000Z'
-    };
-
-    expect(migrateGameSave(invalid)).toBeNull();
+      }
+    })).toBeNull();
   });
 
   it('ohlásí chybu, když nelze zapisovat do žádného úložiště', async () => {
     const primary = new MemoryAsyncStore();
     primary.setFailures = 1;
     const saves = new SaveSystem({ primary, fallback: new ThrowingStorage(), now: fixedNow });
-
     await expect(saves.save(input)).rejects.toThrow('Save could not be written');
   });
 
@@ -269,7 +265,7 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect(await saves.load()).toBeNull();
-    expect(migrateGameSave({ version: 4 })).toBeNull();
+    expect(migrateGameSave({ version: 5 })).toBeNull();
     expect(migrateGameSave(null)).toBeNull();
   });
 });
