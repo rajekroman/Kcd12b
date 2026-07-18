@@ -95,9 +95,7 @@ test('únik z kuželu zastaví odhalování a podezření vyprchá', async ({ pa
   await expect(body).toHaveAttribute('data-stealth-level', 'suspicious', { timeout: 3000 });
 
   await page.keyboard.down('s');
-  await page.keyboard.down('a');
-  await page.waitForTimeout(1500);
-  await page.keyboard.up('a');
+  await page.waitForTimeout(2500);
   await page.keyboard.up('s');
 
   await expect(body).toHaveAttribute('data-player-visible', 'false', { timeout: 3000 });
