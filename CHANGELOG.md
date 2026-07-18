@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 — directional combat
+
+- Přidáno pět směrů útoku s rozdílnou spotřebou výdrže.
+- Přidán směrový kryt nepřítele, odkryté směry a tlumené zásahy do krytu.
+- Přidán standardní kryt, dokonalý kryt, chybný kryt a prolomení při nízké výdrži.
+- Přidán úhyb s cooldownem a krátkým oknem nezranitelnosti.
+- Nepřátelské útoky jsou předem telegrafované směrem.
+- Mobilní útok podporuje volbu směru tažením; přidána tlačítka Kryt a Úhyb.
+- Opraven životní cyklus UI scény a synchronizace počátečního HUD přes `UI_READY`.
+- Quest „První ocel“ se již nezablokuje při poražení lapky před rozhovorem.
+- Přidány stabilní přístupné runtime stavy a Playwright E2E testy.
+- Opraven `package-lock.json`, který odkazoval na neveřejný interní npm registry.
+- Přidán produkční preview server simulující GitHub Pages podadresář `/Kcd12b/`.
+- CI nyní provádí lint, typecheck, jednotkové testy, produkční build a E2E na desktopovém i mobilním profilu.
+
 ## 0.1.0 — bootstrap
 
 - Inicializován webový herní projekt Phaser 3 + TypeScript + Vite.

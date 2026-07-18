@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M0 Bootstrap — implementováno, ověřeno lintem, TypeScriptem, pěti jednotkovými testy a produkčním buildem. Projekt je publikován v GitHub repozitáři na větvi `main`; CI a GitHub Pages workflow jsou zapojené.
+M1 Combat — hlavní systémy implementovány a ověřeny. GitHub Actions úspěšně provedl instalaci závislostí, lint, TypeScript, jednotkové testy, produkční build, instalaci Chromia a čtyři Playwright E2E scénáře na desktopovém a mobilním profilu.
 
 ## Funguje
 
@@ -11,22 +11,25 @@ M0 Bootstrap — implementováno, ověřeno lintem, TypeScriptem, pěti jednotko
 - Pixel-perfect viewport 480 × 270.
 - Pohyb WASD/šipky i dotyková tlačítka.
 - Kolize, kamera a malá testovací oblast.
-- Kovář Bohdan, dialog a quest „První ocel“.
-- Lapka, základní AI, útoky, zdraví a výdrž.
+- Kovář Bohdan, dialog a quest „První ocel“ bez softlocku při změně pořadí událostí.
+- Pět směrů útoku a směrový kryt nepřítele.
+- Kryt, chybný kryt, dokonalý kryt, prolomení krytu a úhyb.
+- Telegrafované nepřátelské útoky, výdrž, zdraví a porážka hráče.
+- Synchronizovaný životní cyklus `GameScene` a `UIScene`.
 - Automatické ukládání a načítání.
-- Jednotkové testy doménové logiky.
+- Jednotkové a Playwright E2E testy.
 - PWA konfigurace, CI a GitHub Pages workflow.
+- Veřejný npm lockfile bez interních Artifactory URL.
 
 ## Známé limity
 
 - Grafika je procedurální placeholder.
-- Souboj zatím nemá pět směrů, kryt ani úhyb.
-- Playwright E2E je připraven, ale lokální běh byl blokován administrativní politikou systémového Chromia (`ERR_BLOCKED_BY_ADMINISTRATOR`).
+- Telegrafovaný útok zatím při dopadu znovu nekontroluje vzdálenost hráče.
 - Hudba a ambient ještě nejsou implementované.
-- První čistý GitHub Actions runner stahuje npm závislosti pomaleji než lokální prostředí; workflow má nastavený 15minutový timeout.
+- Save systém stále používá `localStorage`; migrace na IndexedDB je další systémový milník.
 
 ## Další tři priority
 
-1. E2E ověřit start menu, přechod do hry, dialog a útok.
-2. Implementovat pětisměrný souboj.
-3. Implementovat blok, dokonalý kryt a úhyb.
+1. Při dopadu nepřátelského útoku znovu ověřit dosah.
+2. Převést save systém na IndexedDB s verzovanými migracemi a fallbackem.
+3. Převést dialogy a questy na datově řízené definice.

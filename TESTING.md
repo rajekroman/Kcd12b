@@ -12,9 +12,23 @@ npm run build
 
 ## E2E
 
+E2E testy pracují nad produkčním buildem obsluhovaným pod `/Kcd12b/`, tedy ve stejné cestě, jakou používá GitHub Pages.
+
 ```bash
-npx playwright install chromium webkit
+npm run build
+npx playwright install chromium
 npm run test:e2e
 ```
 
-E2E testy ověřují desktopový Chromium a mobilní profil Safari.
+Playwright ověřuje:
+
+- desktopový Chromium profil,
+- mobilní emulaci iPhone 14 v Chromiu,
+- přechod menu → hra,
+- aktivaci a synchronizaci `UIScene`,
+- počáteční HUD a questový cíl,
+- volbu směru útoku,
+- kryt a uvolnění krytu,
+- úhyb a spotřebu výdrže.
+
+Při selhání GitHub Actions uchová na tři dny HTML report, trace a `test-results` jako artefakt `playwright-diagnostics`.

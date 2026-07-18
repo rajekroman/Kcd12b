@@ -10,9 +10,10 @@
 - [x] Přidat ukládání a pokračování.
 - [x] Přidat mobilní ovládání bez pinch zoomu na canvasu.
 - [x] Přidat lint, typecheck, testy a produkční build.
-- [ ] Opravit a ověřit spuštění UI scény během přechodů menu/hra v E2E.
-- [ ] Přidat skutečný směrový boj s pěti směry.
-- [ ] Přidat blok, dokonalý kryt a úhyb.
+- [x] Opravit a ověřit spuštění UI scény během přechodů menu/hra v E2E.
+- [x] Přidat skutečný směrový boj s pěti směry.
+- [x] Přidat blok, dokonalý kryt a úhyb.
+- [ ] Při dopadu telegrafovaného útoku znovu ověřit vzdálenost hráče od nepřítele.
 
 ## P1
 
