@@ -6,6 +6,18 @@ interface StoredBrowserSave {
   world: { dayClock: number };
 }
 
+interface NpcScheduleSnapshot {
+  id: string;
+  activity: string;
+  locationId: string;
+}
+
+const readNpcSchedules = async (page: Page): Promise<NpcScheduleSnapshot[]> => {
+  const raw = await page.locator('body').getAttribute('data-npc-schedules');
+  if (!raw) throw new Error('NPC schedule snapshot is unavailable.');
+  return JSON.parse(raw) as NpcScheduleSnapshot[];
+};
+
 const startNewGame = async (page: Page): Promise<void> => {
   await page.goto('/Kcd12b/');
   await expect(page.locator('canvas')).toBeVisible();
@@ -23,6 +35,7 @@ const startNewGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-save-ready', 'true');
   await expect(body).toHaveAttribute('data-health', '100');
   await expect(body).toHaveAttribute('data-stamina', '100');
+  await expect(body).toHaveAttribute('data-npc-count', '10');
   await expect(page.locator('#game-status')).toContainText('Promluv s kovářem Bohdanem');
 };
 
@@ -40,9 +53,12 @@ const continueGame = async (page: Page): Promise<void> => {
 
   await expect(body).toHaveAttribute('data-scene', 'game');
   await expect(body).toHaveAttribute('data-save-ready', 'true');
+  await expect(body).toHaveAttribute('data-npc-count', '10');
 };
 
-test('přechod menu → hra spustí UI scénu a aktuální HUD', async ({ page }, testInfo) => {
+test('přechod menu → hra spustí UI scénu, HUD a deset ranních obyvatel', async ({
+  page
+}, testInfo) => {
   await startNewGame(page);
 
   const controls = page.locator('#mobile-controls');
@@ -53,6 +69,24 @@ test('přechod menu → hra spustí UI scénu a aktuální HUD', async ({ page }
   } else {
     await expect(controls).toBeAttached();
   }
+
+  const schedules = await readNpcSchedules(page);
+  expect(schedules).toHaveLength(10);
+  expect(schedules).toContainEqual({
+    id: 'smith-bohdan',
+    activity: 'working',
+    locationId: 'forge'
+  });
+  expect(schedules).toContainEqual({
+    id: 'innkeeper-marta',
+    activity: 'serving',
+    locationId: 'tavern'
+  });
+  expect(schedules).toContainEqual({
+    id: 'farmer-ondra',
+    activity: 'working',
+    locationId: 'north-field'
+  });
 });
 
 test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
@@ -79,7 +113,9 @@ test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
   expect(staminaAfterDodge).toBeLessThanOrEqual(staminaBeforeDodge - 20);
 });
 
-test('datové podmínky vyberou správný Bohdanův dialog', async ({ page }) => {
+test('datové podmínky vyberou správný Bohdanův dialog v pracovní době', async ({
+  page
+}) => {
   await page.addInitScript(() => {
     localStorage.setItem(
       'chronicles-of-bohemia.save.v2',
@@ -87,19 +123,53 @@ test('datové podmínky vyberou správný Bohdanův dialog', async ({ page }) =>
         version: 2,
         player: { x: 370, y: 340, health: 92, stamina: 81 },
         quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
-        world: { dayClock: 18 },
+        world: { dayClock: 45 },
         savedAt: '2026-07-18T08:00:00.000Z'
       })
     );
   });
 
   await continueGame(page);
+  const schedules = await readNpcSchedules(page);
+  expect(schedules).toContainEqual({
+    id: 'smith-bohdan',
+    activity: 'working',
+    locationId: 'forge'
+  });
+
   const body = page.locator('body');
   await page.keyboard.press('e');
-
   await expect(body).toHaveAttribute('data-dialogue', 'Kovář Bohdan');
   await expect(body).toHaveAttribute('data-dialogue-id', 'bohdan-offer-first-steel');
   await expect(page.locator('#game-status')).toContainText('Na východní cestě se usadil lapka');
+});
+
+test('nejbližší plánovaný obyvatel nabídne vlastní ambientní dialog', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'chronicles-of-bohemia.save.v2',
+      JSON.stringify({
+        version: 2,
+        player: { x: 458, y: 405, health: 100, stamina: 100 },
+        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
+        world: { dayClock: 45 },
+        savedAt: '2026-07-18T08:00:00.000Z'
+      })
+    );
+  });
+
+  await continueGame(page);
+  const schedules = await readNpcSchedules(page);
+  expect(schedules).toContainEqual({
+    id: 'guard-vojtech',
+    activity: 'patrolling',
+    locationId: 'market'
+  });
+
+  const body = page.locator('body');
+  await page.keyboard.press('e');
+  await expect(body).toHaveAttribute('data-dialogue', 'Strážný Vojtěch');
+  await expect(body).toHaveAttribute('data-dialogue-id', 'vojtech-ambient');
 });
 
 test('legacy save verze 1 se migruje do IndexedDB a pokračování jej obnoví', async ({ page }) => {
