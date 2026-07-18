@@ -36,6 +36,12 @@ const matchesCondition = (context: DialogueContext, condition?: DialogueConditio
   return true;
 };
 
+export const getDialogueDefinitionById = (
+  dialogueId: string,
+  definitions: readonly DialogueDefinition[] = DIALOGUE_DEFINITIONS
+): DialogueDefinition | null =>
+  definitions.find((dialogue) => dialogue.id === dialogueId) ?? null;
+
 export const getDialogueForNpc = (
   npcId: NpcId,
   context: DialogueContext,
