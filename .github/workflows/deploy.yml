@@ -19,19 +19,33 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test -- --run
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test -- --run
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
           path: dist
