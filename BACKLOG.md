@@ -13,7 +13,7 @@
 - [x] Opravit a ověřit spuštění UI scény během přechodů menu/hra v E2E.
 - [x] Přidat skutečný směrový boj s pěti směry.
 - [x] Přidat blok, dokonalý kryt a úhyb.
-- [ ] Při dopadu telegrafovaného útoku znovu ověřit vzdálenost hráče od nepřítele.
+- [x] Při dopadu telegrafovaného útoku znovu ověřit vzdálenost hráče od nepřítele.
 
 ## P1
 
