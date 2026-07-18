@@ -2,7 +2,7 @@
 
 ## Aktuální fáze
 
-M2.2 Reputation — pověst sedláků, měšťanů a šlechty je implementovaná a ověřená. GitHub Actions úspěšně provedl lint, TypeScript, jednotkové testy, produkční build a Playwright scénáře na desktopovém a mobilním profilu včetně questové odměny, reputačních dialogů, sociálních cen a persistence verze 4.
+M2.3 Stealth awareness — zorný kužel strážného, viditelnost hráče, podezření a poplach jsou implementované. Automatická validace pokrývá geometrii kuželu, numerické hranice, růst a rozpad podezření i skutečné browserové scénáře na desktopovém a mobilním profilu.
 
 ## Funguje
 
@@ -15,16 +15,17 @@ M2.2 Reputation — pověst sedláků, měšťanů a šlechty je implementovaná
 - Quest „První ocel“ je definován daty a publikuje jednorázovou událost dokončení.
 - Pět směrů útoku, směrový kryt, dokonalý kryt a úhyb.
 - Inventář, tři sloty vybavení, spotřební předměty a atomický obchod.
-- Oddělená pověst sedláků, měšťanů a šlechty v rozsahu −100 až +100.
-- Pět úrovní důvěry: nepřátelská, nedůvěřivá, neutrální, vážená a ctěná.
-- Dokončení „První oceli“ přidá sedlákům +15, měšťanům +8 a šlechtě +2 právě jednou.
-- Kateřininy nákupní a prodejní ceny reagují na měšťanskou pověst a charisma vybavení.
-- Dialogové uzly mohou být podmíněné minimální nebo maximální reputací.
-- Inventář zobrazuje reputační hodnotu a úroveň všech tří skupin.
+- Oddělená pověst sedláků, měšťanů a šlechty s vlivem na dialogy a ceny.
+- Vojtěchův zorný kužel reaguje na jeho aktuální směr pohybu.
+- Viditelnost respektuje vzdálenost, úhel a floating-point toleranci hranice kuželu.
+- Podezření roste rychleji v blízkosti a mimo dohled postupně klesá.
+- Tři stavy povědomí: klid, podezření a poplach.
+- Světelný kužel mění barvu a intenzitu podle stavu.
+- Pevný HUD indikátor zobrazuje stav a procento podezření.
+- Přechody stavu zobrazují zprávu a poplach aktivuje kamerový otřes.
+- Krátký útok mezerníkem na zařízení s hrubým ukazatelem má bezpečnou jednosnímkovou zálohu.
 - IndexedDB jako primární save úložiště a localStorage fallback.
 - Verzovaný save formát 4 s migracemi verzí 1, 2 a 3.
-- Save obsahuje hráče, quest, světový čas, ekonomiku a tři reputační hodnoty.
-- Serializované autosavy a okamžitý save po ekonomické nebo reputační změně.
 - Jednotkové a Playwright E2E testy.
 - PWA konfigurace, CI a GitHub Pages workflow.
 
@@ -32,12 +33,14 @@ M2.2 Reputation — pověst sedláků, měšťanů a šlechty je implementovaná
 
 - Všichni obyvatelé zatím používají společný procedurální základ sprite s barevným odlišením.
 - Navigace NPC používá přímý pohyb s Arcade Physics, nikoli pathfinding.
-- Pověst zatím ovlivňuje hlavně Kateřininy ceny a její dialogové varianty; další NPC reakce přibudou s novými questy.
+- První stealth pozorovatel je pouze strážný Vojtěch.
+- Zorný kužel zatím neprovádí okluzi přes budovy a stromy; kontroluje úhel a vzdálenost.
+- Přikrčení, hluk, světelnost prostředí, úkryty a pátrací chování přijdou jako samostatné vrstvy.
 - Hudba a ambient ještě nejsou implementované.
 - Quest state je stále jeden aktivní quest; vícequestový journal přijde s dalším rozšířením obsahu.
 
 ## Další tři priority
 
-1. Přidat stealth indikátor, světelné kužely a stav podezření.
-2. Přidat dynamické vrstvy hudby přes WebAudio.
-3. Nahradit procedurální placeholdery ručně vytvořenými sprite atlasy.
+1. Přidat dynamické vrstvy hudby přes WebAudio.
+2. Nahradit procedurální placeholdery ručně vytvořenými sprite atlasy.
+3. Přidat portréty a výrazové varianty NPC.
