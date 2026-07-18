@@ -9,6 +9,14 @@ import {
 
 export type { QuestEvent, QuestId, QuestState, QuestStep } from '../data/quests';
 
+export type QuestCompletionListener = (
+  completed: QuestState,
+  previous: QuestState,
+  event: QuestEvent
+) => void;
+
+const completionListeners = new Set<QuestCompletionListener>();
+
 const matchesCondition = (state: QuestState, condition?: QuestCondition): boolean => {
   if (!condition) return true;
   if (
@@ -18,6 +26,13 @@ const matchesCondition = (state: QuestState, condition?: QuestCondition): boolea
     return false;
   }
   return true;
+};
+
+export const subscribeQuestCompleted = (
+  listener: QuestCompletionListener
+): (() => void) => {
+  completionListeners.add(listener);
+  return () => completionListeners.delete(listener);
 };
 
 export const getQuestDefinition = (id: QuestId): QuestDefinition => QUEST_DEFINITIONS[id];
@@ -36,11 +51,17 @@ export const applyQuestEvent = (state: QuestState, event: QuestEvent): QuestStat
   );
 
   if (!transition) return state;
-  return {
+  const nextState: QuestState = {
     ...state,
     ...transition.set,
     step: transition.to
   };
+
+  if (state.step !== 'complete' && nextState.step === 'complete') {
+    completionListeners.forEach((listener) => listener(nextState, state, event));
+  }
+
+  return nextState;
 };
 
 export const advanceQuestAfterDialogue = (state: QuestState): QuestState =>
