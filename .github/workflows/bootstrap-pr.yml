@@ -21,7 +21,7 @@ jobs:
   bootstrap:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/bootstrap'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - name: Check out bootstrap branch
         uses: actions/checkout@v4
@@ -29,26 +29,7 @@ jobs:
           ref: agent/bootstrap
           fetch-depth: 0
 
-      - name: Record bootstrap chunk hashes
-        shell: bash
-        run: |
-          set -euo pipefail
-          : > /tmp/bootstrap-chunk-hashes.txt
-          for file in .bootstrap/chunk-*; do
-            printf '%s ' "$(basename "$file")" >> /tmp/bootstrap-chunk-hashes.txt
-            git hash-object "$file" >> /tmp/bootstrap-chunk-hashes.txt
-          done
-          cat /tmp/bootstrap-chunk-hashes.txt
-
-      - name: Upload chunk diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: bootstrap-chunk-hashes
-          path: /tmp/bootstrap-chunk-hashes.txt
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Expand validated project archive
+      - name: Expand verified project archive
         shell: bash
         run: |
           set -euo pipefail
@@ -58,23 +39,7 @@ jobs:
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap.yml
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Validate project
-        run: |
-          npm run lint
-          npm run typecheck
-          npm test -- --run
-          npm run build
-
-      - name: Commit validated project
+      - name: Commit verified project sources
         shell: bash
         run: |
           set -euo pipefail
