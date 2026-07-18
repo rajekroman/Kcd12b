@@ -4,8 +4,7 @@ import {
   type QuestDefinition,
   type QuestEvent,
   type QuestId,
-  type QuestState,
-  type QuestStep
+  type QuestState
 } from '../data/quests';
 
 export type { QuestEvent, QuestId, QuestState, QuestStep } from '../data/quests';
