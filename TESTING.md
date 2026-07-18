@@ -14,18 +14,21 @@ npm run build
 
 Vitest ověřuje mimo jiné:
 
-- normalizaci světové hodiny,
-- deterministické hranice jasno, zataženo, déšť a bouře,
-- parametry srážek, mokra, větru a viditelnosti,
-- světelné fáze noc, úsvit, den a soumrak,
-- dvoufázový bouřkový záblesk,
-- deset portrétních identit a všech 60 výrazových frameů,
-- všech 72 charakterových frameů,
+- tři fauna druhy a tři stabilní spawny,
+- všech 15 fauna frameů v rámci 24 × 18 px,
+- rozdílnou chůzi, zranění a smrt zvířat,
+- druhově specifickou denní aktivitu,
+- zkrácení detekční vzdálenosti při nižší viditelnosti,
+- směrový a dosahový lovný zásah,
+- smrtící zásah, kořist, stack limity a nosnost,
+- atomické odmítnutí celé kořisti při nedostatku místa,
+- deduplikaci a stabilní serializaci ulovených ID,
+- save verzi 5 a migrace verzí 1–4,
+- validaci neznámých a duplicitních ulovených kusů,
+- normalizaci světové hodiny a počasí,
+- portrétní a charakterové atlasy,
 - questové a reputační dialogy,
-- pohybové a bojové animace,
-- stealth geometrii a podezření,
-- adaptivní hudební rozhodování,
-- ekonomiku a save migrace.
+- boj, stealth, hudbu a ekonomiku.
 
 ## E2E
 
@@ -39,16 +42,16 @@ npm run test:e2e
 
 Playwright ověřuje mimo jiné:
 
-- jasno a suchý povrch při uloženém úsvitu,
-- zatažené dopoledne bez srážek,
-- odpolední déšť, hustotu kapek, mokro a viditelnost,
-- bouři za soumraku, maximální srážky a bleskový stav,
-- obnovení počasí pouze z uloženého světového času,
-- portrétní výrazy Bohdana a reputační varianty Kateřiny,
-- charakterové atlasy a animaci hráče,
-- questy, inventář, obchod a reputaci,
-- stealth stav, poplach a únik z dosahu,
-- WebAudio odemčení, denní motivy a adaptaci,
-- migraci legacy save do verze 4.
+- registraci tří fauna atlasů a tří world spawnů,
+- denní aktivitu zajíce,
+- skutečný útěk po přiblížení hráče,
+- potvrzený útok a usmrcení zajíce,
+- přidání zaječího masa do viditelného inventáře,
+- zápis `huntedAnimals` a kořisti do IndexedDB save verze 5,
+- reload bez respawnu uloveného kusu a bez duplikace kořisti,
+- migraci legacy save verzí 1, 2 a 4 do verze 5,
+- jasno, zataženo, déšť a bouři,
+- portrétní výrazy a charakterové animace,
+- questy, obchod, reputaci, stealth a WebAudio.
 
-Při selhání GitHub Actions uchová na tři dny HTML report, trace a `test-results` jako artefakt `playwright-diagnostics`.
+Workflow vždy ukládá `typecheck-diagnostics` s přesným výstupem TypeScriptu. Při browserovém selhání uchová na tři dny HTML report, trace a `test-results` jako artefakt `playwright-diagnostics`.
