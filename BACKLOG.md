@@ -17,7 +17,7 @@
 
 ## P1
 
-- [ ] Převést save systém na IndexedDB s migracemi.
+- [x] Převést save systém na IndexedDB s migracemi.
 - [ ] Přidat datově řízené dialogy a questy.
 - [ ] Přidat 10 NPC a jejich denní režimy.
 - [ ] Přidat inventář, vybavení a obchod.
