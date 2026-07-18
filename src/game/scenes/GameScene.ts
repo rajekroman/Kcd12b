@@ -18,6 +18,7 @@ import {
   type QuestState
 } from '../../systems/QuestSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
+import { NpcManager } from '../NpcManager';
 
 interface GameSceneData {
   continueGame?: boolean;
@@ -47,9 +48,9 @@ const directionGlyph: Record<AttackDirection, string> = {
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
-  private smith!: Phaser.Physics.Arcade.Sprite;
   private bandit!: Phaser.Physics.Arcade.Sprite;
   private banditGuardIndicator!: Phaser.GameObjects.Text;
+  private npcManager!: NpcManager;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: MovementKeys;
   private directionKeys!: Record<AttackDirection, Phaser.Input.Keyboard.Key>;
@@ -66,7 +67,7 @@ export class GameScene extends Phaser.Scene {
   private banditStaggerUntil = 0;
   private pendingBanditAttack?: PendingBanditAttack;
   private dialogueOpen = false;
-  private dayClock = 0;
+  private dayClock = 35;
   private nightOverlay!: Phaser.GameObjects.Rectangle;
   private saveSystem!: SaveSystem;
   private saveQueue: Promise<void> = Promise.resolve();
@@ -108,7 +109,9 @@ export class GameScene extends Phaser.Scene {
     this.player.body?.setSize(12, 12).setOffset(2, 8);
     this.physics.add.collider(this.player, this.obstacles);
 
-    this.smith = this.physics.add.staticSprite(355, 330, 'smith').setDepth(10);
+    this.npcManager = new NpcManager(this, this.obstacles, this.player);
+    this.npcManager.create(this.dayClock);
+
     this.bandit = this.physics.add
       .sprite(830, 370, 'bandit')
       .setDepth(10)
@@ -144,6 +147,7 @@ export class GameScene extends Phaser.Scene {
     this.time.addEvent({ delay: 10000, loop: true, callback: () => this.save() });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unbindControls();
+      this.npcManager.destroy();
       document.body.classList.remove('game-active');
       delete document.body.dataset.scene;
       delete document.body.dataset.saveReady;
@@ -162,6 +166,7 @@ export class GameScene extends Phaser.Scene {
     this.updateKeyboardCombat(time);
     this.updateBandit(time);
     this.updateDayNight(delta);
+    this.npcManager.update(this.dayClock);
 
     if (Phaser.Input.Keyboard.JustDown(this.wasd.E)) this.interact();
     if (Phaser.Input.Keyboard.JustDown(this.wasd.SPACE)) this.attack(this.attackDirection, time);
@@ -212,10 +217,18 @@ export class GameScene extends Phaser.Scene {
     this.obstacles.create(510, 250, 'house').setDepth(5);
     this.obstacles.create(280, 520, 'house').setDepth(5);
 
-    this.add.text(290, 300, 'KOVÁRNA', { fontSize: '8px', color: '#f0d9a7' }).setDepth(11);
-    this.add
-      .text(760, 325, 'VÝCHODNÍ CESTA', { fontSize: '8px', color: '#d6c294' })
-      .setDepth(11);
+    const labels: Array<[number, number, string]> = [
+      [290, 300, 'KOVÁRNA'],
+      [500, 330, 'HOSTINEC'],
+      [145, 220, 'KOSTEL'],
+      [615, 270, 'STÁJE'],
+      [435, 380, 'TRH'],
+      [900, 520, 'MLÝN'],
+      [760, 325, 'VÝCHODNÍ CESTA']
+    ];
+    labels.forEach(([x, y, text]) => {
+      this.add.text(x, y, text, { fontSize: '8px', color: '#d6c294' }).setDepth(11);
+    });
   }
 
   private updateMovement(time: number): void {
@@ -362,15 +375,18 @@ export class GameScene extends Phaser.Scene {
 
   private interact = (): void => {
     if (!this.saveReady) return;
-    const distance = Phaser.Math.Distance.BetweenPoints(this.player, this.smith);
-    if (distance > 55) {
+    const npc = this.npcManager.getNearestInteractable();
+    if (!npc) {
       EventBus.emit(GameEvents.MESSAGE, 'Nikdo není dost blízko.');
       return;
     }
 
-    const dialogue = getDialogueForNpc('smith-bohdan', { quest: this.quest });
+    const dialogue = getDialogueForNpc(npc.definition.id, { quest: this.quest });
     if (!dialogue) {
-      EventBus.emit(GameEvents.MESSAGE, 'Bohdan teď nemá co říct.');
+      EventBus.emit(
+        GameEvents.MESSAGE,
+        `${npc.definition.name} se teď věnuje činnosti: ${npc.schedule.activity}.`
+      );
       return;
     }
 
@@ -673,6 +689,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    this.npcManager.snapToSchedule(this.dayClock);
     this.saveReady = true;
     document.body.dataset.saveReady = 'true';
     this.emitHud();
