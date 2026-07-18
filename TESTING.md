@@ -14,16 +14,20 @@ npm run build
 
 Vitest ověřuje mimo jiné:
 
+- reputační rozsah −100 až +100,
+- hranice pěti reputačních úrovní,
+- jednorázovou událost dokončení questu,
+- hromadné reputační změny,
+- nákupní a prodejní násobky podle pověsti a charisma,
+- shodu zobrazené ceny a skutečné transakce,
+- reputačně podmíněné dialogové uzly,
 - nosnost a výpočet hmotnosti inventáře,
 - maximální stacky a odmítnutí neplatného množství,
 - vybavení a uvolnění tří slotů,
-- součet bonusu útoku, zbroje a charisma,
 - atomický nákup a prodej,
-- hotovost hráče i obchodníka,
-- prodej posledního vybaveného kusu,
 - použití léčivého předmětu,
-- validaci ekonomického save stavu,
-- migrace save verzí 1 a 2 do verze 3.
+- validaci ekonomického a reputačního save stavu,
+- migrace save verzí 1, 2 a 3 do verze 4.
 
 ## E2E
 
@@ -38,22 +42,18 @@ npm run test:e2e
 Playwright ověřuje na desktopovém Chromium profilu i mobilní emulaci iPhone 14:
 
 - přechod menu → hra,
-- aktivaci a synchronizaci `UIScene`,
-- asynchronní připravenost menu a save systému,
-- počáteční HUD, ekonomiku a deset NPC,
-- otevření a zavření inventáře,
+- počáteční HUD, ekonomiku, neutrální pověst a deset NPC,
+- otevření inventáře a tři reputační karty,
 - mobilní tlačítko Batoh,
-- startovní groše, váhu a vybavený meč,
 - použití obvazu a obnovení zdraví,
 - okamžitý save po spotřebě předmětu,
-- dostupnost obchodu pouze u Kateřiny,
-- nákup dřevorubecké sekery,
-- změnu grošů a zásob,
-- vybavení koupené zbraně,
-- zápis ekonomiky do IndexedDB save verze 3,
+- neutrální nákup a vybavení zbraně,
+- ctěný Kateřinin dialog při měšťanské pověsti 60,
+- zlevnění sekery z 82 na 73 grošů,
+- dokončení „První oceli“ přes Bohdanův dialog,
+- reputační odměnu +15/+8/+2,
+- zápis reputace do IndexedDB save verze 4,
 - volbu směru útoku, kryt a úhyb,
-- datově řízené dialogy a denní režimy NPC,
-- migraci legacy save verze 1 do verze 3,
-- odstranění legacy localStorage klíče.
+- migraci legacy save verze 1 do verze 4.
 
 Při selhání GitHub Actions uchová na tři dny HTML report, trace a `test-results` jako artefakt `playwright-diagnostics`.

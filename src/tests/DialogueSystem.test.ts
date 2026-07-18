@@ -42,6 +42,33 @@ describe('DialogueSystem', () => {
     );
   });
 
+  it('vybere Kateřinin nedůvěřivý dialog při nízké měšťanské pověsti', () => {
+    const dialogue = getDialogueForNpc('trader-katerina', {
+      quest: createInitialQuestState(),
+      reputation: { peasants: 0, townsfolk: -20, nobility: 0 }
+    });
+
+    expect(dialogue?.id).toBe('katerina-distrusted');
+  });
+
+  it('vybere Kateřinin ctěný dialog při vysoké měšťanské pověsti', () => {
+    const dialogue = getDialogueForNpc('trader-katerina', {
+      quest: createInitialQuestState(),
+      reputation: { peasants: 0, townsfolk: 60, nobility: 0 }
+    });
+
+    expect(dialogue?.id).toBe('katerina-honored');
+  });
+
+  it('neutrální pověst zachová běžný Kateřinin dialog', () => {
+    const dialogue = getDialogueForNpc('trader-katerina', {
+      quest: createInitialQuestState(),
+      reputation: { peasants: 0, townsfolk: 0, nobility: 0 }
+    });
+
+    expect(dialogue?.id).toBe('katerina-ambient');
+  });
+
   it('respektuje prioritu dat nezávisle na pořadí pole', () => {
     const low: DialogueDefinition = {
       id: 'low',
@@ -64,6 +91,6 @@ describe('DialogueSystem', () => {
       [low, high]
     );
     expect(selected?.id).toBe('high');
-    expect(DIALOGUE_DEFINITIONS.length).toBeGreaterThanOrEqual(4);
+    expect(DIALOGUE_DEFINITIONS.length).toBeGreaterThanOrEqual(15);
   });
 });

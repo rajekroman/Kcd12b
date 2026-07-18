@@ -48,8 +48,14 @@ Batoh obsahuje vybavení, zásoby, nosnost a groše. Zbraň, zbroj a doplněk lz
 
 Obchodní záložka se aktivuje pouze v blízkosti kupkyně Kateřiny během jejího denního režimu. Nákup i prodej kontroluje hotovost, zásoby, nosnost a maximální množství v jednom stacku.
 
+## Pověst
+
+Hráč má oddělenou pověst u sedláků, měšťanů a šlechty. Každá hodnota se pohybuje od −100 do +100 a odpovídá jedné z pěti úrovní důvěry: nepřátelská, nedůvěřivá, neutrální, vážená nebo ctěná.
+
+Dokončení úkolu „První ocel“ zvýší pověst u všech tří skupin. Měšťanská pověst společně s charismatem vybavení ovlivňuje Kateřininy nákupní a prodejní ceny a může změnit její dialog.
+
 ## Stav
 
-Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, save verze 3, mobilní ovládání a PWA konfiguraci.
+Hratelný řez obsahuje menu, vesnici s deseti obyvateli a denními režimy, datově řízené dialogy a quest, pětisměrný boj, kryt, dokonalý kryt, úhyb, inventář, vybavení, spotřební předměty, obchod, tři reputační skupiny, save verze 4, mobilní ovládání a PWA konfiguraci.
 
 Projekt je samostatné autorské dílo. Nekopíruje chráněné postavy, příběh, mapy, hudbu, dialogy ani vizuální materiály žádné existující hry.

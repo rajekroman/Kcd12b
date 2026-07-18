@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialEconomyState } from '../systems/InventorySystem';
+import { createInitialReputationState } from '../systems/ReputationSystem';
 import {
   CURRENT_SAVE_VERSION,
   FALLBACK_SAVE_KEY,
   LEGACY_SAVE_KEY,
   LEGACY_SAVE_KEY_V2,
+  LEGACY_SAVE_KEY_V3,
   SaveSystem,
   migrateGameSave,
   type AsyncSaveStore,
@@ -78,13 +80,14 @@ const input = {
   player: { x: 12, y: 34, health: 90, stamina: 55 },
   quest: createInitialQuestState(),
   world: { dayClock: 27 },
-  economy: createInitialEconomyState()
+  economy: createInitialEconomyState(),
+  reputation: { peasants: 12, townsfolk: -4, nobility: 3 }
 };
 
 const fixedNow = () => new Date('2026-07-18T08:00:00.000Z');
 
 describe('SaveSystem', () => {
-  it('uloží, načte a smaže stav verze 3 v primárním async úložišti', async () => {
+  it('uloží, načte a smaže stav verze 4 v primárním async úložišti', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
     const saves = new SaveSystem({ primary, fallback, now: fixedNow });
@@ -94,6 +97,7 @@ describe('SaveSystem', () => {
     expect(stored.version).toBe(CURRENT_SAVE_VERSION);
     expect(stored.savedAt).toBe('2026-07-18T08:00:00.000Z');
     expect(stored.economy.inventory.equipment.weapon).toBe('bohdan-sword');
+    expect(stored.reputation).toEqual(input.reputation);
     expect((await saves.load())?.player.x).toBe(12);
     expect(fallback.getItem(FALLBACK_SAVE_KEY)).toBeNull();
 
@@ -101,7 +105,7 @@ describe('SaveSystem', () => {
     expect(await saves.load()).toBeNull();
   });
 
-  it('migruje legacy verzi 1 na verzi 3 s výchozí ekonomikou', async () => {
+  it('migruje legacy verzi 1 na verzi 4 s výchozí ekonomikou a pověstí', async () => {
     const primary = new MemoryAsyncStore();
     const fallback = new MemoryStorage();
     fallback.setItem(
@@ -117,10 +121,11 @@ describe('SaveSystem', () => {
 
     const migrated = await saves.load();
 
-    expect(migrated?.version).toBe(3);
+    expect(migrated?.version).toBe(4);
     expect(migrated?.world.dayClock).toBe(0);
     expect(migrated?.economy.inventory.groschen).toBe(85);
-    expect((primary.value as GameSave).version).toBe(3);
+    expect(migrated?.reputation).toEqual(createInitialReputationState());
+    expect((primary.value as GameSave).version).toBe(4);
     expect(fallback.getItem(LEGACY_SAVE_KEY)).toBeNull();
   });
 
@@ -141,13 +146,38 @@ describe('SaveSystem', () => {
 
     const migrated = await saves.load();
 
-    expect(migrated?.version).toBe(3);
+    expect(migrated?.version).toBe(4);
     expect(migrated?.world.dayClock).toBe(61);
     expect(migrated?.economy.merchant.stock.length).toBeGreaterThan(0);
+    expect(migrated?.reputation).toEqual(createInitialReputationState());
     expect(fallback.getItem(LEGACY_SAVE_KEY_V2)).toBeNull();
   });
 
-  it('použije fallback verze 3, když primární úložiště selže', async () => {
+  it('migruje verzi 3 bez ztráty ekonomiky', async () => {
+    const primary = new MemoryAsyncStore();
+    const fallback = new MemoryStorage();
+    fallback.setItem(
+      LEGACY_SAVE_KEY_V3,
+      JSON.stringify({
+        version: 3,
+        player: input.player,
+        quest: input.quest,
+        world: input.world,
+        economy: input.economy,
+        savedAt: '2026-07-18T07:30:00.000Z'
+      })
+    );
+    const saves = new SaveSystem({ primary, fallback });
+
+    const migrated = await saves.load();
+
+    expect(migrated?.version).toBe(4);
+    expect(migrated?.economy).toEqual(input.economy);
+    expect(migrated?.reputation).toEqual(createInitialReputationState());
+    expect(fallback.getItem(LEGACY_SAVE_KEY_V3)).toBeNull();
+  });
+
+  it('použije fallback verze 4, když primární úložiště selže', async () => {
     const primary = new MemoryAsyncStore();
     primary.setFailures = 1;
     const fallback = new MemoryStorage();
@@ -157,8 +187,8 @@ describe('SaveSystem', () => {
 
     const raw = fallback.getItem(FALLBACK_SAVE_KEY);
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw ?? '{}').version).toBe(3);
-    expect((await saves.load())?.world.dayClock).toBe(27);
+    expect(JSON.parse(raw ?? '{}').version).toBe(4);
+    expect((await saves.load())?.reputation.peasants).toBe(12);
   });
 
   it('načte fallback po selhání čtení primárního úložiště', async () => {
@@ -168,7 +198,7 @@ describe('SaveSystem', () => {
     fallback.setItem(
       FALLBACK_SAVE_KEY,
       JSON.stringify({
-        version: 3,
+        version: 4,
         ...input,
         savedAt: '2026-07-18T08:00:00.000Z'
       })
@@ -180,12 +210,12 @@ describe('SaveSystem', () => {
 
   it('neplatný primární záznam nezakryje platný fallback', async () => {
     const primary = new MemoryAsyncStore();
-    primary.value = { version: 3, player: null };
+    primary.value = { version: 4, player: null };
     const fallback = new MemoryStorage();
     fallback.setItem(
       FALLBACK_SAVE_KEY,
       JSON.stringify({
-        version: 3,
+        version: 4,
         ...input,
         savedAt: '2026-07-18T08:00:00.000Z'
       })
@@ -193,12 +223,23 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect((await saves.load())?.player.health).toBe(90);
-    expect((primary.value as GameSave).economy.inventory.groschen).toBe(85);
+    expect((primary.value as GameSave).reputation.townsfolk).toBe(-4);
+  });
+
+  it('odmítne neplatnou pověst mimo rozsah', () => {
+    const invalid = {
+      version: 4,
+      ...input,
+      reputation: { peasants: 101, townsfolk: 0, nobility: 0 },
+      savedAt: '2026-07-18T08:00:00.000Z'
+    };
+
+    expect(migrateGameSave(invalid)).toBeNull();
   });
 
   it('odmítne neplatné ekonomické vybavení', () => {
     const invalid = {
-      version: 3,
+      version: 4,
       ...input,
       economy: {
         ...input.economy,
@@ -228,7 +269,7 @@ describe('SaveSystem', () => {
     const saves = new SaveSystem({ primary, fallback });
 
     expect(await saves.load()).toBeNull();
-    expect(migrateGameSave({ version: 3 })).toBeNull();
+    expect(migrateGameSave({ version: 4 })).toBeNull();
     expect(migrateGameSave(null)).toBeNull();
   });
 });

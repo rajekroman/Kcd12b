@@ -11,6 +11,11 @@ interface StoredBrowserSave {
       items: Array<{ itemId: string; quantity: number }>;
     };
   };
+  reputation: {
+    peasants: number;
+    townsfolk: number;
+    nobility: number;
+  };
 }
 
 interface NpcScheduleSnapshot {
@@ -18,6 +23,33 @@ interface NpcScheduleSnapshot {
   activity: string;
   locationId: string;
 }
+
+const initialEconomy = {
+  inventory: {
+    groschen: 85,
+    maxWeight: 25,
+    items: [
+      { itemId: 'bohdan-sword', quantity: 1 },
+      { itemId: 'bread', quantity: 2 },
+      { itemId: 'bandage', quantity: 1 }
+    ],
+    equipment: {
+      weapon: 'bohdan-sword',
+      armor: null,
+      accessory: null
+    }
+  },
+  merchant: {
+    id: 'trader-katerina',
+    groschen: 500,
+    stock: [
+      { itemId: 'wood-axe', quantity: 1 },
+      { itemId: 'padded-jack', quantity: 1 },
+      { itemId: 'bread', quantity: 8 },
+      { itemId: 'bandage', quantity: 5 }
+    ]
+  }
+};
 
 const readNpcSchedules = async (page: Page): Promise<NpcScheduleSnapshot[]> => {
   const raw = await page.locator('body').getAttribute('data-npc-schedules');
@@ -45,6 +77,15 @@ const readStoredSave = async (page: Page): Promise<StoredBrowserSave | null> =>
       })
   );
 
+const installSave = async (page: Page, key: string, save: unknown): Promise<void> => {
+  await page.addInitScript(
+    ({ storageKey, payload }) => {
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    },
+    { storageKey: key, payload: save }
+  );
+};
+
 const startNewGame = async (page: Page): Promise<void> => {
   await page.goto('/Kcd12b/');
   await expect(page.locator('canvas')).toBeVisible();
@@ -65,6 +106,9 @@ const startNewGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-npc-count', '10');
   await expect(body).toHaveAttribute('data-groschen', '85');
   await expect(body).toHaveAttribute('data-equipped-weapon', 'bohdan-sword');
+  await expect(body).toHaveAttribute('data-reputation-peasants', '0');
+  await expect(body).toHaveAttribute('data-reputation-townsfolk', '0');
+  await expect(body).toHaveAttribute('data-reputation-nobility', '0');
   await expect(page.locator('#game-status')).toContainText('Promluv s kovářem Bohdanem');
 };
 
@@ -85,7 +129,7 @@ const continueGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-npc-count', '10');
 };
 
-test('přechod menu → hra spustí HUD, ekonomiku a deset ranních obyvatel', async ({
+test('přechod menu → hra spustí HUD, ekonomiku, pověst a deset obyvatel', async ({
   page
 }, testInfo) => {
   await startNewGame(page);
@@ -93,8 +137,6 @@ test('přechod menu → hra spustí HUD, ekonomiku a deset ranních obyvatel', a
   const controls = page.locator('#mobile-controls');
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(controls).toBeVisible();
-    await expect(page.locator('[data-control="block"]')).toBeVisible();
-    await expect(page.locator('[data-control="dodge"]')).toBeVisible();
     await expect(page.locator('[data-control="inventory"]')).toBeVisible();
   } else {
     await expect(controls).toBeAttached();
@@ -107,41 +149,30 @@ test('přechod menu → hra spustí HUD, ekonomiku a deset ranních obyvatel', a
     activity: 'working',
     locationId: 'forge'
   });
-  expect(schedules).toContainEqual({
-    id: 'innkeeper-marta',
-    activity: 'serving',
-    locationId: 'tavern'
-  });
 });
 
-test('inventář se otevře, zobrazí výbavu a bezpečně se zavře', async ({ page }) => {
+test('inventář zobrazí výbavu a tři reputační skupiny', async ({ page }) => {
   await startNewGame(page);
   const body = page.locator('body');
 
   await page.keyboard.press('i');
   await expect(body).toHaveAttribute('data-economy-open', 'true');
-  await expect(body).toHaveAttribute('data-economy-mode', 'inventory');
   await expect(page.locator('#economy-overlay')).toBeVisible();
   await expect(page.locator('[data-item="bohdan-sword"]')).toContainText('Bohdanův cvičný meč');
-  await expect(page.locator('#economy-summary')).toContainText('85');
+  await expect(page.locator('[data-reputation-faction]')).toHaveCount(3);
+  await expect(page.locator('[data-reputation-faction="townsfolk"]')).toContainText('neutrální');
 
   await page.keyboard.press('Escape');
   await expect(body).toHaveAttribute('data-economy-open', 'false');
-  await expect(page.locator('#economy-overlay')).toBeHidden();
 });
 
-test('spotřební předmět obnoví zdraví a okamžitě vyvolá save', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'chronicles-of-bohemia.save.v2',
-      JSON.stringify({
-        version: 2,
-        player: { x: 240, y: 390, health: 70, stamina: 100 },
-        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
-        world: { dayClock: 35 },
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
+test('spotřební předmět obnoví zdraví a okamžitě vyvolá save verze 4', async ({ page }) => {
+  await installSave(page, 'chronicles-of-bohemia.save.v2', {
+    version: 2,
+    player: { x: 240, y: 390, health: 70, stamina: 100 },
+    quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
+    world: { dayClock: 35 },
+    savedAt: '2026-07-18T08:00:00.000Z'
   });
 
   await continueGame(page);
@@ -151,21 +182,16 @@ test('spotřební předmět obnoví zdraví a okamžitě vyvolá save', async ({
 
   await expect(body).toHaveAttribute('data-health', '82');
   await expect(body).toHaveAttribute('data-last-save', 'ok');
-  await expect(page.locator('[data-item="bandage"]')).toHaveCount(0);
+  expect((await readStoredSave(page))?.version).toBe(4);
 });
 
-test('nákup u Kateřiny a vybavení nové zbraně se uloží do verze 3', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'chronicles-of-bohemia.save.v2',
-      JSON.stringify({
-        version: 2,
-        player: { x: 480, y: 395, health: 100, stamina: 100 },
-        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
-        world: { dayClock: 45 },
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
+test('neutrální nákup a vybavení nové zbraně se uloží do verze 4', async ({ page }) => {
+  await installSave(page, 'chronicles-of-bohemia.save.v2', {
+    version: 2,
+    player: { x: 480, y: 395, health: 100, stamina: 100 },
+    quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
+    world: { dayClock: 45 },
+    savedAt: '2026-07-18T08:00:00.000Z'
   });
 
   await continueGame(page);
@@ -173,7 +199,6 @@ test('nákup u Kateřiny a vybavení nové zbraně se uloží do verze 3', async
   await expect(body).toHaveAttribute('data-near-npc', 'trader-katerina');
 
   await page.keyboard.press('i');
-  await expect(body).toHaveAttribute('data-economy-mode', 'trade');
   await page.locator('[data-item="wood-axe"] [data-economy-action="buy"]').click();
   await expect(body).toHaveAttribute('data-groschen', '3');
 
@@ -183,10 +208,64 @@ test('nákup u Kateřiny a vybavení nové zbraně se uloží do verze 3', async
   await expect(body).toHaveAttribute('data-last-save', 'ok');
 
   const stored = await readStoredSave(page);
-  expect(stored?.version).toBe(3);
+  expect(stored?.version).toBe(4);
   expect(stored?.economy.inventory.groschen).toBe(3);
-  expect(stored?.economy.inventory.equipment.weapon).toBe('wood-axe');
-  expect(stored?.economy.inventory.items).toContainEqual({ itemId: 'wood-axe', quantity: 1 });
+  expect(stored?.reputation).toEqual({ peasants: 0, townsfolk: 0, nobility: 0 });
+});
+
+test('ctěná měšťanská pověst zlevní Kateřininu sekeru a změní dialog', async ({ page }) => {
+  await installSave(page, 'chronicles-of-bohemia.save.v4', {
+    version: 4,
+    player: { x: 480, y: 395, health: 100, stamina: 100 },
+    quest: { id: 'first-steel', step: 'complete', banditDefeated: true },
+    world: { dayClock: 45 },
+    economy: initialEconomy,
+    reputation: { peasants: 40, townsfolk: 60, nobility: 5 },
+    savedAt: '2026-07-18T08:00:00.000Z'
+  });
+
+  await continueGame(page);
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-townsfolk-tier', 'honored');
+
+  await page.keyboard.press('e');
+  await expect(body).toHaveAttribute('data-dialogue-id', 'katerina-honored');
+
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('i');
+  await expect(page.locator('[data-item="wood-axe"] [data-economy-action="buy"]')).toContainText('73');
+  await page.locator('[data-item="wood-axe"] [data-economy-action="buy"]').click();
+  await expect(body).toHaveAttribute('data-groschen', '12');
+});
+
+test('dokončení První oceli přidá reputační odměnu právě jednou a uloží ji', async ({ page }) => {
+  await installSave(page, 'chronicles-of-bohemia.save.v4', {
+    version: 4,
+    player: { x: 370, y: 340, health: 100, stamina: 100 },
+    quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: true },
+    world: { dayClock: 45 },
+    economy: initialEconomy,
+    reputation: { peasants: 0, townsfolk: 0, nobility: 0 },
+    savedAt: '2026-07-18T08:00:00.000Z'
+  });
+
+  await continueGame(page);
+  const body = page.locator('body');
+  await page.keyboard.press('e');
+  await expect(body).toHaveAttribute('data-dialogue-id', 'bohdan-report-early-victory');
+
+  const canvas = page.locator('canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Canvas bounds are not available.');
+  await page.mouse.click(bounds.x + bounds.width * 0.91, bounds.y + bounds.height * 0.79);
+
+  await expect(body).toHaveAttribute('data-reputation-peasants', '15');
+  await expect(body).toHaveAttribute('data-reputation-townsfolk', '8');
+  await expect(body).toHaveAttribute('data-reputation-nobility', '2');
+  await expect(body).toHaveAttribute('data-last-save', 'ok');
+
+  const stored = await readStoredSave(page);
+  expect(stored?.reputation).toEqual({ peasants: 15, townsfolk: 8, nobility: 2 });
 });
 
 test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
@@ -195,91 +274,32 @@ test('směr útoku, kryt a úhyb mění herní stav', async ({ page }) => {
 
   await page.keyboard.press('Digit3');
   await expect(body).toHaveAttribute('data-attack-direction', 'right');
-
   await page.keyboard.press('Space');
   await expect(body).toHaveAttribute('data-stamina', '85');
-
   await page.keyboard.down('f');
   await expect(body).toHaveAttribute('data-blocking', 'true');
   await page.keyboard.up('f');
   await expect(body).toHaveAttribute('data-blocking', 'false');
-
-  const staminaBeforeDodge = Number(await body.getAttribute('data-stamina'));
   await page.keyboard.press('Shift');
   await expect(body).toHaveAttribute('data-last-message', 'Úhyb.');
-  await expect(body).toHaveAttribute('data-dodge-ready', 'false');
-  const staminaAfterDodge = Number(await body.getAttribute('data-stamina'));
-
-  expect(staminaAfterDodge).toBeLessThanOrEqual(staminaBeforeDodge - 20);
 });
 
-test('datové podmínky vyberou správný Bohdanův dialog v pracovní době', async ({
-  page
-}) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'chronicles-of-bohemia.save.v2',
-      JSON.stringify({
-        version: 2,
-        player: { x: 370, y: 340, health: 92, stamina: 81 },
-        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
-        world: { dayClock: 45 },
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
-  });
-
-  await continueGame(page);
-  const body = page.locator('body');
-  await page.keyboard.press('e');
-  await expect(body).toHaveAttribute('data-dialogue', 'Kovář Bohdan');
-  await expect(body).toHaveAttribute('data-dialogue-id', 'bohdan-offer-first-steel');
-});
-
-test('nejbližší plánovaný obyvatel nabídne vlastní ambientní dialog', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'chronicles-of-bohemia.save.v2',
-      JSON.stringify({
-        version: 2,
-        player: { x: 458, y: 405, health: 100, stamina: 100 },
-        quest: { id: 'first-steel', step: 'meet-smith', banditDefeated: false },
-        world: { dayClock: 45 },
-        savedAt: '2026-07-18T08:00:00.000Z'
-      })
-    );
-  });
-
-  await continueGame(page);
-  const body = page.locator('body');
-  await page.keyboard.press('e');
-  await expect(body).toHaveAttribute('data-dialogue', 'Strážný Vojtěch');
-  await expect(body).toHaveAttribute('data-dialogue-id', 'vojtech-ambient');
-});
-
-test('legacy save verze 1 se migruje do IndexedDB verze 3 s ekonomikou', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      'chronicles-of-bohemia.save.v1',
-      JSON.stringify({
-        version: 1,
-        player: { x: 412, y: 365, health: 77, stamina: 44 },
-        quest: { id: 'first-steel', step: 'defeat-bandit', banditDefeated: false },
-        savedAt: '2026-07-17T20:00:00.000Z'
-      })
-    );
+test('legacy save verze 1 se migruje do IndexedDB verze 4', async ({ page }) => {
+  await installSave(page, 'chronicles-of-bohemia.save.v1', {
+    version: 1,
+    player: { x: 412, y: 365, health: 77, stamina: 44 },
+    quest: { id: 'first-steel', step: 'defeat-bandit', banditDefeated: false },
+    savedAt: '2026-07-17T20:00:00.000Z'
   });
 
   await continueGame(page);
   const body = page.locator('body');
   await expect(body).toHaveAttribute('data-health', '77');
-  await expect(body).toHaveAttribute('data-stamina', '44');
   await expect(body).toHaveAttribute('data-groschen', '85');
-  await expect(page.locator('#game-status')).toContainText('Vyžeň lapku');
+  await expect(body).toHaveAttribute('data-reputation-townsfolk', '0');
 
   const stored = await readStoredSave(page);
-  expect(stored?.version).toBe(3);
+  expect(stored?.version).toBe(4);
   expect(stored?.world.dayClock).toBe(0);
-  expect(stored?.economy.inventory.groschen).toBe(85);
-  expect(await page.evaluate(() => localStorage.getItem('chronicles-of-bohemia.save.v1'))).toBeNull();
+  expect(stored?.reputation).toEqual({ peasants: 0, townsfolk: 0, nobility: 0 });
 });

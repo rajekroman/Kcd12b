@@ -6,6 +6,10 @@ import {
   type ItemId,
   type ItemStackDefinition
 } from '../data/items';
+import {
+  calculateReputationPrice,
+  type TradeReputationContext
+} from './ReputationSystem';
 
 export interface InventoryStack {
   itemId: ItemId;
@@ -68,6 +72,11 @@ export interface ConsumableUseResult {
   healing: number;
 }
 
+const NEUTRAL_PRICING: TradeReputationContext = {
+  factionReputation: 0,
+  charisma: 0
+};
+
 const cloneStacks = (stacks: readonly ItemStackDefinition[]): InventoryStack[] =>
   stacks.map((stack) => ({ ...stack }));
 
@@ -128,6 +137,16 @@ export const getEquipmentStats = (inventory: InventoryState): EquipmentStats => 
     },
     { attack: 0, armor: 0, charisma: 0 }
   );
+};
+
+export const getItemTradePrice = (
+  itemId: ItemId,
+  direction: 'buy' | 'sell',
+  context: TradeReputationContext = NEUTRAL_PRICING
+): number => {
+  const definition = ITEM_DEFINITIONS[itemId];
+  const basePrice = direction === 'buy' ? definition.buyPrice : definition.sellPrice;
+  return calculateReputationPrice(basePrice, direction, context);
 };
 
 export const addItem = (
@@ -227,13 +246,14 @@ const updateMerchantStock = (
 export const buyItem = (
   economy: EconomyState,
   itemId: ItemId,
-  quantity = 1
+  quantity = 1,
+  pricingContext: TradeReputationContext = NEUTRAL_PRICING
 ): InventoryResult<EconomyState> => {
   if (!validQuantity(quantity)) return fail('invalid-quantity', 'Množství musí být kladné celé číslo.');
   const stockQuantity = getItemQuantity(economy.merchant.stock, itemId);
   if (stockQuantity < quantity) return fail('merchant-out-of-stock', 'Obchodník nemá dost kusů.');
 
-  const price = ITEM_DEFINITIONS[itemId].buyPrice * quantity;
+  const price = getItemTradePrice(itemId, 'buy', pricingContext) * quantity;
   if (economy.inventory.groschen < price) {
     return fail('insufficient-funds', 'Nemáš dost grošů.');
   }
@@ -257,14 +277,15 @@ export const buyItem = (
 export const sellItem = (
   economy: EconomyState,
   itemId: ItemId,
-  quantity = 1
+  quantity = 1,
+  pricingContext: TradeReputationContext = NEUTRAL_PRICING
 ): InventoryResult<EconomyState> => {
   if (!validQuantity(quantity)) return fail('invalid-quantity', 'Množství musí být kladné celé číslo.');
   if (getItemQuantity(economy.inventory.items, itemId) < quantity) {
     return fail('item-missing', 'V inventáři není dost kusů.');
   }
 
-  const price = ITEM_DEFINITIONS[itemId].sellPrice * quantity;
+  const price = getItemTradePrice(itemId, 'sell', pricingContext) * quantity;
   if (economy.merchant.groschen < price) {
     return fail('merchant-insufficient-funds', 'Obchodník nemá dost hotovosti.');
   }

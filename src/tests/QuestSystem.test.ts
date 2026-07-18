@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   advanceQuestAfterBanditDefeat,
   advanceQuestAfterDialogue,
   applyQuestEvent,
   createInitialQuestState,
   getQuestDefinition,
-  getQuestObjective
+  getQuestObjective,
+  subscribeQuestCompleted
 } from '../systems/QuestSystem';
 
 describe('QuestSystem', () => {
@@ -27,6 +28,20 @@ describe('QuestSystem', () => {
     expect(complete.step).toBe('complete');
     expect(complete.banditDefeated).toBe(true);
     expect(getQuestObjective(complete)).toContain('dokončen');
+  });
+
+  it('publikuje dokončení právě při prvním přechodu do complete', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeQuestCompleted(listener);
+    const accepted = advanceQuestAfterDialogue(createInitialQuestState());
+    const complete = advanceQuestAfterBanditDefeat(accepted);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(complete, accepted, 'bandit-defeated');
+
+    applyQuestEvent(complete, 'bandit-defeated');
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('zachovává kompatibilní veřejné pomocné funkce', () => {
