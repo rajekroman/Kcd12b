@@ -1,13 +1,18 @@
 export type ItemId =
   | 'bohdan-sword'
+  | 'tempered-sword'
   | 'wood-axe'
   | 'padded-jack'
+  | 'reinforced-jack'
   | 'mail-coif'
   | 'silver-ring'
   | 'bread'
   | 'bandage'
+  | 'herbal-poultice'
+  | 'preserved-venison'
   | 'healing-herbs'
   | 'iron-ingot'
+  | 'leather-straps'
   | 'hare-meat'
   | 'venison'
   | 'deer-hide'
@@ -55,6 +60,18 @@ export const ITEM_DEFINITIONS: Record<ItemId, ItemDefinition> = {
     sellPrice: 58,
     stats: { attack: 5 }
   },
+  'tempered-sword': {
+    id: 'tempered-sword',
+    name: 'Kalený Bohdanův meč',
+    description: 'Překovaná a zakalená čepel s ostřejším břitem a pevnějším hřbetem.',
+    category: 'weapon',
+    equipmentSlot: 'weapon',
+    weight: 2.9,
+    maxStack: 1,
+    buyPrice: 225,
+    sellPrice: 108,
+    stats: { attack: 8 }
+  },
   'wood-axe': {
     id: 'wood-axe',
     name: 'Dřevorubecká sekera',
@@ -78,6 +95,18 @@ export const ITEM_DEFINITIONS: Record<ItemId, ItemDefinition> = {
     buyPrice: 168,
     sellPrice: 80,
     stats: { armor: 4 }
+  },
+  'reinforced-jack': {
+    id: 'reinforced-jack',
+    name: 'Vyztužená prošívanice',
+    description: 'Prošívanice zpevněná koženými řemeny a železnými lamelami.',
+    category: 'armor',
+    equipmentSlot: 'armor',
+    weight: 5.2,
+    maxStack: 1,
+    buyPrice: 295,
+    sellPrice: 140,
+    stats: { armor: 7 }
   },
   'mail-coif': {
     id: 'mail-coif',
@@ -125,6 +154,28 @@ export const ITEM_DEFINITIONS: Record<ItemId, ItemDefinition> = {
     sellPrice: 6,
     stats: { healing: 12 }
   },
+  'herbal-poultice': {
+    id: 'herbal-poultice',
+    name: 'Bylinný obklad',
+    description: 'Čerstvě rozdrcené léčivé byliny zavinuté do čistého plátna.',
+    category: 'consumable',
+    weight: 0.25,
+    maxStack: 10,
+    buyPrice: 34,
+    sellPrice: 15,
+    stats: { healing: 28 }
+  },
+  'preserved-venison': {
+    id: 'preserved-venison',
+    name: 'Bylinkami konzervovaná zvěřina',
+    description: 'Srnčí maso prosolené a ošetřené bylinami pro delší cestu.',
+    category: 'consumable',
+    weight: 0.75,
+    maxStack: 10,
+    buyPrice: 31,
+    sellPrice: 14,
+    stats: { healing: 10 }
+  },
   'healing-herbs': {
     id: 'healing-herbs',
     name: 'Léčivé byliny',
@@ -145,6 +196,17 @@ export const ITEM_DEFINITIONS: Record<ItemId, ItemDefinition> = {
     maxStack: 5,
     buyPrice: 35,
     sellPrice: 17,
+    stats: {}
+  },
+  'leather-straps': {
+    id: 'leather-straps',
+    name: 'Kožené řemeny',
+    description: 'Nařezané a promaštěné řemeny pro opravy zbroje a výstroje.',
+    category: 'material',
+    weight: 0.35,
+    maxStack: 10,
+    buyPrice: 18,
+    sellPrice: 8,
     stats: {}
   },
   'hare-meat': {
