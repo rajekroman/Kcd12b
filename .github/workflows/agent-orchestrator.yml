@@ -1,6 +1,12 @@
 name: Agent Orchestrator
 
 on:
+  pull_request:
+    paths:
+      - ".github/ISSUE_TEMPLATE/agent-work-package.yml"
+      - ".github/workflows/agent-orchestrator.yml"
+      - "docs/AGENT_ORCHESTRATION.md"
+      - "tools/agent-orchestrator/**"
   issues:
     types: [labeled]
   workflow_dispatch:
@@ -21,131 +27,221 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  orchestrate:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Verify orchestrator security contracts
+        run: |
+          npm --prefix tools/agent-orchestrator test
+          npm --prefix tools/agent-orchestrator run dry-run
+
+  plan:
     if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
     permissions:
       contents: write
       issues: write
-      pull-requests: write
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.plan.outputs.should_run }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      issue_number: ${{ steps.plan.outputs.issue_number }}
+      issue_title: ${{ steps.plan.outputs.issue_title }}
+      role: ${{ steps.plan.outputs.role }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      branch_head_sha: ${{ steps.plan.outputs.branch_head_sha }}
+      branch: ${{ steps.plan.outputs.branch }}
+      integration_order: ${{ steps.plan.outputs.integration_order }}
     steps:
-      - name: Check out orchestrator source
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           ref: main
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
-      - name: Install project dependencies
-        run: npm ci
-
-      - name: Test orchestrator
-        run: npm --prefix tools/agent-orchestrator test
-
-      - name: Preserve control-plane executable
-        run: cp -R tools/agent-orchestrator /tmp/agent-orchestrator
-
-      - name: Build deterministic plan
+      - run: npm ci
+      - run: npm --prefix tools/agent-orchestrator test
+      - name: Build deterministic plan and acquire lock
         id: plan
-        shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
-            node /tmp/agent-orchestrator/src/cli.mjs plan \
+            node tools/agent-orchestrator/src/cli.mjs plan \
               --dry-run \
-              --fixture /tmp/agent-orchestrator/test/fixtures/issues.json
+              --fixture tools/agent-orchestrator/test/fixtures/issues.json
           else
-            node /tmp/agent-orchestrator/src/cli.mjs plan --lock
+            node tools/agent-orchestrator/src/cli.mjs plan --lock
           fi
-          if [[ -f .agent-orchestrator/plan.json ]]; then
-            cp .agent-orchestrator/plan.json /tmp/agent-plan.json
-          fi
+      - name: Preserve immutable control-plane input
+        if: steps.plan.outputs.should_run == 'true'
+        run: cp -R tools/agent-orchestrator .agent-orchestrator/control-plane
+      - name: Show dry-run plan
+        if: steps.plan.outputs.should_run == 'true' && steps.plan.outputs.dry_run == 'true'
+        run: cat .agent-orchestrator/plan.json
+      - name: Upload plan and prompt
+        if: steps.plan.outputs.should_run == 'true' && steps.plan.outputs.dry_run != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Stop after dry-run plan
-        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        run: cat /tmp/agent-plan.json
-
-      - name: Verify OpenAI secret
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+  generate:
+    needs: plan
+    if: needs.plan.outputs.should_run == 'true' && needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Verify immutable branch baseline
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          if [[ -z "$OPENAI_API_KEY" ]]; then
-            mkdir -p .agent-orchestrator
-            printf '%s\n' \
-              'OPENAI_API_KEY is not configured. The issue was safely moved to blocked; no code was generated or merged.' \
-              > .agent-orchestrator/BLOCKED.md
-            exit 1
-          fi
-
-      - name: Install Playwright browser before privilege reduction
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+          EXPECTED_HEAD: ${{ needs.plan.outputs.branch_head_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Install browser dependencies before privilege reduction
         run: npx playwright install --with-deps chromium
-
-      - name: Check out work-package branch
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
-        env:
-          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
-          BRANCH: ${{ steps.plan.outputs.branch }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin "$BASE_SHA" "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
-          git merge-base --is-ancestor "$BASE_SHA" "origin/$BRANCH" || {
-            printf 'Branch %s does not descend from required base %s.\n' "$BRANCH" "$BASE_SHA" \
-              > .agent-orchestrator/BLOCKED.md
-            exit 1
-          }
-          git checkout -B "$BRANCH" "origin/$BRANCH"
-
-      - name: Run specialist agent
+      - name: Run isolated specialist agent
         id: codex
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: ${{ steps.plan.outputs.prompt_file }}
+          prompt-file: .agent-orchestrator/prompt.md
           sandbox: workspace-write
           safety-strategy: drop-sudo
+          output-schema: |
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": { "type": "string", "enum": ["completed", "blocked"] },
+                "patch": { "type": "string" },
+                "handoff": { "type": "string" },
+                "blockedReason": { "type": "string" }
+              },
+              "required": ["status", "patch", "handoff", "blockedReason"]
+            }
 
-      - name: Validate generated work
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+  finalize:
+    needs: [plan, generate]
+    if: always() && needs.plan.outputs.should_run == 'true' && needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Record isolated generation failure
+        if: needs.generate.result != 'success'
+        run: |
+          mkdir -p .agent-orchestrator
+          printf '%s\n' \
+            'The isolated Codex generation job failed or was cancelled before returning a schema-valid result.' \
+            > .agent-orchestrator/BLOCKED.md
+      - name: Materialize and scope-check generated patch
+        id: materialize
+        if: needs.generate.result == 'success'
+        env:
+          CODEX_RESULT: ${{ needs.generate.outputs.result }}
         run: |
           set -euo pipefail
-          test ! -f .agent-orchestrator/BLOCKED.md
-          test -s .agent-orchestrator/HANDOFF.md
+          printf '%s' "$CODEX_RESULT" > .agent-orchestrator/result.json
+          node .agent-orchestrator/control-plane/src/cli.mjs materialize \
+            --plan-file .agent-orchestrator/plan.json \
+            --result-file .agent-orchestrator/result.json \
+            --patch-file .agent-orchestrator/generated.patch \
+            --handoff-file .agent-orchestrator/HANDOFF.md \
+            --blocked-file .agent-orchestrator/BLOCKED.md
+      - name: Apply patch on clean runner and revalidate changed paths
+        id: apply
+        if: steps.materialize.outcome == 'success'
+        env:
+          EXPECTED_HEAD: ${{ needs.plan.outputs.branch_head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git apply --check --binary .agent-orchestrator/generated.patch
+          git apply --binary .agent-orchestrator/generated.patch
+          git diff --name-only --diff-filter=ACMRD > .agent-orchestrator/changed-paths.txt
+          node .agent-orchestrator/control-plane/src/cli.mjs validate-paths \
+            --plan-file .agent-orchestrator/plan.json \
+            --paths-file .agent-orchestrator/changed-paths.txt
+      - name: Install Playwright browser
+        if: steps.apply.outcome == 'success'
+        run: npx playwright install --with-deps chromium
+      - name: Validate generated work
+        id: validate
+        if: steps.apply.outcome == 'success'
+        run: |
+          set -euo pipefail
           npm run lint
           npm run typecheck
           npm test
           npm run build
           npm run test:e2e
-          npm --prefix /tmp/agent-orchestrator test
-
-      - name: Commit and push work package
+      - name: Commit and push validated work package
         id: push
-        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        if: steps.validate.outcome == 'success'
         env:
-          BRANCH: ${{ steps.plan.outputs.branch }}
-          ISSUE_NUMBER: ${{ steps.plan.outputs.issue_number }}
-          ROLE: ${{ steps.plan.outputs.role }}
+          BRANCH: ${{ needs.plan.outputs.branch }}
+          ISSUE_NUMBER: ${{ needs.plan.outputs.issue_number }}
+          ROLE: ${{ needs.plan.outputs.role }}
           PUSH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           cp .agent-orchestrator/HANDOFF.md /tmp/HANDOFF.md
           rm -rf .agent-orchestrator
           git add -A
-          if git diff --cached --quiet; then
-            printf 'The specialist produced no repository changes.\n' > /tmp/BLOCKED.md
-            exit 1
-          fi
+          test -n "$(git diff --cached --name-only)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "feat(${ROLE,,}): complete issue #${ISSUE_NUMBER}"
@@ -154,31 +250,25 @@ jobs:
           git push origin "HEAD:refs/heads/${BRANCH}"
           git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-
-      - name: Create draft PR and HANDOFF
+      - name: Create or refresh draft PR and publish HANDOFF
+        id: publish
         if: steps.push.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node /tmp/agent-orchestrator/src/cli.mjs finalize \
-            --plan-file /tmp/agent-plan.json \
+          node .agent-orchestrator/control-plane/src/cli.mjs finalize \
+            --plan-file .agent-orchestrator/plan.json \
             --summary-file /tmp/HANDOFF.md \
             --head-sha "${{ steps.push.outputs.head_sha }}"
-
-      - name: Return failed run to blocked
-        if: failure() && steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+      - name: Return unsuccessful package to BLOCKED
+        if: always() && steps.publish.outcome != 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set +e
-          if [[ -f /tmp/BLOCKED.md && ! -f .agent-orchestrator/BLOCKED.md ]]; then
-            mkdir -p .agent-orchestrator
-            cp /tmp/BLOCKED.md .agent-orchestrator/BLOCKED.md
-          fi
-          node /tmp/agent-orchestrator/src/cli.mjs block \
-            --plan-file /tmp/agent-plan.json \
+          node .agent-orchestrator/control-plane/src/cli.mjs block \
+            --plan-file .agent-orchestrator/plan.json \
             --reason-file .agent-orchestrator/BLOCKED.md \
-            --reason "Workflow failed before a complete HANDOFF. Inspect run $GITHUB_RUN_ID."
+            --reason "Finalization failed in clean runner for workflow run $GITHUB_RUN_ID."
 
   reconcile:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_run'
