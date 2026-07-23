@@ -5,9 +5,11 @@ import path from "node:path";
 import process from "node:process";
 import {
   buildAgentPrompt,
+  changedPathsFromPatch,
   handoffComment,
+  inspectReadyIssues,
   parseWorkPackage,
-  selectNextReadyIssue,
+  validateChangedPaths,
   STATUS,
 } from "./domain.mjs";
 import { GitHubClient } from "./github.mjs";
@@ -35,6 +37,10 @@ async function writeJson(filePath, value) {
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+async function readJson(filePath) {
+  return JSON.parse(await fs.readFile(filePath, "utf8"));
+}
+
 function clientFromEnv() {
   return new GitHubClient({
     repository: process.env.GITHUB_REPOSITORY,
@@ -44,12 +50,22 @@ function clientFromEnv() {
 }
 
 async function loadFixture(filePath) {
-  const content = await fs.readFile(filePath, "utf8");
-  const payload = JSON.parse(content);
+  const payload = await readJson(filePath);
   if (!Array.isArray(payload)) {
     throw new Error("Fixture must contain an array of GitHub issue objects.");
   }
   return payload;
+}
+
+async function blockInvalidReadyIssues(client, invalidIssues) {
+  for (const invalid of invalidIssues) {
+    await client.transitionStatus(invalid.issueNumber, STATUS.BLOCKED);
+    await client.addCommentOnce(
+      invalid.issueNumber,
+      `<!-- agent-orchestrator:invalid-ready issue=${invalid.issueNumber} -->`,
+      `READY work package was rejected without stopping the remaining queue: ${invalid.error}`,
+    );
+  }
 }
 
 async function planCommand() {
@@ -64,58 +80,100 @@ async function planCommand() {
   }
 
   const client = dryRun && fixture ? null : clientFromEnv();
-  const issues = fixture
-    ? await loadFixture(fixture)
-    : await client.listIssuesByLabel(STATUS.READY);
-  const plan = selectNextReadyIssue(issues);
+  const issues = fixture ? await loadFixture(fixture) : await client.listIssuesByLabel(STATUS.READY);
+  const inspection = inspectReadyIssues(issues);
 
+  if (client && lock && inspection.invalid.length > 0) {
+    await blockInvalidReadyIssues(client, inspection.invalid);
+  }
+
+  let plan = inspection.selected;
   if (!plan) {
-    console.log(JSON.stringify({ shouldRun: false, reason: "No valid READY issue." }, null, 2));
-    await writeOutput({ should_run: "false" });
+    console.log(
+      JSON.stringify(
+        {
+          shouldRun: false,
+          reason: "No valid READY issue.",
+          invalid: inspection.invalid,
+        },
+        null,
+        2,
+      ),
+    );
+    await writeOutput({ should_run: "false", dry_run: String(dryRun) });
     return;
   }
 
-  let documentContents = {};
-  if (client) {
-    const entries = await Promise.all(
-      plan.requiredDocuments.map(async (documentPath) => [
-        documentPath,
-        await client.getContent(documentPath, plan.baseSha),
-      ]),
-    );
-    documentContents = Object.fromEntries(entries);
-  } else {
-    documentContents = Object.fromEntries(
-      plan.requiredDocuments.map((documentPath) => [
-        documentPath,
-        `[dry-run placeholder for ${documentPath}@${plan.baseSha}]`,
-      ]),
-    );
-  }
-
-  const prompt = buildAgentPrompt(plan, documentContents);
-  await writeJson(planFile, plan);
-  await fs.mkdir(path.dirname(promptFile), { recursive: true });
-  await fs.writeFile(promptFile, prompt, "utf8");
-
   if (lock) {
-    await client.ensureBranch(plan.branch, plan.baseSha);
-    const current = await client.getIssue(plan.issueNumber);
-    const currentLabels = (current.labels ?? []).map((label) => label.name);
+    const currentIssue = await client.getIssue(plan.issueNumber);
+    const currentLabels = (currentIssue.labels ?? []).map((label) => label.name);
     if (!currentLabels.includes(STATUS.READY)) {
       throw new Error(`Issue #${plan.issueNumber} lost ${STATUS.READY} before lock acquisition.`);
     }
-    await client.transitionStatus(plan.issueNumber, STATUS.RUNNING);
-    const runUrl =
-      process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : "local live run";
-    await client.addComment(
-      plan.issueNumber,
-      `<!-- agent-orchestrator:lock run=${process.env.GITHUB_RUN_ID ?? "local"} -->\n` +
-        `Orchestrator acquired the repository-serialized lock and moved this work package to \`${STATUS.RUNNING}\`.\n\n` +
-        `- Role: ${plan.role.id}\n- Base: \`${plan.baseSha}\`\n- Branch: \`${plan.branch}\`\n- Run: ${runUrl}`,
-    );
+
+    plan = parseWorkPackage(currentIssue);
+    const branch = await client.ensureBranch(plan.branch, plan.baseSha);
+    plan = Object.freeze({ ...plan, branchHeadSha: branch.sha });
+    await writeJson(planFile, plan);
+
+    try {
+      await client.transitionStatus(plan.issueNumber, STATUS.RUNNING);
+      const runUrl =
+        process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
+          ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+          : "local live run";
+      await client.addComment(
+        plan.issueNumber,
+        `<!-- agent-orchestrator:lock run=${process.env.GITHUB_RUN_ID ?? "local"} -->\n` +
+          `Orchestrator acquired the repository-serialized lock and moved this work package to \`${STATUS.RUNNING}\`.\n\n` +
+          `- Role: ${plan.role.id}\n- Base: \`${plan.baseSha}\`\n- Branch baseline: \`${plan.branchHeadSha}\`\n- Branch: \`${plan.branch}\`\n- Run: ${runUrl}`,
+      );
+    } catch (error) {
+      await client.transitionStatus(plan.issueNumber, STATUS.BLOCKED);
+      await client.addCommentOnce(
+        plan.issueNumber,
+        `<!-- agent-orchestrator:lock-failed run=${process.env.GITHUB_RUN_ID ?? "local"} -->`,
+        `Lock acquisition failed safely: ${error.message}`,
+      );
+      throw error;
+    }
+  } else {
+    plan = Object.freeze({ ...plan, branchHeadSha: plan.baseSha });
+    await writeJson(planFile, plan);
+  }
+
+  try {
+    let documentContents;
+    if (client) {
+      const entries = await Promise.all(
+        plan.requiredDocuments.map(async (documentPath) => [
+          documentPath,
+          await client.getContent(documentPath, plan.baseSha),
+        ]),
+      );
+      documentContents = Object.fromEntries(entries);
+    } else {
+      documentContents = Object.fromEntries(
+        plan.requiredDocuments.map((documentPath) => [
+          documentPath,
+          `[dry-run placeholder for ${documentPath}@${plan.baseSha}]`,
+        ]),
+      );
+    }
+
+    const prompt = buildAgentPrompt(plan, documentContents);
+    await fs.mkdir(path.dirname(promptFile), { recursive: true });
+    await fs.writeFile(promptFile, prompt, "utf8");
+  } catch (error) {
+    if (client && lock) {
+      await client.transitionStatus(plan.issueNumber, STATUS.BLOCKED);
+      await client.addCommentOnce(
+        plan.issueNumber,
+        `<!-- agent-orchestrator:prompt-failed run=${process.env.GITHUB_RUN_ID ?? "local"} -->`,
+        `The work package was locked but authoritative prompt assembly failed: ${error.message}`,
+      );
+    }
+    throw error;
   }
 
   const output = {
@@ -126,23 +184,77 @@ async function planCommand() {
     title: plan.title,
     role: plan.role.id,
     baseSha: plan.baseSha,
+    branchHeadSha: plan.branchHeadSha,
     branch: plan.branch,
     integrationOrder: plan.integrationOrder,
     planFile,
     promptFile,
+    invalid: inspection.invalid,
   };
   console.log(JSON.stringify(output, null, 2));
   await writeOutput({
     should_run: "true",
+    dry_run: String(dryRun),
     issue_number: plan.issueNumber,
     issue_title: plan.title.replaceAll("\n", " "),
     role: plan.role.id,
     base_sha: plan.baseSha,
+    branch_head_sha: plan.branchHeadSha,
     branch: plan.branch,
     integration_order: plan.integrationOrder,
     plan_file: planFile,
     prompt_file: promptFile,
   });
+}
+
+async function materializeCommand() {
+  const planFile = option("--plan-file", ".agent-orchestrator/plan.json");
+  const resultFile = option("--result-file", ".agent-orchestrator/result.json");
+  const patchFile = option("--patch-file", ".agent-orchestrator/generated.patch");
+  const handoffFile = option("--handoff-file", ".agent-orchestrator/HANDOFF.md");
+  const blockedFile = option("--blocked-file", ".agent-orchestrator/BLOCKED.md");
+  const plan = await readJson(planFile);
+  const result = await readJson(resultFile);
+
+  if (result.status === "blocked") {
+    const reason = String(result.blockedReason ?? "Agent returned blocked without a reason.").trim();
+    await fs.mkdir(path.dirname(blockedFile), { recursive: true });
+    await fs.writeFile(blockedFile, `${reason}\n`, "utf8");
+    throw new Error(reason);
+  }
+  if (result.status !== "completed") {
+    throw new Error(`Unsupported agent result status: ${String(result.status)}`);
+  }
+
+  const patch = String(result.patch ?? "");
+  const handoff = String(result.handoff ?? "").trim();
+  if (!handoff) {
+    throw new Error("Completed agent result is missing HANDOFF content.");
+  }
+
+  const patchPaths = changedPathsFromPatch(patch);
+  const validatedPaths = validateChangedPaths(plan, patchPaths);
+  await fs.mkdir(path.dirname(patchFile), { recursive: true });
+  await fs.writeFile(patchFile, patch, "utf8");
+  await fs.mkdir(path.dirname(handoffFile), { recursive: true });
+  await fs.writeFile(handoffFile, `${handoff}\n`, "utf8");
+  console.log(JSON.stringify({ status: "completed", paths: validatedPaths }, null, 2));
+  await writeOutput({ materialized: "true", changed_paths: validatedPaths.join(",") });
+}
+
+async function validatePathsCommand() {
+  const planFile = option("--plan-file", ".agent-orchestrator/plan.json");
+  const pathsFile = option("--paths-file");
+  if (!pathsFile) {
+    throw new Error("validate-paths requires --paths-file.");
+  }
+  const plan = await readJson(planFile);
+  const paths = (await fs.readFile(pathsFile, "utf8"))
+    .split("\n")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const validated = validateChangedPaths(plan, paths);
+  console.log(JSON.stringify({ valid: true, paths: validated }, null, 2));
 }
 
 async function finalizeCommand() {
@@ -153,7 +265,7 @@ async function finalizeCommand() {
     throw new Error("finalize requires --head-sha or HEAD_SHA.");
   }
 
-  const plan = JSON.parse(await fs.readFile(planFile, "utf8"));
+  const plan = await readJson(planFile);
   const summary = await fs.readFile(summaryFile, "utf8");
   const client = clientFromEnv();
   const pr = await client.createDraftPullRequest({
@@ -183,7 +295,7 @@ async function blockCommand() {
   const planFile = option("--plan-file", ".agent-orchestrator/plan.json");
   const reasonFile = option("--reason-file", ".agent-orchestrator/BLOCKED.md");
   const fallbackReason = option("--reason", "Orchestrator run failed before a complete HANDOFF.");
-  const plan = JSON.parse(await fs.readFile(planFile, "utf8"));
+  const plan = await readJson(planFile);
   let reason = fallbackReason;
   try {
     reason = await fs.readFile(reasonFile, "utf8");
@@ -211,7 +323,7 @@ async function reconcileCommand() {
   const unique = new Map([...running, ...review].map((issue) => [issue.number, issue]));
   const results = [];
 
-  for (const issue of [...unique.values()].sort((a, b) => a.number - b.number)) {
+  for (const issue of [...unique.values()].sort((left, right) => left.number - right.number)) {
     try {
       const plan = parseWorkPackage(issue);
       const result = await client.reconcileWorkPackage(plan, { staleHours });
@@ -236,6 +348,12 @@ async function main() {
     case "plan":
       await planCommand();
       break;
+    case "materialize":
+      await materializeCommand();
+      break;
+    case "validate-paths":
+      await validatePathsCommand();
+      break;
     case "finalize":
       await finalizeCommand();
       break;
@@ -246,7 +364,9 @@ async function main() {
       await reconcileCommand();
       break;
     default:
-      throw new Error("Usage: cli.mjs <plan|finalize|block|reconcile> [options]");
+      throw new Error(
+        "Usage: cli.mjs <plan|materialize|validate-paths|finalize|block|reconcile> [options]",
+      );
   }
 }
 
