@@ -9,9 +9,10 @@ Tento dokument je jediný autoritativní přehled aktuálního řízení projekt
 - Platformy: web, iPhone, iPad, desktop
 - Stack: TypeScript, Phaser 3, Vite, Vitest, Playwright, PWA
 - Výchozí větev: `main`
-- Ověřený stav `main`: `ff78179f1380746fdb3c0981e414ff1a46bb5a0c`
+- Ověřený stav `main`: `fe70326fadc7d5194135559414e267a175f39c89`
 - Poslední integrovaný milník: **M4.2 Hunting and Fauna**
-- Aktuální řídicí fáze: **zavedení víceagentního control plane a dokončení rozpracovaného M4.3 craftingu**
+- Poslední integrační změna: **PR #18 — víceagentní operační systém**, squash merge `fe70326fadc7d5194135559414e267a175f39c89`
+- Aktuální řídicí fáze: **dokončení rozpracovaného M4.3 craftingu podle issue #19**
 
 ## 2. Skutečný stav GitHubu
 
@@ -19,29 +20,29 @@ Tento dokument je jediný autoritativní přehled aktuálního řízení projekt
 
 | Chat | Role | Stav | Přidělení |
 |---|---|---|---|
-| A0 | Koordinace a integrace | ACTIVE | issue #17, PR #18; kontrola celé integrační fronty |
-| A1 | Architektura a platforma | ACTIVE v rámci #17 | architektonické dokumenty a procesní kontrakty v PR #18 |
+| A0 | Koordinace a integrace | ACTIVE | post-merge synchronizace issue #20; následně review issue #19 / PR #16 |
 | A2 | Gameplay a herní systémy | DRAFT | issue #19, větev `agent/p2-crafting-alchemy-smithing`, PR #16 |
 | A5 | UI, UX a mobil | DRAFT v rámci #19 | crafting panel, input/modal integrace a mobilní E2E v PR #16 |
-| A3, A4, A6, A7, A8 | ostatní proudy | BLOCKED / bez aktivního balíku | nový balík smí aktivovat pouze A0 po nejbližším merge |
+| A1, A3, A4, A6, A7, A8 | ostatní proudy | BLOCKED / bez aktivního feature balíku | nový balík smí aktivovat pouze A0 po merge PR #16 |
 
-### Aktivní issues
+### Issues
 
 | Issue | Balík | Vlastník | Stav |
 |---|---|---|---|
-| #17 | Víceagentní operační systém projektu | A0/A1 | REVIEW v PR #18 |
+| #17 | Víceagentní operační systém projektu | A0/A1 | MERGED přes PR #18, uzavřeno |
+| #20 | Synchronizace PROJECT_CONTROL po PR #18 | A0 | ACTIVE v `agent/control-sync-pr18` |
 | #19 | Dokončit alchymii a kovářství | A2/A5 | DRAFT, vyžaduje architektonické a mobilní doplnění v PR #16 |
 
-### Otevřené pull requesty
+### Pull requesty
 
-| PR | Větev | Base | Head při posledním ověření | Stav |
+| PR | Větev | Base / merge | Head při posledním ověření | Stav |
 |---|---|---|---|---|
-| #18 | `agent/project-operating-system` | `main@ff78179f...` | mění se tímto synchronizačním commitem | REVIEW po novém zeleném CI |
-| #16 | `agent/p2-crafting-alchemy-smithing` | `main@ff78179f...` | `029f1024a622aca00358c3122354e23bd77fb14e` | DRAFT; workflow #176 zelený, ale DoD není úplná |
+| #18 | `agent/project-operating-system` | squash merge `fe70326f...` | `a8cc27c4e5836a3b517b08fdc32f3386f4e4bc65` | MERGED; workflow #178 success |
+| #16 | `agent/p2-crafting-alchemy-smithing` | původní base `main@ff78179f...` | `029f1024a622aca00358c3122354e23bd77fb14e` | DRAFT; workflow #176 zelený, ale DoD není úplná |
 
 ### Ověřené CI
 
-- PR #18, před tímto synchronizačním commitem: workflow run `30012060424` / #177 — `quality` success; lint, typecheck, unit testy, build a E2E prošly.
+- PR #18: workflow run `30013929854` / #178 — `quality` success; lint, typecheck, unit testy, build a E2E prošly.
 - PR #16: workflow run `29654377548` / #176 — `quality` success; lint, typecheck, unit testy, build a E2E prošly.
 - Zelené CI samo o sobě nenahrazuje architektonické review, landscape ověření ani HANDOFF.
 
@@ -49,32 +50,39 @@ Tento dokument je jediný autoritativní přehled aktuálního řízení projekt
 
 | Pořadí | Balík | Issue / větev / PR | Vlastník | Stav | Blokuje |
 |---:|---|---|---|---|---|
-| 1 | Víceagentní projektový operační systém | #17 / `agent/project-operating-system` / PR #18 | A0/A1 | REVIEW po CI aktuálního headu | autoritativní řízení dalších balíků |
+| 1 | Post-merge synchronizace řízení | #20 / `agent/control-sync-pr18` | A0 | ACTIVE | review a další přidělování |
 | 2 | Dokončení alchymie a kovářství | #19 / `agent/p2-crafting-alchemy-smithing` / PR #16 | A2/A5 | DRAFT | změny economy, item registru, craftingu, globálního inputu a navazující M4.3 |
-| 3 | Koně a jezdectví — architektonický předstupeň | nevytvořeno | A1 | BLOCKED do merge #18 a #16 | samotný riding vertical slice |
+| 3 | Koně a jezdectví — architektonický předstupeň | nevytvořeno | A1 | BLOCKED do merge #16 | samotný riding vertical slice |
 | 4 | Rozšíření lovu | backlog | A2/A3 | BACKLOG | nic |
 
-## 4. Povinné kroky pro PR #18
+## 4. Stav merge PR #18
 
-1. Diff musí zůstat pouze dokumentační a šablonový.
-2. Nesmí měnit runtime, save, gameplay, assety ani soubory PR #16.
-3. CI musí být zelené na aktuálním head SHA po této aktualizaci.
-4. PR body a HANDOFF musí uvádět aktuální head SHA a skutečný stav fronty.
-5. Po merge issue #17 uzavře merge commit.
-6. Koordinátor znovu načte nový `main` a zapíše merge SHA do tohoto dokumentu.
+PR #18 je sloučen a issue #17 uzavřena. Na `main` jsou autoritativní:
+
+- `AGENTS.md`;
+- `docs/PROJECT_CONTROL.md`;
+- `docs/ARCHITECTURE_CONTRACT.md`;
+- `docs/PROJECT_STRUCTURE.md`;
+- `docs/DEFINITION_OF_DONE.md`;
+- `docs/AI_AGENT_SYSTEM.md`;
+- `docs/HANDOFF_TEMPLATE.md`;
+- ADR pravidla a GitHub issue/PR šablony.
+
+Veškerá další práce musí tyto dokumenty znovu načíst z aktuálního `main`.
 
 ## 5. Povinné kroky pro PR #16
 
 PR #16 zůstává draft, dokud nejsou splněny všechny body issue #19:
 
-1. Vložit application service/command hranici mezi DOM controller a EconomyStore; UI nesmí přímo provádět crafting transakci.
-2. Publikovat typovaný potvrzený crafting event nebo použít schválený veřejný event kontrakt.
-3. Doplnit explicitní unit test rollbacku při překročení nosnosti.
-4. Doplnit deterministický test modal/input konfliktu craftingu, inventáře a dialogu.
-5. Doplnit iPhone landscape Playwright projekt/scénář; současná konfigurace ověřuje jen desktop a iPhone portrait.
-6. Dodat desktop, portrait a landscape runtime evidence.
-7. Dodat úplný HANDOFF, `Closes #19`, přesné výsledky a CI pro aktuální head SHA.
-8. Teprve potom lze PR převést do Ready for review a provést koordinační review.
+1. Aktualizovat pracovní větev vůči aktuálnímu řídicímu stavu `main@fe70326f...` bez přepsání historie a bez nesouvisejících změn.
+2. Vložit application service/command hranici mezi DOM controller a EconomyStore; UI nesmí přímo provádět crafting transakci.
+3. Publikovat typovaný potvrzený crafting event nebo použít schválený veřejný event kontrakt.
+4. Doplnit explicitní unit test rollbacku při překročení nosnosti.
+5. Doplnit deterministický test modal/input konfliktu craftingu, inventáře a dialogu.
+6. Doplnit iPhone landscape Playwright projekt/scénář; současná konfigurace ověřuje jen desktop a iPhone portrait.
+7. Dodat desktop, portrait a landscape runtime evidence.
+8. Dodat úplný HANDOFF, `Closes #19`, přesné výsledky a CI pro aktuální head SHA.
+9. Teprve potom lze PR převést do Ready for review a provést koordinační review.
 
 ## 6. Aktivní pravidla integrace
 
@@ -100,7 +108,8 @@ PR #16 zůstává draft, dokud nejsou splněny všechny body issue #19:
 - adaptivní WebAudio hudba;
 - počasí a světelné fáze;
 - fauna, lov, kořist a save verze 5;
-- PWA, CI, unit testy a Playwright E2E.
+- PWA, CI, unit testy a Playwright E2E;
+- víceagentní řídicí, architektonický a Definition of Done kontrakt.
 
 ### Známé architektonické dluhy
 
@@ -138,10 +147,8 @@ PR #16 zůstává draft, dokud nejsou splněny všechny body issue #19:
 
 ## 10. Nejbližší koordinační kroky
 
-1. Ověřit nový CI run PR #18 po synchronizaci tohoto dokumentu.
-2. Aktualizovat PR #18 HANDOFF na aktuální head SHA, převést do Ready for review a sloučit, pokud zůstane čistě dokumentační.
-3. Znovu načíst nový `main` a aktualizovat tento dokument merge commitem.
-4. A2/A5 dokončí issue #19 výhradně ve stávajícím PR #16.
-5. A0 provede review PR #16 až po úplném HANDOFFu, landscape důkazu a zeleném CI aktuálního headu.
-6. Teprve po merge #16 vytvořit samostatnou issue pro architektonický předstupeň jezdectví: mount state, kolizní profil, kamera, animace, save kontrakt a mobilní ovládání.
-7. Samotný riding vertical slice aktivovat až po merge architektonického předstupně.
+1. Dokončit a sloučit issue #20 s diffem pouze v `docs/PROJECT_CONTROL.md`.
+2. A2/A5 znovu načte řídicí dokumenty z `main@fe70326f...` a dokončí issue #19 výhradně ve stávajícím PR #16.
+3. A0 provede review PR #16 až po úplném HANDOFFu, landscape důkazu a zeleném CI aktuálního headu.
+4. Teprve po merge #16 vytvořit samostatnou issue pro architektonický předstupeň jezdectví: mount state, kolizní profil, kamera, animace, save kontrakt a mobilní ovládání.
+5. Samotný riding vertical slice aktivovat až po merge architektonického předstupně.
