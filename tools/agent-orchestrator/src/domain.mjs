@@ -86,7 +86,7 @@ function matchField(body, label, pattern) {
 function sectionBody(body, label) {
   const escaped = escapeRegExp(label);
   const section = new RegExp(
-    `(?:^|\\n)#{2,6}\\s*${escaped}\\s*\\n([\\s\\S]*?)(?=\\n#{2,6}\\s|$)`,
+    `(?:^|\\n)#{2,6}\\s*${escaped}\\s*\\n([\\s\\S]*?)(?=\\n#{2,6}\\s|(?![\\s\\S]))`,
     "im",
   );
   return body.match(section)?.[1] ?? "";
