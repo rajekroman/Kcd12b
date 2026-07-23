@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { replaceStatus, STATUS } from "./domain.mjs";
 
 const FAILURE_CONCLUSIONS = new Set([
@@ -10,12 +11,20 @@ const FAILURE_CONCLUSIONS = new Set([
 ]);
 
 export class GitHubClient {
-  constructor({ repository, token, apiUrl = "https://api.github.com", fetchImpl = fetch }) {
+  constructor({
+    repository,
+    token,
+    apiUrl = "https://api.github.com",
+    fetchImpl = globalThis.fetch,
+  }) {
     if (!repository?.includes("/")) {
       throw new Error("GITHUB_REPOSITORY must use owner/name format.");
     }
     if (!token) {
       throw new Error("GITHUB_TOKEN is required for live orchestration.");
+    }
+    if (typeof fetchImpl !== "function") {
+      throw new Error("A fetch implementation is required.");
     }
     this.repository = repository;
     this.token = token;
@@ -92,8 +101,9 @@ export class GitHubClient {
   }
 
   async getContent(path, ref) {
+    const encodedPath = encodeURIComponent(path).replaceAll("%2F", "/");
     const payload = await this.request(
-      this.repoPath(`/contents/${encodeURIComponent(path).replaceAll("%2F", "/")}?ref=${encodeURIComponent(ref)}`),
+      this.repoPath(`/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`),
     );
     if (payload.type !== "file" || payload.encoding !== "base64") {
       throw new Error(`Expected a base64 file for ${path}@${ref}.`);
@@ -103,7 +113,8 @@ export class GitHubClient {
 
   async branchExists(branch) {
     try {
-      await this.request(this.repoPath(`/git/ref/heads/${encodeURIComponent(branch).replaceAll("%2F", "/")}`));
+      const encodedBranch = encodeURIComponent(branch).replaceAll("%2F", "/");
+      await this.request(this.repoPath(`/git/ref/heads/${encodedBranch}`));
       return true;
     } catch (error) {
       if (String(error.message).includes("GitHub API 404")) {
@@ -127,7 +138,9 @@ export class GitHubClient {
   async findPullRequest(branch, state = "open") {
     const owner = this.repository.split("/")[0];
     const pulls = await this.request(
-      this.repoPath(`/pulls?state=${state}&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=20`),
+      this.repoPath(
+        `/pulls?state=${state}&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=20`,
+      ),
     );
     return pulls[0] ?? null;
   }
@@ -144,9 +157,10 @@ export class GitHubClient {
   }
 
   async getCheckRuns(ref) {
-    const payload = await this.request(this.repoPath(`/commits/${encodeURIComponent(ref)}/check-runs?per_page=100`), {
-      headers: { Accept: "application/vnd.github+json" },
-    });
+    const payload = await this.request(
+      this.repoPath(`/commits/${encodeURIComponent(ref)}/check-runs?per_page=100`),
+      { headers: { Accept: "application/vnd.github+json" } },
+    );
     return payload.check_runs ?? [];
   }
 
