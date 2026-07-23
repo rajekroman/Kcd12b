@@ -111,10 +111,19 @@ export class GitHubClient {
     return Buffer.from(payload.content.replace(/\n/g, ""), "base64").toString("utf8");
   }
 
+  async getBranchSha(branch) {
+    const encodedBranch = encodeURIComponent(branch).replaceAll("%2F", "/");
+    const payload = await this.request(this.repoPath(`/git/ref/heads/${encodedBranch}`));
+    const sha = payload?.object?.sha;
+    if (!/^[0-9a-f]{40}$/.test(sha ?? "")) {
+      throw new Error(`GitHub returned an invalid head SHA for branch ${branch}.`);
+    }
+    return sha;
+  }
+
   async branchExists(branch) {
     try {
-      const encodedBranch = encodeURIComponent(branch).replaceAll("%2F", "/");
-      await this.request(this.repoPath(`/git/ref/heads/${encodedBranch}`));
+      await this.getBranchSha(branch);
       return true;
     } catch (error) {
       if (String(error.message).includes("GitHub API 404")) {
@@ -126,13 +135,13 @@ export class GitHubClient {
 
   async ensureBranch(branch, baseSha) {
     if (await this.branchExists(branch)) {
-      return { created: false };
+      return { created: false, sha: await this.getBranchSha(branch) };
     }
     await this.request(this.repoPath("/git/refs"), {
       method: "POST",
       body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }),
     });
-    return { created: true };
+    return { created: true, sha: baseSha };
   }
 
   async findPullRequest(branch, state = "open") {
@@ -145,10 +154,17 @@ export class GitHubClient {
     return pulls[0] ?? null;
   }
 
+  async updatePullRequest(prNumber, { title, body }) {
+    return this.request(this.repoPath(`/pulls/${prNumber}`), {
+      method: "PATCH",
+      body: JSON.stringify({ title, body }),
+    });
+  }
+
   async createDraftPullRequest({ title, body, head, base = "main" }) {
     const existing = await this.findPullRequest(head, "open");
     if (existing) {
-      return existing;
+      return this.updatePullRequest(existing.number, { title, body });
     }
     return this.request(this.repoPath("/pulls"), {
       method: "POST",
