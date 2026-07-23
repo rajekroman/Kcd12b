@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldResumeGameplayInput } from '../game/CraftingUiController';
+import { shouldResumeGameplayInput } from '../game/GameplayInputOwnership';
 
 describe('CraftingUiController input ownership', () => {
   it('obnoví gameplay pouze ve hře bez jiného aktivního modalu', () => {
