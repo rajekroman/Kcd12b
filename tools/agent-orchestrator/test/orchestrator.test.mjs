@@ -22,6 +22,23 @@ test("selectNextReadyIssue uses integration order and ignores RUNNING issues", (
   assert.equal(plan.branch, "agent/first-architecture");
 });
 
+test("parseWorkPackage reads GitHub issue-form heading values", () => {
+  const plan = parseWorkPackage({
+    number: 42,
+    title: "[A7] QA package",
+    body:
+      "### Base SHA\n\n4444444444444444444444444444444444444444\n\n" +
+      "### Větev\n\nagent/qa-package\n\n" +
+      "### Integrační pořadí\n\n2\n",
+    labels: [{ name: "status:ready" }, { name: "agent:A7" }],
+  });
+
+  assert.equal(plan.baseSha, "4444444444444444444444444444444444444444");
+  assert.equal(plan.branch, "agent/qa-package");
+  assert.equal(plan.integrationOrder, 2);
+  assert.equal(plan.role.id, "A7");
+});
+
 test("parseWorkPackage rejects ambiguous agent ownership", () => {
   const issue = {
     ...fixtures[0],
