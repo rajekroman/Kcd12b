@@ -1,0 +1,78 @@
+name: Agent work package
+description: Create a machine-readable A0-A8 work package for the autonomous queue
+title: "[A?] "
+labels:
+  - status:ready
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Apply exactly one `agent:A0` through `agent:A8` label after creating the issue. The orchestrator rejects ambiguous ownership.
+  - type: input
+    id: base_sha
+    attributes:
+      label: Base SHA
+      description: Exact 40-character commit SHA from which the branch must descend.
+      placeholder: 0123456789abcdef0123456789abcdef01234567
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Větev
+      description: Dedicated branch for this one issue and one PR.
+      placeholder: agent/short-work-package-name
+    validations:
+      required: true
+  - type: input
+    id: integration_order
+    attributes:
+      label: Integrační pořadí
+      description: Non-negative integer used for deterministic queue ordering.
+      placeholder: "1"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Cíl
+      description: Smallest complete vertical or platform slice.
+    validations:
+      required: true
+  - type: textarea
+    id: required_scope
+    attributes:
+      label: Povinný rozsah
+      description: Required deliverables and behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_paths
+    attributes:
+      label: Povolené oblasti
+      description: Repository paths the agent may change.
+      placeholder: "- src/application/**"
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_paths
+    attributes:
+      label: Zakázané oblasti
+      description: Explicit exclusions, including foreign workstream contracts.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Deterministic, testable completion conditions.
+      placeholder: "- [ ] Unit tests pass"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Závislosti a blokace
+      description: Prior issues, PRs, external secrets, or decisions.
+    validations:
+      required: true
