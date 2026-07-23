@@ -175,6 +175,10 @@ jobs:
         with:
           name: agent-plan-${{ github.run_id }}
           path: .agent-orchestrator
+      - name: Preserve clean finalizer control plane
+        run: |
+          cp .agent-orchestrator/plan.json /tmp/agent-plan.json
+          cp -R .agent-orchestrator/control-plane /tmp/agent-control-plane
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -195,8 +199,8 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$CODEX_RESULT" > .agent-orchestrator/result.json
-          node .agent-orchestrator/control-plane/src/cli.mjs materialize \
-            --plan-file .agent-orchestrator/plan.json \
+          node /tmp/agent-control-plane/src/cli.mjs materialize \
+            --plan-file /tmp/agent-plan.json \
             --result-file .agent-orchestrator/result.json \
             --patch-file .agent-orchestrator/generated.patch \
             --handoff-file .agent-orchestrator/HANDOFF.md \
@@ -212,8 +216,8 @@ jobs:
           git apply --check --binary .agent-orchestrator/generated.patch
           git apply --binary .agent-orchestrator/generated.patch
           git diff --name-only --diff-filter=ACMRD > .agent-orchestrator/changed-paths.txt
-          node .agent-orchestrator/control-plane/src/cli.mjs validate-paths \
-            --plan-file .agent-orchestrator/plan.json \
+          node /tmp/agent-control-plane/src/cli.mjs validate-paths \
+            --plan-file /tmp/agent-plan.json \
             --paths-file .agent-orchestrator/changed-paths.txt
       - name: Install Playwright browser
         if: steps.apply.outcome == 'success'
@@ -256,8 +260,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node .agent-orchestrator/control-plane/src/cli.mjs finalize \
-            --plan-file .agent-orchestrator/plan.json \
+          node /tmp/agent-control-plane/src/cli.mjs finalize \
+            --plan-file /tmp/agent-plan.json \
             --summary-file /tmp/HANDOFF.md \
             --head-sha "${{ steps.push.outputs.head_sha }}"
       - name: Return unsuccessful package to BLOCKED
@@ -265,8 +269,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node .agent-orchestrator/control-plane/src/cli.mjs block \
-            --plan-file .agent-orchestrator/plan.json \
+          node /tmp/agent-control-plane/src/cli.mjs block \
+            --plan-file /tmp/agent-plan.json \
             --reason-file .agent-orchestrator/BLOCKED.md \
             --reason "Finalization failed in clean runner for workflow run $GITHUB_RUN_ID."
 
