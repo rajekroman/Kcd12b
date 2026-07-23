@@ -54,9 +54,9 @@ test("GitHubClient transitionStatus replaces READY with RUNNING", async () => {
   const fetchImpl = async (url, options = {}) => {
     requests.push({ url, options });
     if (options.method === "PUT") {
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      return new globalThis.Response(JSON.stringify({ ok: true }), { status: 200 });
     }
-    return new Response(
+    return new globalThis.Response(
       JSON.stringify({ labels: [{ name: "status:ready" }, { name: "agent:A1" }] }),
       { status: 200 },
     );
