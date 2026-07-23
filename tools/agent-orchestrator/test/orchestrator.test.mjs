@@ -106,8 +106,8 @@ test("buildAgentPrompt embeds authoritative documents and prohibits GitHub write
 });
 
 test("workflow isolates Codex as the final generation step on a clean job boundary", () => {
-  const generate = workflow.match(/\n  generate:\n([\s\S]*?)\n  finalize:\n/)?.[1] ?? "";
-  const finalize = workflow.match(/\n  finalize:\n([\s\S]*?)\n  reconcile:\n/)?.[1] ?? "";
+  const generate = workflow.match(/\n {2}generate:\n([\s\S]*?)\n {2}finalize:\n/)?.[1] ?? "";
+  const finalize = workflow.match(/\n {2}finalize:\n([\s\S]*?)\n {2}reconcile:\n/)?.[1] ?? "";
   const afterCodex = generate.split("uses: openai/codex-action@v1")[1] ?? "";
 
   assert.match(generate, /permissions:\n\s+contents: read/);
