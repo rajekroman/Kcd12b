@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console */
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -105,9 +106,10 @@ async function planCommand() {
       throw new Error(`Issue #${plan.issueNumber} lost ${STATUS.READY} before lock acquisition.`);
     }
     await client.transitionStatus(plan.issueNumber, STATUS.RUNNING);
-    const runUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
-      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-      : "local live run";
+    const runUrl =
+      process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
+        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+        : "local live run";
     await client.addComment(
       plan.issueNumber,
       `<!-- agent-orchestrator:lock run=${process.env.GITHUB_RUN_ID ?? "local"} -->\n` +
