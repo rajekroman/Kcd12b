@@ -113,8 +113,11 @@ test("workflow isolates Codex as the final generation step on a clean job bounda
   assert.match(generate, /permissions:\n\s+contents: read/);
   assert.doesNotMatch(generate, /GITHUB_TOKEN|contents: write|OPENAI_API_KEY:/);
   assert.doesNotMatch(afterCodex, /\n\s+- (?:name:|uses:|run:)/);
+  assert.match(generate, /git merge-base --is-ancestor "\$BASE_SHA" HEAD/);
   assert.match(finalize, /needs: \[plan, generate\]/);
   assert.match(finalize, /Return unsuccessful package to BLOCKED/);
+  assert.match(finalize, /> \/tmp\/BLOCKED\.md/);
+  assert.match(finalize, /if \[\[ -f \/tmp\/BLOCKED\.md \]\]/);
   assert.doesNotMatch(finalize, /OPENAI_API_KEY|openai-api-key/);
   assert.match(workflow, /workflows: \["Test and deploy GitHub Pages"\]/);
   assert.doesNotMatch(workflow, /gh pr merge|\/merge(?:s|\b)|mergePullRequest/);
