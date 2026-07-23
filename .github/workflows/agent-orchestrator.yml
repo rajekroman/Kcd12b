@@ -266,7 +266,7 @@ jobs:
           PUSH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          trap 'printf "%s\n" "Validated changes could not be committed or pushed without rewriting branch history." > .agent-orchestrator/BLOCKED.md' ERR
+          trap 'printf "%s\n" "Validated changes could not be committed or pushed without rewriting branch history." > /tmp/BLOCKED.md' ERR
           cp .agent-orchestrator/HANDOFF.md /tmp/HANDOFF.md
           rm -rf .agent-orchestrator
           git add -A
@@ -294,9 +294,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          REASON_FILE=".agent-orchestrator/BLOCKED.md"
+          if [[ -f /tmp/BLOCKED.md ]]; then
+            REASON_FILE="/tmp/BLOCKED.md"
+          fi
           node /tmp/agent-control-plane/src/cli.mjs block \
             --plan-file /tmp/agent-plan.json \
-            --reason-file .agent-orchestrator/BLOCKED.md \
+            --reason-file "$REASON_FILE" \
             --reason "Finalization failed in clean runner for workflow run $GITHUB_RUN_ID."
 
   reconcile:
