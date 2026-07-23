@@ -1,13 +1,11 @@
 name: Agent work package
 description: Create a machine-readable A0-A8 work package for the autonomous queue
 title: "[A?] "
-labels:
-  - status:ready
 body:
   - type: markdown
     attributes:
       value: |
-        Apply exactly one `agent:A0` through `agent:A8` label after creating the issue. The orchestrator rejects ambiguous ownership.
+        After creating the issue, apply exactly one `agent:A0` through `agent:A8` label. Apply `status:ready` only as the final activation step after the issue contract and dependencies are verified.
   - type: input
     id: base_sha
     attributes:
@@ -50,17 +48,16 @@ body:
     id: allowed_paths
     attributes:
       label: Povolené oblasti
-      description: Repository paths the agent may change.
-      placeholder: "- src/application/**"
+      description: One repository path or glob per bullet. Wrap every value in backticks; the orchestrator enforces this allow-list before applying a patch.
+      placeholder: "- `src/application/**`"
     validations:
       required: true
   - type: textarea
     id: forbidden_paths
     attributes:
       label: Zakázané oblasti
-      description: Explicit exclusions, including foreign workstream contracts.
-    validations:
-      required: true
+      description: Optional additional deny-list paths or globs, one backtick-wrapped value per bullet. The allow-list remains mandatory and deny rules win.
+      placeholder: "- `src/ui/**`"
   - type: textarea
     id: acceptance
     attributes:
