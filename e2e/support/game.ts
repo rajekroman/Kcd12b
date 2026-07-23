@@ -84,7 +84,7 @@ export async function openInventory(page: Page, projectName: string): Promise<Lo
 }
 
 export async function closeInventory(page: Page): Promise<void> {
-  await page.locator('[data-economy-close]').click();
+  await page.keyboard.press('Escape');
   await expect(page.locator('#economy-overlay')).toBeHidden();
   await expect(page.locator('body')).toHaveAttribute('data-economy-open', 'false');
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'game');
