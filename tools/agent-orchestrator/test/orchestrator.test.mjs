@@ -4,9 +4,12 @@ import test from "node:test";
 import { URL } from "node:url";
 import {
   buildAgentPrompt,
+  changedPathsFromPatch,
+  inspectReadyIssues,
   parseWorkPackage,
   replaceStatus,
   selectNextReadyIssue,
+  validateChangedPaths,
   STATUS,
 } from "../src/domain.mjs";
 import { GitHubClient } from "../src/github.mjs";
@@ -14,22 +17,37 @@ import { GitHubClient } from "../src/github.mjs";
 const fixtures = JSON.parse(
   await fs.readFile(new URL("./fixtures/issues.json", import.meta.url), "utf8"),
 );
+const workflow = await fs.readFile(
+  new URL("../../../.github/workflows/agent-orchestrator.yml", import.meta.url),
+  "utf8",
+);
+const issueTemplate = await fs.readFile(
+  new URL("../../../.github/ISSUE_TEMPLATE/agent-work-package.yml", import.meta.url),
+  "utf8",
+);
 
-test("selectNextReadyIssue uses integration order and ignores RUNNING issues", () => {
-  const plan = selectNextReadyIssue(fixtures);
-  assert.equal(plan.issueNumber, 40);
-  assert.equal(plan.role.id, "A1");
-  assert.equal(plan.branch, "agent/first-architecture");
+test("selectNextReadyIssue skips incomplete READY issues and keeps deterministic order", () => {
+  const inspection = inspectReadyIssues(fixtures);
+  assert.equal(inspection.selected.issueNumber, 40);
+  assert.equal(inspection.selected.role.id, "A1");
+  assert.equal(inspection.selected.branch, "agent/first-architecture");
+  assert.deepEqual(
+    inspection.invalid.map((entry) => entry.issueNumber),
+    [38],
+  );
+  assert.equal(selectNextReadyIssue(fixtures).issueNumber, 40);
 });
 
-test("parseWorkPackage reads GitHub issue-form heading values", () => {
+test("parseWorkPackage reads GitHub issue-form heading values and path contract", () => {
   const plan = parseWorkPackage({
     number: 42,
     title: "[A7] QA package",
     body:
       "### Base SHA\n\n4444444444444444444444444444444444444444\n\n" +
       "### Větev\n\nagent/qa-package\n\n" +
-      "### Integrační pořadí\n\n2\n",
+      "### Integrační pořadí\n\n2\n\n" +
+      "### Povolené oblasti\n\n- `e2e/**`\n- `playwright.config.ts`\n\n" +
+      "### Zakázané oblasti\n\n- `src/**`\n",
     labels: [{ name: "status:ready" }, { name: "agent:A7" }],
   });
 
@@ -37,14 +55,33 @@ test("parseWorkPackage reads GitHub issue-form heading values", () => {
   assert.equal(plan.branch, "agent/qa-package");
   assert.equal(plan.integrationOrder, 2);
   assert.equal(plan.role.id, "A7");
+  assert.deepEqual(plan.allowedPaths, ["e2e/**", "playwright.config.ts"]);
+  assert.deepEqual(plan.forbiddenPaths, ["src/**"]);
 });
 
 test("parseWorkPackage rejects ambiguous agent ownership", () => {
   const issue = {
-    ...fixtures[0],
+    ...fixtures[1],
     labels: ["status:ready", "agent:A1", "agent:A2"],
   };
   assert.throws(() => parseWorkPackage(issue), /exactly one agent/);
+});
+
+test("path enforcement allows declared files and fails closed outside scope", () => {
+  const plan = selectNextReadyIssue(fixtures);
+  const patch =
+    "diff --git a/tools/agent-orchestrator/src/a.mjs b/tools/agent-orchestrator/src/a.mjs\n" +
+    "--- a/tools/agent-orchestrator/src/a.mjs\n" +
+    "+++ b/tools/agent-orchestrator/src/a.mjs\n" +
+    "@@ -0,0 +1 @@\n+export {};\n";
+  const paths = changedPathsFromPatch(patch);
+  assert.deepEqual(paths, ["tools/agent-orchestrator/src/a.mjs"]);
+  assert.deepEqual(validateChangedPaths(plan, paths), paths);
+  assert.throws(() => validateChangedPaths(plan, ["src/main.ts"]), /violate issue path scope/);
+  assert.throws(
+    () => changedPathsFromPatch("diff --git \"a/file with space\" \"b/file with space\"\n"),
+    /Unsupported or ambiguous/,
+  );
 });
 
 test("replaceStatus preserves non-status labels and sets exactly one state", () => {
@@ -54,17 +91,38 @@ test("replaceStatus preserves non-status labels and sets exactly one state", () 
   );
 });
 
-test("buildAgentPrompt embeds all authoritative documents and merge prohibition", () => {
-  const plan = selectNextReadyIssue(fixtures);
+test("buildAgentPrompt embeds authoritative documents and prohibits GitHub writes", () => {
+  const plan = { ...selectNextReadyIssue(fixtures), branchHeadSha: "6".repeat(40) };
   const documents = Object.fromEntries(
     plan.requiredDocuments.map((file) => [file, `content:${file}`]),
   );
   const prompt = buildAgentPrompt(plan, documents);
-  assert.match(prompt, /Do not merge any pull request/);
-  assert.match(prompt, /Base SHA: 2222222222222222222222222222222222222222/);
+  assert.match(prompt, /Do not merge, approve, push, label, comment, or call the GitHub API/);
+  assert.match(prompt, /Branch baseline SHA: 6666666666666666666666666666666666666666/);
+  assert.match(prompt, /git diff --binary --full-index/);
   for (const file of plan.requiredDocuments) {
     assert.match(prompt, new RegExp(`BEGIN ${file.replaceAll(".", "\\.")}`));
   }
+});
+
+test("workflow isolates Codex as the final generation step on a clean job boundary", () => {
+  const generate = workflow.match(/\n  generate:\n([\s\S]*?)\n  finalize:\n/)?.[1] ?? "";
+  const finalize = workflow.match(/\n  finalize:\n([\s\S]*?)\n  reconcile:\n/)?.[1] ?? "";
+  const afterCodex = generate.split("uses: openai/codex-action@v1")[1] ?? "";
+
+  assert.match(generate, /permissions:\n\s+contents: read/);
+  assert.doesNotMatch(generate, /GITHUB_TOKEN|contents: write|OPENAI_API_KEY:/);
+  assert.doesNotMatch(afterCodex, /\n\s+- (?:name:|uses:|run:)/);
+  assert.match(finalize, /needs: \[plan, generate\]/);
+  assert.match(finalize, /Return unsuccessful package to BLOCKED/);
+  assert.doesNotMatch(finalize, /OPENAI_API_KEY|openai-api-key/);
+  assert.match(workflow, /workflows: \["Test and deploy GitHub Pages"\]/);
+  assert.doesNotMatch(workflow, /gh pr merge|\/merge(?:s|\b)|mergePullRequest/);
+});
+
+test("issue template requires role assignment before READY activation", () => {
+  assert.doesNotMatch(issueTemplate, /^labels:/m);
+  assert.match(issueTemplate, /Apply `status:ready` only as the final activation step/);
 });
 
 test("GitHubClient transitionStatus replaces READY with RUNNING", async () => {
