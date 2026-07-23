@@ -6,6 +6,7 @@ on:
       - ".github/ISSUE_TEMPLATE/agent-work-package.yml"
       - ".github/workflows/agent-orchestrator.yml"
       - "docs/AGENT_ORCHESTRATION.md"
+      - "eslint.config.js"
       - "tools/agent-orchestrator/**"
   issues:
     types: [labeled]
@@ -42,10 +43,27 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Capture repository lint result
+        id: lint
+        continue-on-error: true
+        run: npm run lint > lint-output.txt 2>&1
+      - name: Upload lint diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-lint-${{ github.run_id }}
+          path: lint-output.txt
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify orchestrator security contracts
         run: |
           npm --prefix tools/agent-orchestrator test
           npm --prefix tools/agent-orchestrator run dry-run
+      - name: Enforce repository lint result
+        if: steps.lint.outcome == 'failure'
+        run: |
+          cat lint-output.txt
+          exit 1
 
   plan:
     if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
