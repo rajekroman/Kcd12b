@@ -16,6 +16,7 @@ export const GameEvents = {
   DODGE: 'input:dodge',
   ATTACK_DIRECTION: 'input:attack-direction',
   ECONOMY_CHANGED: 'economy:changed',
+  CRAFTING_COMPLETED: 'crafting:completed',
   CONSUMABLE_USED: 'economy:consumable-used',
   STEALTH_UPDATE: 'stealth:update',
   FAUNA_HUNTED: 'fauna:hunted'
