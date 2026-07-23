@@ -13,7 +13,7 @@ on:
   schedule:
     - cron: "17 * * * *"
   workflow_run:
-    workflows: [quality]
+    workflows: ["Test and deploy GitHub Pages"]
     types: [completed]
 
 concurrency:
@@ -29,8 +29,6 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Check out orchestrator source
         uses: actions/checkout@v5
@@ -57,6 +55,8 @@ jobs:
       - name: Build deterministic plan
         id: plan
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
