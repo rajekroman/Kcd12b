@@ -28,7 +28,10 @@ test.describe('core game smoke', () => {
       const controls = document.querySelector<HTMLElement>('#mobile-controls');
       const dpad = document.querySelector<HTMLElement>('.dpad');
       const actions = document.querySelector<HTMLElement>('.actions');
-      if (!controls || !dpad || !actions) throw new Error('Mobilní ovládací prvky nebyly nalezeny.');
+      const buttons = Array.from(document.querySelectorAll<HTMLElement>('#mobile-controls button'));
+      if (!controls || !dpad || !actions || buttons.length === 0) {
+        throw new Error('Mobilní ovládací prvky nebyly nalezeny.');
+      }
 
       const controlsRect = controls.getBoundingClientRect();
       const dpadRect = dpad.getBoundingClientRect();
@@ -53,7 +56,7 @@ test.describe('core game smoke', () => {
           height: document.documentElement.scrollHeight
         },
         overlaps,
-        touchAction: getComputedStyle(controls).touchAction,
+        buttonTouchActions: buttons.map((button) => getComputedStyle(button).touchAction),
         userScalableDisabled: document
           .querySelector('meta[name="viewport"]')
           ?.getAttribute('content')
@@ -68,7 +71,7 @@ test.describe('core game smoke', () => {
     expect(layout.scroll.width).toBeLessThanOrEqual(layout.viewport.width);
     expect(layout.scroll.height).toBeLessThanOrEqual(layout.viewport.height);
     expect(layout.overlaps).toBe(false);
-    expect(['none', 'manipulation']).toContain(layout.touchAction);
+    expect(layout.buttonTouchActions.every((value) => ['none', 'manipulation'].includes(value))).toBe(true);
     expect(layout.userScalableDisabled).toBe(false);
 
     await attachEvidence(page, testInfo, `${testInfo.project.name}-safe-area`);
