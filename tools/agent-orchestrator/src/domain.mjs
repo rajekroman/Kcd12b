@@ -66,10 +66,21 @@ function labelsOf(issue) {
   );
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function matchField(body, label, pattern) {
-  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const line = new RegExp(`(?:^|\\n)\\s*[-*]?\\s*${escaped}\\s*:\\s*${pattern}`, "im");
-  return body.match(line)?.[1]?.trim() ?? null;
+  const escaped = escapeRegExp(label);
+  const inline = new RegExp(
+    `(?:^|\\n)\\s*[-*]?\\s*${escaped}\\s*:\\s*${pattern}`,
+    "im",
+  );
+  const heading = new RegExp(
+    `(?:^|\\n)#{2,6}\\s*${escaped}\\s*\\n+(?:\\s*\\n)*\\s*${pattern}`,
+    "im",
+  );
+  return body.match(inline)?.[1]?.trim() ?? body.match(heading)?.[1]?.trim() ?? null;
 }
 
 export function parseWorkPackage(issue) {
