@@ -16,6 +16,16 @@ import {
 } from '../systems/CraftingSystem';
 import { getInventoryWeight } from '../systems/InventorySystem';
 
+export interface GameplayResumeContext {
+  scene: string | undefined;
+  economyOpen: boolean;
+  blockingModalVisible: boolean;
+}
+
+export function shouldResumeGameplayInput(context: GameplayResumeContext): boolean {
+  return context.scene === 'game' && !context.economyOpen && !context.blockingModalVisible;
+}
+
 export class CraftingUiController {
   private readonly overlay: HTMLElement;
   private readonly title: HTMLElement;
@@ -217,6 +227,17 @@ export class CraftingUiController {
   private resumeGameScene(): void {
     const scene = this.game.scene.getScene('GameScene');
     if (!scene?.scene.isActive()) return;
+
+    const blockingModalVisible = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="dialog"]')
+    ).some((dialog) => dialog !== this.overlay && !dialog.hidden);
+
+    if (!shouldResumeGameplayInput({
+      scene: document.body.dataset.scene,
+      economyOpen: document.body.dataset.economyOpen === 'true',
+      blockingModalVisible
+    })) return;
+
     scene.physics.world.resume();
     if (scene.input.keyboard) scene.input.keyboard.enabled = true;
   }
