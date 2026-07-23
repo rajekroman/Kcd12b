@@ -7,148 +7,224 @@ Tento dokument je jediný autoritativní přehled aktuálního řízení projekt
 - Produkt: **Chronicles of Bohemia**
 - Repozitář: `rajekroman/Kcd12b`
 - Platformy: web, iPhone, iPad, desktop
-- Stack: TypeScript, Phaser 3, Vite, Vitest, Playwright, PWA
+- Stack hry: TypeScript, Phaser 3, Vite, Vitest, Playwright, PWA
 - Výchozí větev: `main`
-- Ověřený stav `main`: `fe70326fadc7d5194135559414e267a175f39c89`
+- Poslední ověřený produktový a řídicí baseline před touto aktualizací: `main@55feadb0440c1c4b9eebf5ec4139315237e723a4`
 - Poslední integrovaný milník: **M4.2 Hunting and Fauna**
-- Poslední integrační změna: **PR #18 — víceagentní operační systém**, squash merge `fe70326fadc7d5194135559414e267a175f39c89`
-- Aktuální řídicí fáze: **dokončení rozpracovaného M4.3 craftingu podle issue #19**
+- Aktuální fáze: **zavedení automatizovaného agentního provozu, mobilní QA matice a dokončení M4.3 craftingu**
 
-## 2. Skutečný stav GitHubu
+Přesný base SHA aktivních větví se po merge této řídicí aktualizace posune na její merge commit. Issue a branch ref musí být synchronizovány koordinátorem před prvním implementačním commitem.
 
-### Aktivní chaty / pracovní proudy
+## 2. Control plane
 
-| Chat | Role | Stav | Přidělení |
-|---|---|---|---|
-| A0 | Koordinace a integrace | ACTIVE | post-merge synchronizace issue #20; následně review issue #19 / PR #16 |
-| A2 | Gameplay a herní systémy | DRAFT | issue #19, větev `agent/p2-crafting-alchemy-smithing`, PR #16 |
-| A5 | UI, UX a mobil | DRAFT v rámci #19 | crafting panel, input/modal integrace a mobilní E2E v PR #16 |
-| A1, A3, A4, A6, A7, A8 | ostatní proudy | BLOCKED / bez aktivního feature balíku | nový balík smí aktivovat pouze A0 po merge PR #16 |
+Odborné chaty se navzájem přímo neřídí a nesmějí spoléhat na zprávy v jiném chatu. Společným řídicím kanálem je GitHub:
 
-### Issues
+1. issue obsahuje scope, base SHA, větev, vlastníka, závislosti a DoD;
+2. `PROJECT_CONTROL.md` určuje, zda je balík ACTIVE, READY nebo BLOCKED;
+3. větev a draft PR obsahují skutečnou implementaci;
+4. issue komentáře a PR HANDOFF předávají stav koordinátorovi;
+5. CI a review určují, zda lze balík integrovat;
+6. po merge koordinátor aktualizuje frontu a aktivuje další issue.
 
-| Issue | Balík | Vlastník | Stav |
-|---|---|---|---|
-| #17 | Víceagentní operační systém projektu | A0/A1 | MERGED přes PR #18, uzavřeno |
-| #20 | Synchronizace PROJECT_CONTROL po PR #18 | A0 | ACTIVE v `agent/control-sync-pr18` |
-| #19 | Dokončit alchymii a kovářství | A2/A5 | DRAFT, vyžaduje architektonické a mobilní doplnění v PR #16 |
+Do zavedení issue #22 je spuštění jednotlivých ChatGPT chatů manuální. Po issue #22 bude GitHub workflow spouštět specializované agentní procesy podle issue labelů a stavu. Feature PR se nikdy nemerguje automaticky bez koordinačního review.
 
-### Pull requesty
+## 3. Aktivní chaty a přidělení
 
-| PR | Větev | Base / merge | Head při posledním ověření | Stav |
-|---|---|---|---|---|
-| #18 | `agent/project-operating-system` | squash merge `fe70326f...` | `a8cc27c4e5836a3b517b08fdc32f3386f4e4bc65` | MERGED; workflow #178 success |
-| #16 | `agent/p2-crafting-alchemy-smithing` | původní base `main@ff78179f...` | `029f1024a622aca00358c3122354e23bd77fb14e` | DRAFT; workflow #176 zelený, ale DoD není úplná |
+| Chat | Role | Issue | Větev | Výchozí base | Stav |
+|---|---|---:|---|---|---|
+| A0 | Koordinace a integrace | #28 | `agent/control-activate-specialists` | `55feadb...` | ACTIVE — tato řídicí aktualizace |
+| A1 | Architektura/platforma | #22 | `agent/autonomous-agent-orchestrator` | `55feadb...` | ACTIVE po merge #28 |
+| A7 | QA/testování/výkon | #23 | `agent/qa-mobile-landscape-matrix` | `55feadb...` | ACTIVE po merge #28; paralelně s #22 |
+| A2 | Gameplay | #19 | `agent/p2-crafting-alchemy-smithing` | původně `ff78179f...`; sync target po #22/#23 | DRAFT / BLOCKED na #23 |
+| A5 | UI/UX/mobil | #19 | `agent/p2-crafting-alchemy-smithing` | shodný s A2 | DRAFT / BLOCKED na #23 |
+| A3 | Svět/questy/obsah | #24 | `agent/horse-world-content-contract` | plánovací baseline `55feadb...` | READY; merge po #19 |
+| A4 | Grafika/animace | #25 | `agent/pixel-atlas-asset-pipeline` | plánovací baseline `55feadb...` | BLOCKED do merge #19 |
+| A6 | Audio | #26 | `agent/audio-mixer-sfx-foundation` | plánovací baseline `55feadb...` | BLOCKED do merge #25 |
+| A8 | Release/nasazení | #27 | `agent/release-production-gate` | plánovací baseline `55feadb...` | BLOCKED do merge #26 |
 
-### Ověřené CI
+U READY a BLOCKED balíků je větev rezervována názvem, ale nesmí být vytvořena ani použita, dokud koordinátor nepřepíše issue na aktuální merge SHA a stav ACTIVE.
 
-- PR #18: workflow run `30013929854` / #178 — `quality` success; lint, typecheck, unit testy, build a E2E prošly.
-- PR #16: workflow run `29654377548` / #176 — `quality` success; lint, typecheck, unit testy, build a E2E prošly.
-- Zelené CI samo o sobě nenahrazuje architektonické review, landscape ověření ani HANDOFF.
+## 4. Issues
 
-## 3. Aktuální integrační fronta
+| Issue | Balík | Vlastník | Stav | Závisí na |
+|---:|---|---|---|---|
+| #28 | Aktivace odborných proudů a fronty | A0 | ACTIVE | nic |
+| #22 | Autonomní agentní orchestrátor | A1 | READY → ACTIVE po #28 | #28 |
+| #23 | Mobilní landscape E2E matice | A7 | READY → ACTIVE po #28 | #28 |
+| #19 | Dokončení alchymie a kovářství v PR #16 | A2/A5 | DRAFT / BLOCKED | #23; synchronizace s aktuálním main |
+| #24 | Obsahový kontrakt koně a jezdecké questové linie | A3 | READY | merge #19 před integrací |
+| #25 | Produkční pixel-atlas pipeline a manifest | A4 | BLOCKED | #19; využije #24 |
+| #26 | Audio mixer, SFX registry a WebAudio lifecycle | A6 | BLOCKED | #25 |
+| #27 | Release gate, production smoke a distribuční manifest | A8 | BLOCKED | #22, #23, #19, #25, #26 |
 
-| Pořadí | Balík | Issue / větev / PR | Vlastník | Stav | Blokuje |
-|---:|---|---|---|---|---|
-| 1 | Post-merge synchronizace řízení | #20 / `agent/control-sync-pr18` | A0 | ACTIVE | review a další přidělování |
-| 2 | Dokončení alchymie a kovářství | #19 / `agent/p2-crafting-alchemy-smithing` / PR #16 | A2/A5 | DRAFT | změny economy, item registru, craftingu, globálního inputu a navazující M4.3 |
-| 3 | Koně a jezdectví — architektonický předstupeň | nevytvořeno | A1 | BLOCKED do merge #16 | samotný riding vertical slice |
-| 4 | Rozšíření lovu | backlog | A2/A3 | BACKLOG | nic |
+## 5. Integrační pořadí
 
-## 4. Stav merge PR #18
+| Pořadí | Issue | Balík | Poznámka |
+|---:|---:|---|---|
+| 0 | #28 | Aktualizace control plane | pouze tento dokument |
+| 1 | #22 | Agentní orchestrátor | základ bezmanuálního provozu |
+| 2 | #23 | Mobilní landscape QA matice | může být vyvíjena paralelně s #22, integruje se po něm kvůli workflow koordinaci |
+| 3 | #19 / PR #16 | Crafting M4.3 | po merge #23 synchronizovat větev s aktuálním main |
+| 4 | #24 | Obsahový kontrakt jezdectví | může být připravován po #22, merge až po #19 |
+| 5 | #25 | Pixel-atlas asset pipeline | po #19; respektuje obsahová ID z #24 |
+| 6 | #26 | Audio foundation | po #25 kvůli asset a registry hranicím |
+| 7 | #27 | Release gate | po stabilizaci předchozích kontraktů |
 
-PR #18 je sloučen a issue #17 uzavřena. Na `main` jsou autoritativní:
+Paralelní práce je povolena pouze pro #22 a #23. #24 může být připravována bez runtime změn, ale nesmí být integrována před #19.
 
-- `AGENTS.md`;
-- `docs/PROJECT_CONTROL.md`;
-- `docs/ARCHITECTURE_CONTRACT.md`;
-- `docs/PROJECT_STRUCTURE.md`;
-- `docs/DEFINITION_OF_DONE.md`;
-- `docs/AI_AGENT_SYSTEM.md`;
-- `docs/HANDOFF_TEMPLATE.md`;
-- ADR pravidla a GitHub issue/PR šablony.
+## 6. Konkrétní kontrakty pracovních proudů
 
-Veškerá další práce musí tyto dokumenty znovu načíst z aktuálního `main`.
+### A1 — issue #22
 
-## 5. Povinné kroky pro PR #16
+- Vytvoří samostatný nástroj `tools/agent-orchestrator/**`.
+- GitHub issue je fronta a autoritativní zadání.
+- Trigger: issue ve stavu READY s rolí A1–A8.
+- Povinné přechody: READY → RUNNING → REVIEW nebo BLOCKED.
+- Výstup: větev, draft PR, stavový komentář a HANDOFF.
+- Automatický merge feature PR je zakázán.
+- Live provoz vyžaduje repository secret `OPENAI_API_KEY`; dry-run musí fungovat bez něj.
 
-PR #16 zůstává draft, dokud nejsou splněny všechny body issue #19:
+### A7 — issue #23
 
-1. Aktualizovat pracovní větev vůči aktuálnímu řídicímu stavu `main@fe70326f...` bez přepsání historie a bez nesouvisejících změn.
-2. Vložit application service/command hranici mezi DOM controller a EconomyStore; UI nesmí přímo provádět crafting transakci.
-3. Publikovat typovaný potvrzený crafting event nebo použít schválený veřejný event kontrakt.
-4. Doplnit explicitní unit test rollbacku při překročení nosnosti.
-5. Doplnit deterministický test modal/input konfliktu craftingu, inventáře a dialogu.
-6. Doplnit iPhone landscape Playwright projekt/scénář; současná konfigurace ověřuje jen desktop a iPhone portrait.
-7. Dodat desktop, portrait a landscape runtime evidence.
-8. Dodat úplný HANDOFF, `Closes #19`, přesné výsledky a CI pro aktuální head SHA.
-9. Teprve potom lze PR převést do Ready for review a provést koordinační review.
+- Zavede samostatné Playwright projekty desktop, iPhone portrait a iPhone landscape.
+- Dodá sdílené helpery a stabilní core smoke.
+- Dvě po sobě jdoucí zelená spuštění stejného head SHA jsou povinná.
+- Crafting assertions nepatří do #23; převezme je #19 po merge.
 
-## 6. Aktivní pravidla integrace
+### A2/A5 — issue #19 / PR #16
 
-1. Nový balík je aktivní pouze tehdy, pokud je zde uveden jako `ACTIVE` nebo má koordinátorem uznaný existující draft PR a úplnou issue.
-2. Issue zůstává otevřená až do merge commitu.
-3. Dva aktivní balíky nesmí měnit stejný vysoce konfliktní soubor nebo veřejný kontrakt bez explicitního integračního plánu.
-4. Po každém merge koordinátor znovu načte skutečný `main`, aktualizuje tento dokument a teprve potom přidělí další práci.
-5. Zelené CI bez úplného HANDOFFu, relevantního mobilního důkazu a review není důvodem k merge.
-6. `src/main.ts`, veřejné eventy, save schema, item registry, globální HUD/input, `BACKLOG.md`, `DEVELOPMENT_STATUS.md`, `CHANGELOG.md` a tento dokument mají v jednom integračním okně právě jednoho vlastníka.
+- Větev je aktuálně diverged: 15 commitů ahead a 2 behind proti `main@55feadb...`.
+- Před další implementací musí převzít aktuální main bez přepsání historie.
+- DOM controller nesmí přímo provádět crafting transakci.
+- Povinná je application service/command hranice, typovaný potvrzený event, rollback test nosnosti, modal/input test, save/reload a desktop/portrait/landscape důkaz.
+- PR zůstává draft do úplného HANDOFFu a zeleného CI posledního headu.
 
-## 7. Stav produktu
+### A3 — issue #24
 
-### Hotové subsystémy na `main`
+- Dodá quest graph, world-state flagy, dialogy, reputační důsledky a datový kontrakt pro první získání koně.
+- Neimplementuje mount physics, save ani UI.
+
+### A4 — issue #25
+
+- Převádí runtime-generované atlasy na reprodukovatelné PNG a manifest-driven load.
+- Každé asset ID musí odpovídat právě jednomu souboru.
+
+### A6 — issue #26
+
+- Zavede jeden AudioContext, mixer skupin, typovaný SFX registry a bezpečný mobile lifecycle.
+- Nemění gameplay pravidla.
+
+### A8 — issue #27
+
+- Vytvoří oddělený web build a source archive, manifest velikostí a SHA-256.
+- Release je blokován bez CI, deploye a smoke testu skutečné produkční URL.
+
+## 7. Jak koordinátor řídí odborné agenty
+
+A0 neřídí agenty posíláním zpráv mezi chaty. Řídí je změnou stavu v control plane:
+
+1. ověří poslední `main`, PR, CI a konflikty;
+2. doplní nebo aktualizuje issue;
+3. zapíše přesný base SHA a branch;
+4. změní stav na ACTIVE/READY;
+5. orchestrátor #22 převezme pouze aktivované issue;
+6. agent uzamkne issue a publikuje heartbeat;
+7. agent vytvoří draft PR a průběžně zapisuje stav;
+8. při blokaci změní issue na BLOCKED a uvede přesný důvod;
+9. při dokončení přidá HANDOFF a stav REVIEW;
+10. A0 ověří diff, CI, evidence a review;
+11. A0 provede merge nebo vrátí issue do RUNNING;
+12. po merge A0 přepočítá base SHA závislých balíků a aktivuje právě další bezpečnou práci.
+
+## 8. Bezmanuální provoz
+
+Po dokončení #22 bude standardní cyklus:
+
+```text
+GitHub issue READY
+→ workflow trigger
+→ specializovaný agent A1–A8
+→ branch + draft PR
+→ CI
+→ HANDOFF
+→ A0 review
+→ merge
+→ reconciler aktualizuje frontu
+→ automatická aktivace dalšího nezablokovaného issue
+```
+
+Povinné bezpečnostní brány:
+
+- maximálně jeden RUNNING balík na jednu konfliktní oblast;
+- concurrency lock podle issue a pracovního proudu;
+- žádný force push;
+- žádný automatický feature merge;
+- žádné tajné klíče v commitu nebo logu;
+- timeout a heartbeat pro detekci osiřelé práce;
+- agent smí změnit pouze cesty povolené issue;
+- neúspěšné CI vrací balík stejnému agentovi, neaktivuje nový.
+
+## 9. Vysoce konfliktní oblasti
+
+V jednom integračním okně mají právě jednoho vlastníka:
+
+- `src/main.ts` a globální runtime wiring;
+- `playwright.config.ts` a sdílené E2E helpery;
+- `.github/workflows/**`;
+- veřejné contracts/events;
+- save schema a migrace;
+- item registry;
+- globální HUD, input a modal orchestrace;
+- asset manifest;
+- `BACKLOG.md`, `DEVELOPMENT_STATUS.md`, `CHANGELOG.md`;
+- tento dokument.
+
+## 10. Stav produktu na main
+
+Hotové:
 
 - boot, menu, nová hra a pokračování;
 - pixel-perfect viewport 480 × 270;
 - desktopové a mobilní vstupy;
-- kolize, kamera a testovací oblast Záhoří;
+- kolize, kamera a oblast Záhoří;
 - NPC, dialogy, quest a denní rozvrhy;
-- pětisměrný boj, kryt, dokonalý kryt a úhyb;
+- pětisměrný boj, kryt a úhyb;
 - inventář, vybavení, obchod a reputace;
-- stealth, podezření a poplach;
-- adaptivní WebAudio hudba;
-- počasí a světelné fáze;
+- stealth, počasí, adaptivní hudba;
 - fauna, lov, kořist a save verze 5;
-- PWA, CI, unit testy a Playwright E2E;
-- víceagentní řídicí, architektonický a Definition of Done kontrakt.
+- PWA, CI, Vitest a Playwright;
+- víceagentní procesní a architektonické kontrakty.
 
-### Známé architektonické dluhy
+Rozpracované:
 
-- quest state podporuje pouze jeden aktivní quest;
-- navigace NPC a zvěře nepoužívá pathfinding;
-- některé atlasy vznikají za běhu místo asset pipeline;
-- počasí je deterministické pouze podle hodinového rozvrhu;
-- gameplay wiring je soustředěné kolem hlavního runtime vstupu a musí být dále rozdělováno přes controllery a application services;
-- není zaveden jednotný manifest veřejných eventů a save-owned dat;
-- mobilní Playwright matice neobsahuje samostatný landscape projekt.
+- M4.3 crafting v PR #16.
 
-## 8. Vlastnictví oblastí
+Známé dluhy:
 
-| Oblast | Autoritativní vlastník | Typické cesty |
-|---|---|---|
-| Koordinace | A0 | `docs/PROJECT_CONTROL.md`, issues, PR pořadí |
-| Architektura/platforma | A1 | contracts, application/platform, persistence, build, PWA, ADR |
-| Gameplay | A2 | `src/systems/**`, `src/application/**`, gameplay data |
-| Svět a obsah | A3 | questy, dialogy, NPC, lokace, spawn data |
-| Vizuál | A4 | atlasy, animace, efekty, asset manifest |
-| UI/mobil | A5 | UI controllery, DOM/CSS, touch, safe-area, input priority |
-| Audio | A6 | WebAudio controllery, hudební stavy, SFX |
-| QA | A7 | test strategy, `src/tests/**`, `e2e/**`, výkon a evidence |
-| Release | A8 | README, changelog, release notes, deploy evidence |
+- quest state podporuje jen jeden aktivní quest;
+- navigace NPC a zvěře nemá pathfinding;
+- část atlasů vzniká za běhu;
+- gameplay wiring je stále soustředěné kolem hlavního runtime vstupu;
+- chybí jednotný veřejný event manifest;
+- před #23 chybí samostatný landscape Playwright projekt.
 
-## 9. Stavové značky
+## 11. Stavové značky
 
-- `BACKLOG` — evidováno, bez přidělení.
-- `READY` — specifikováno, ale ještě bez aktivní větve.
-- `ACTIVE` — agent smí pracovat z uvedeného base SHA.
-- `DRAFT` — existuje draft PR, implementace nebo validace není úplná.
-- `REVIEW` — HANDOFF je úplný a PR je připraven k review.
-- `BLOCKED` — existuje konkrétní externí, integrační nebo architektonická blokace.
-- `MERGED` — změna je na `main`; stav obsahuje merge SHA.
+- `BACKLOG` — evidováno bez specifikace.
+- `READY` — specifikováno, čeká na aktivaci a finální base SHA.
+- `ACTIVE` — koordinátor povolil práci z uvedeného base SHA.
+- `RUNNING` — orchestrátor nebo agent drží lock a pracuje.
+- `DRAFT` — existuje draft PR, implementace nebo evidence není úplná.
+- `REVIEW` — HANDOFF a CI jsou připravené ke koordinační kontrole.
+- `BLOCKED` — konkrétní závislost nebo externí blokace.
+- `MERGED` — změna je na main a issue je uzavřena merge commitem.
 
-## 10. Nejbližší koordinační kroky
+## 12. Nejbližší kroky
 
-1. Dokončit a sloučit issue #20 s diffem pouze v `docs/PROJECT_CONTROL.md`.
-2. A2/A5 znovu načte řídicí dokumenty z `main@fe70326f...` a dokončí issue #19 výhradně ve stávajícím PR #16.
-3. A0 provede review PR #16 až po úplném HANDOFFu, landscape důkazu a zeleném CI aktuálního headu.
-4. Teprve po merge #16 vytvořit samostatnou issue pro architektonický předstupeň jezdectví: mount state, kolizní profil, kamera, animace, save kontrakt a mobilní ovládání.
-5. Samotný riding vertical slice aktivovat až po merge architektonického předstupně.
+1. Sloučit #28 s diffem pouze v tomto dokumentu.
+2. Posunout aktivní branch refs #22 a #23 na merge SHA #28 a aktualizovat jejich issue base.
+3. Spustit A1 a A7 paralelně.
+4. Sloučit #22, poté #23.
+5. Synchronizovat PR #16 s novým main a dokončit #19.
+6. Po merge #19 aktivovat #24 a následně #25.
+7. Pokračovat #26 a #27 podle fronty.
