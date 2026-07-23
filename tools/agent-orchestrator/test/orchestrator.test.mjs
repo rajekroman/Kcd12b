@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import test from "node:test";
+import { URL } from "node:url";
 import {
   buildAgentPrompt,
   parseWorkPackage,
