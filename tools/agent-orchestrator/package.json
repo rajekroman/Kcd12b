@@ -1,0 +1,13 @@
+{
+  "name": "@chronicles-of-bohemia/agent-orchestrator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "dry-run": "node src/cli.mjs plan --dry-run --fixture test/fixtures/issues.json"
+  }
+}
