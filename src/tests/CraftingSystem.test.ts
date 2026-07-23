@@ -92,6 +92,20 @@ describe('CraftingSystem', () => {
     expect(base).toEqual(before);
   });
 
+  it('vrátí původní inventář, když výstup překročí nosnost', () => {
+    const base = withItems(createInitialInventoryState(), [['healing-herbs', 2]]);
+    const constrained = { ...base, maxWeight: 4.2 };
+    const before = structuredClone(constrained);
+    const result = craftRecipe(constrained, 'herbal-poultice');
+
+    expect(result.ok).toBe(false);
+    expect(result.ok ? null : result.error.code).toBe('overweight');
+    expect(constrained).toEqual(before);
+    expect(getItemQuantity(constrained.items, 'healing-herbs')).toBe(2);
+    expect(getItemQuantity(constrained.items, 'bandage')).toBe(1);
+    expect(getItemQuantity(constrained.items, 'herbal-poultice')).toBe(0);
+  });
+
   it('validace vrátí přesné dostupné množství a důvod blokace', () => {
     const validation = getCraftingValidation(
       createInitialInventoryState(),
