@@ -1,0 +1,34 @@
+[
+  {
+    "number": 38,
+    "title": "Incomplete READY package",
+    "body": "### Base SHA\n\n5555555555555555555555555555555555555555\n\n### Větev\n\nagent/incomplete\n\n### Integrační pořadí\n\n0\n\n### Povolené oblasti\n\n- `src/**`\n",
+    "labels": [{ "name": "status:ready" }],
+    "html_url": "https://github.com/example/game/issues/38",
+    "updated_at": "2026-07-23T08:00:00Z"
+  },
+  {
+    "number": 41,
+    "title": "[A2] Later gameplay package",
+    "body": "- Base SHA: `1111111111111111111111111111111111111111`\n- Větev: `agent/later-gameplay`\n- Integrační pořadí: 3\n\n## Povolené oblasti\n\n- `src/systems/**`\n\n## Zakázané oblasti\n\n- `src/ui/**`\n",
+    "labels": [{ "name": "status:ready" }, { "name": "agent:A2" }],
+    "html_url": "https://github.com/example/game/issues/41",
+    "updated_at": "2026-07-23T10:00:00Z"
+  },
+  {
+    "number": 40,
+    "title": "[A1] First architecture package",
+    "body": "- Base SHA: `2222222222222222222222222222222222222222`\n- Větev: `agent/first-architecture`\n- Integrační pořadí: 1\n\n## Povolené oblasti\n\n- `tools/agent-orchestrator/**`\n- `.github/workflows/agent-orchestrator.yml`\n\n## Zakázané oblasti\n\n- `src/**`\n",
+    "labels": [{ "name": "agent:A1" }, { "name": "status:ready" }],
+    "html_url": "https://github.com/example/game/issues/40",
+    "updated_at": "2026-07-23T11:00:00Z"
+  },
+  {
+    "number": 39,
+    "title": "[A7] Already running",
+    "body": "- Base SHA: `3333333333333333333333333333333333333333`\n- Větev: `agent/already-running`\n- Integrační pořadí: 0\n\n## Povolené oblasti\n\n- `e2e/**`\n",
+    "labels": [{ "name": "agent:A7" }, { "name": "status:running" }],
+    "html_url": "https://github.com/example/game/issues/39",
+    "updated_at": "2026-07-23T09:00:00Z"
+  }
+]

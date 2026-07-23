@@ -1,0 +1,326 @@
+name: Agent Orchestrator
+
+on:
+  pull_request:
+    paths:
+      - ".github/ISSUE_TEMPLATE/agent-work-package.yml"
+      - ".github/workflows/agent-orchestrator.yml"
+      - "docs/AGENT_ORCHESTRATION.md"
+      - "eslint.config.js"
+      - "tools/agent-orchestrator/**"
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Plan from the deterministic fixture without GitHub writes or API key
+        required: true
+        type: boolean
+        default: true
+  schedule:
+    - cron: "17 * * * *"
+  workflow_run:
+    workflows: ["Test and deploy GitHub Pages"]
+    types: [completed]
+
+concurrency:
+  group: agent-orchestrator-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Capture repository lint result
+        id: lint
+        continue-on-error: true
+        run: npm run lint > lint-output.txt 2>&1
+      - name: Upload lint diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-lint-${{ github.run_id }}
+          path: lint-output.txt
+          if-no-files-found: error
+          retention-days: 1
+      - name: Verify orchestrator security contracts
+        run: |
+          npm --prefix tools/agent-orchestrator test
+          npm --prefix tools/agent-orchestrator run dry-run
+      - name: Enforce repository lint result
+        if: steps.lint.outcome == 'failure'
+        run: |
+          cat lint-output.txt
+          exit 1
+
+  plan:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.plan.outputs.should_run }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      issue_number: ${{ steps.plan.outputs.issue_number }}
+      issue_title: ${{ steps.plan.outputs.issue_title }}
+      role: ${{ steps.plan.outputs.role }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      branch_head_sha: ${{ steps.plan.outputs.branch_head_sha }}
+      branch: ${{ steps.plan.outputs.branch }}
+      integration_order: ${{ steps.plan.outputs.integration_order }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix tools/agent-orchestrator test
+      - name: Build deterministic plan and acquire lock
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
+            node tools/agent-orchestrator/src/cli.mjs plan \
+              --dry-run \
+              --fixture tools/agent-orchestrator/test/fixtures/issues.json
+          else
+            node tools/agent-orchestrator/src/cli.mjs plan --lock
+          fi
+      - name: Preserve immutable control-plane input
+        if: steps.plan.outputs.should_run == 'true'
+        run: cp -R tools/agent-orchestrator .agent-orchestrator/control-plane
+      - name: Show dry-run plan
+        if: steps.plan.outputs.should_run == 'true' && steps.plan.outputs.dry_run == 'true'
+        run: cat .agent-orchestrator/plan.json
+      - name: Upload plan and prompt
+        if: steps.plan.outputs.should_run == 'true' && steps.plan.outputs.dry_run != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+          if-no-files-found: error
+          retention-days: 1
+
+  generate:
+    needs: plan
+    if: needs.plan.outputs.should_run == 'true' && needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Verify immutable branch baseline and declared base ancestry
+        env:
+          EXPECTED_HEAD: ${{ needs.plan.outputs.branch_head_sha }}
+          BASE_SHA: ${{ needs.plan.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+      - name: Install browser dependencies before privilege reduction
+        run: npx playwright install --with-deps chromium
+      - name: Run isolated specialist agent
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .agent-orchestrator/prompt.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          output-schema: |
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": { "type": "string", "enum": ["completed", "blocked"] },
+                "patch": { "type": "string" },
+                "handoff": { "type": "string" },
+                "blockedReason": { "type": "string" }
+              },
+              "required": ["status", "patch", "handoff", "blockedReason"]
+            }
+
+  finalize:
+    needs: [plan, generate]
+    if: always() && needs.plan.outputs.should_run == 'true' && needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-plan-${{ github.run_id }}
+          path: .agent-orchestrator
+      - name: Preserve clean finalizer control plane
+        run: |
+          cp .agent-orchestrator/plan.json /tmp/agent-plan.json
+          cp -R .agent-orchestrator/control-plane /tmp/agent-control-plane
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Record isolated generation failure
+        if: needs.generate.result != 'success'
+        run: |
+          mkdir -p .agent-orchestrator
+          printf '%s\n' \
+            'The isolated Codex generation job failed or was cancelled before returning a schema-valid result.' \
+            > .agent-orchestrator/BLOCKED.md
+      - name: Materialize and scope-check generated patch
+        id: materialize
+        if: needs.generate.result == 'success'
+        env:
+          CODEX_RESULT: ${{ needs.generate.outputs.result }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$CODEX_RESULT" > .agent-orchestrator/result.json
+          node /tmp/agent-control-plane/src/cli.mjs materialize \
+            --plan-file /tmp/agent-plan.json \
+            --result-file .agent-orchestrator/result.json \
+            --patch-file .agent-orchestrator/generated.patch \
+            --handoff-file .agent-orchestrator/HANDOFF.md \
+            --blocked-file .agent-orchestrator/BLOCKED.md
+      - name: Apply patch on clean runner and revalidate changed paths
+        id: apply
+        if: steps.materialize.outcome == 'success'
+        env:
+          EXPECTED_HEAD: ${{ needs.plan.outputs.branch_head_sha }}
+        run: |
+          set -euo pipefail
+          trap 'printf "%s\n" "Patch application or changed-path revalidation failed on the clean runner." > .agent-orchestrator/BLOCKED.md' ERR
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git apply --check --binary .agent-orchestrator/generated.patch
+          git apply --binary .agent-orchestrator/generated.patch
+          git diff --name-only --diff-filter=ACMRD > .agent-orchestrator/changed-paths.txt
+          node /tmp/agent-control-plane/src/cli.mjs validate-paths \
+            --plan-file /tmp/agent-plan.json \
+            --paths-file .agent-orchestrator/changed-paths.txt
+      - name: Install Playwright browser
+        if: steps.apply.outcome == 'success'
+        run: npx playwright install --with-deps chromium
+      - name: Validate generated work
+        id: validate
+        if: steps.apply.outcome == 'success'
+        run: |
+          set -euo pipefail
+          trap 'printf "%s\n" "One or more required lint, typecheck, unit, build, or E2E validations failed." > .agent-orchestrator/BLOCKED.md' ERR
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+          npm run test:e2e
+      - name: Commit and push validated work package
+        id: push
+        if: steps.validate.outcome == 'success'
+        env:
+          BRANCH: ${{ needs.plan.outputs.branch }}
+          ISSUE_NUMBER: ${{ needs.plan.outputs.issue_number }}
+          ROLE: ${{ needs.plan.outputs.role }}
+          PUSH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          trap 'printf "%s\n" "Validated changes could not be committed or pushed without rewriting branch history." > /tmp/BLOCKED.md' ERR
+          cp .agent-orchestrator/HANDOFF.md /tmp/HANDOFF.md
+          rm -rf .agent-orchestrator
+          git add -A
+          test -n "$(git diff --cached --name-only)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(${ROLE,,}): complete issue #${ISSUE_NUMBER}"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          git remote set-url origin "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:refs/heads/${BRANCH}"
+          git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+      - name: Create or refresh draft PR and publish HANDOFF
+        id: publish
+        if: steps.push.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node /tmp/agent-control-plane/src/cli.mjs finalize \
+            --plan-file /tmp/agent-plan.json \
+            --summary-file /tmp/HANDOFF.md \
+            --head-sha "${{ steps.push.outputs.head_sha }}"
+      - name: Return unsuccessful package to BLOCKED
+        if: always() && steps.publish.outcome != 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          REASON_FILE=".agent-orchestrator/BLOCKED.md"
+          if [[ -f /tmp/BLOCKED.md ]]; then
+            REASON_FILE="/tmp/BLOCKED.md"
+          fi
+          node /tmp/agent-control-plane/src/cli.mjs block \
+            --plan-file /tmp/agent-plan.json \
+            --reason-file "$REASON_FILE" \
+            --reason "Finalization failed in clean runner for workflow run $GITHUB_RUN_ID."
+
+  reconcile:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      checks: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Reconcile orphaned locks and CI state
+        run: node tools/agent-orchestrator/src/cli.mjs reconcile --stale-hours 6
