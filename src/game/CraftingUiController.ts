@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
-import { getEconomyState, setEconomyState, subscribeEconomy } from '../core/EconomyStore';
-import { EventBus, GameEvents } from '../core/EventBus';
+import { executeCraftingCommand } from '../application/CraftingService';
+import { getEconomyState, subscribeEconomy } from '../core/EconomyStore';
 import {
   CRAFTING_STATIONS,
   getRecipesForStation,
@@ -11,7 +11,6 @@ import {
 import { ITEM_DEFINITIONS } from '../data/items';
 import type { NpcId } from '../data/npcs';
 import {
-  craftRecipe,
   getCraftingStationForNpc,
   getCraftingValidation
 } from '../systems/CraftingSystem';
@@ -137,26 +136,14 @@ export class CraftingUiController {
 
   private craft(recipeId: RecipeId): void {
     if (!this.openState || !this.station) return;
-    const validation = getCraftingValidation(getEconomyState().inventory, recipeId);
-    if (validation.recipe.station !== this.station) {
-      this.setStatus('Tento recept patří k jiné řemeslné stanici.');
-      return;
-    }
-    if (!validation.canCraft) {
-      this.setStatus(validation.error?.message ?? 'Recept nyní nelze vyrobit.');
-      return;
-    }
 
-    const economy = getEconomyState();
-    const result = craftRecipe(economy.inventory, recipeId);
+    const result = executeCraftingCommand(recipeId, this.station);
     if (!result.ok) {
       this.setStatus(result.error.message);
       return;
     }
 
-    setEconomyState({ ...economy, inventory: result.value.inventory });
     document.body.dataset.lastCraft = recipeId;
-    EventBus.emit(GameEvents.ECONOMY_CHANGED);
     this.setStatus(`${result.value.recipe.name} dokončen.`);
     this.render();
   }
