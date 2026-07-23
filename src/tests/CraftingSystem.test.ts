@@ -93,8 +93,19 @@ describe('CraftingSystem', () => {
   });
 
   it('vrátí původní inventář, když výstup narazí na limit nosnosti', () => {
-    const base = withItems(createInitialInventoryState(), [['healing-herbs', 2]]);
-    const constrained = { ...base, maxWeight: 4.2 };
+    const constrained: InventoryState = {
+      groschen: 0,
+      maxWeight: 0.2,
+      items: [
+        { itemId: 'healing-herbs', quantity: 2 },
+        { itemId: 'bandage', quantity: 1 }
+      ],
+      equipment: {
+        weapon: null,
+        armor: null,
+        accessory: null
+      }
+    };
     const before = structuredClone(constrained);
     const result = craftRecipe(constrained, 'herbal-poultice');
 
