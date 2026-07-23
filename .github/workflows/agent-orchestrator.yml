@@ -66,10 +66,13 @@ jobs:
           else
             node /tmp/agent-orchestrator/src/cli.mjs plan --lock
           fi
+          if [[ -f .agent-orchestrator/plan.json ]]; then
+            cp .agent-orchestrator/plan.json /tmp/agent-plan.json
+          fi
 
       - name: Stop after dry-run plan
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        run: cat .agent-orchestrator/plan.json
+        run: cat /tmp/agent-plan.json
 
       - name: Verify OpenAI secret
         if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
@@ -83,6 +86,10 @@ jobs:
               > .agent-orchestrator/BLOCKED.md
             exit 1
           fi
+
+      - name: Install Playwright browser before privilege reduction
+        if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        run: npx playwright install --with-deps chromium
 
       - name: Check out work-package branch
         if: steps.plan.outputs.should_run == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
@@ -154,7 +161,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           node /tmp/agent-orchestrator/src/cli.mjs finalize \
-            --plan-file .agent-orchestrator/plan.json \
+            --plan-file /tmp/agent-plan.json \
             --summary-file /tmp/HANDOFF.md \
             --head-sha "${{ steps.push.outputs.head_sha }}"
 
@@ -169,7 +176,7 @@ jobs:
             cp /tmp/BLOCKED.md .agent-orchestrator/BLOCKED.md
           fi
           node /tmp/agent-orchestrator/src/cli.mjs block \
-            --plan-file .agent-orchestrator/plan.json \
+            --plan-file /tmp/agent-plan.json \
             --reason-file .agent-orchestrator/BLOCKED.md \
             --reason "Workflow failed before a complete HANDOFF. Inspect run $GITHUB_RUN_ID."
 
