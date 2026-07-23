@@ -4,6 +4,20 @@ Originální 12bitové historické arkádové RPG pro prohlížeč a mobilní za
 
 ![Vizuální koncept](docs/visual-concept.svg)
 
+## Řízení vývoje
+
+Projekt používá koordinovaný víceagentní systém:
+
+- [`AGENTS.md`](AGENTS.md) — závazná pravidla práce agentů;
+- [`docs/PROJECT_CONTROL.md`](docs/PROJECT_CONTROL.md) — aktuální stav, integrační fronta a přidělení;
+- [`docs/AI_AGENT_SYSTEM.md`](docs/AI_AGENT_SYSTEM.md) — role a víceagentní workflow;
+- [`docs/ARCHITECTURE_CONTRACT.md`](docs/ARCHITECTURE_CONTRACT.md) — hranice vrstev, eventů, save a runtime;
+- [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) — cílový strom projektu a vlastnictví;
+- [`docs/DEFINITION_OF_DONE.md`](docs/DEFINITION_OF_DONE.md) — povinná kritéria dokončení;
+- [`docs/HANDOFF_TEMPLATE.md`](docs/HANDOFF_TEMPLATE.md) — předání implementačního PR.
+
+Každý pracovní balík používá jednu issue, jednu větev a jeden PR. Novou práci aktivuje koordinátor až po aktualizaci skutečného stavu `main`.
+
 ## Spuštění
 
 ```bash
