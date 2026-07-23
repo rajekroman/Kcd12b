@@ -5,6 +5,7 @@ import {
   getCraftingRecipe,
   getRecipesForStation
 } from '../data/crafting';
+import { ITEM_DEFINITIONS } from '../data/items';
 import {
   addItem,
   createInitialInventoryState,
@@ -92,18 +93,25 @@ describe('CraftingSystem', () => {
     expect(base).toEqual(before);
   });
 
-  it('vrátí původní inventář, když výstup překročí nosnost', () => {
+  it('vrátí původní inventář, když až výstup překročí nosnost', () => {
     const base = withItems(createInitialInventoryState(), [['healing-herbs', 2]]);
-    const constrained = { ...base, maxWeight: 4.2 };
+    const constrained = { ...base, maxWeight: 4.6 };
     const before = structuredClone(constrained);
-    const result = craftRecipe(constrained, 'herbal-poultice');
+    const originalWeight = ITEM_DEFINITIONS['herbal-poultice'].weight;
 
-    expect(result.ok).toBe(false);
-    expect(result.ok ? null : result.error.code).toBe('overweight');
-    expect(constrained).toEqual(before);
-    expect(getItemQuantity(constrained.items, 'healing-herbs')).toBe(2);
-    expect(getItemQuantity(constrained.items, 'bandage')).toBe(1);
-    expect(getItemQuantity(constrained.items, 'herbal-poultice')).toBe(0);
+    ITEM_DEFINITIONS['herbal-poultice'].weight = 1;
+    try {
+      const result = craftRecipe(constrained, 'herbal-poultice');
+
+      expect(result.ok).toBe(false);
+      expect(result.ok ? null : result.error.code).toBe('overweight');
+      expect(constrained).toEqual(before);
+      expect(getItemQuantity(constrained.items, 'healing-herbs')).toBe(2);
+      expect(getItemQuantity(constrained.items, 'bandage')).toBe(1);
+      expect(getItemQuantity(constrained.items, 'herbal-poultice')).toBe(0);
+    } finally {
+      ITEM_DEFINITIONS['herbal-poultice'].weight = originalWeight;
+    }
   });
 
   it('validace vrátí přesné dostupné množství a důvod blokace', () => {
