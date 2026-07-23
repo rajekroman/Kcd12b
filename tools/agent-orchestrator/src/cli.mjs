@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* global console */
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -59,12 +58,18 @@ async function loadFixture(filePath) {
 
 async function blockInvalidReadyIssues(client, invalidIssues) {
   for (const invalid of invalidIssues) {
-    await client.transitionStatus(invalid.issueNumber, STATUS.BLOCKED);
-    await client.addCommentOnce(
-      invalid.issueNumber,
-      `<!-- agent-orchestrator:invalid-ready issue=${invalid.issueNumber} -->`,
-      `READY work package was rejected without stopping the remaining queue: ${invalid.error}`,
-    );
+    try {
+      await client.transitionStatus(invalid.issueNumber, STATUS.BLOCKED);
+      await client.addCommentOnce(
+        invalid.issueNumber,
+        `<!-- agent-orchestrator:invalid-ready issue=${invalid.issueNumber} -->`,
+        `READY work package was rejected without stopping the remaining queue: ${invalid.error}`,
+      );
+    } catch (error) {
+      console.error(
+        `Failed to mark invalid READY issue #${invalid.issueNumber} as blocked; continuing queue selection: ${error.message}`,
+      );
+    }
   }
 }
 
@@ -214,32 +219,37 @@ async function materializeCommand() {
   const handoffFile = option("--handoff-file", ".agent-orchestrator/HANDOFF.md");
   const blockedFile = option("--blocked-file", ".agent-orchestrator/BLOCKED.md");
   const plan = await readJson(planFile);
-  const result = await readJson(resultFile);
 
-  if (result.status === "blocked") {
-    const reason = String(result.blockedReason ?? "Agent returned blocked without a reason.").trim();
+  try {
+    const result = await readJson(resultFile);
+    if (result.status === "blocked") {
+      throw new Error(
+        String(result.blockedReason ?? "Agent returned blocked without a reason.").trim(),
+      );
+    }
+    if (result.status !== "completed") {
+      throw new Error(`Unsupported agent result status: ${String(result.status)}`);
+    }
+
+    const patch = String(result.patch ?? "");
+    const handoff = String(result.handoff ?? "").trim();
+    if (!handoff) {
+      throw new Error("Completed agent result is missing HANDOFF content.");
+    }
+
+    const patchPaths = changedPathsFromPatch(patch);
+    const validatedPaths = validateChangedPaths(plan, patchPaths);
+    await fs.mkdir(path.dirname(patchFile), { recursive: true });
+    await fs.writeFile(patchFile, patch, "utf8");
+    await fs.mkdir(path.dirname(handoffFile), { recursive: true });
+    await fs.writeFile(handoffFile, `${handoff}\n`, "utf8");
+    console.log(JSON.stringify({ status: "completed", paths: validatedPaths }, null, 2));
+    await writeOutput({ materialized: "true", changed_paths: validatedPaths.join(",") });
+  } catch (error) {
     await fs.mkdir(path.dirname(blockedFile), { recursive: true });
-    await fs.writeFile(blockedFile, `${reason}\n`, "utf8");
-    throw new Error(reason);
+    await fs.writeFile(blockedFile, `${error.message}\n`, "utf8");
+    throw error;
   }
-  if (result.status !== "completed") {
-    throw new Error(`Unsupported agent result status: ${String(result.status)}`);
-  }
-
-  const patch = String(result.patch ?? "");
-  const handoff = String(result.handoff ?? "").trim();
-  if (!handoff) {
-    throw new Error("Completed agent result is missing HANDOFF content.");
-  }
-
-  const patchPaths = changedPathsFromPatch(patch);
-  const validatedPaths = validateChangedPaths(plan, patchPaths);
-  await fs.mkdir(path.dirname(patchFile), { recursive: true });
-  await fs.writeFile(patchFile, patch, "utf8");
-  await fs.mkdir(path.dirname(handoffFile), { recursive: true });
-  await fs.writeFile(handoffFile, `${handoff}\n`, "utf8");
-  console.log(JSON.stringify({ status: "completed", paths: validatedPaths }, null, 2));
-  await writeOutput({ materialized: "true", changed_paths: validatedPaths.join(",") });
 }
 
 async function validatePathsCommand() {
