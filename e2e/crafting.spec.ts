@@ -18,6 +18,19 @@ const merchant = {
   ]
 };
 
+const isMobileProject = (projectName: string): boolean => projectName.startsWith('iphone-');
+
+const attachEvidence = async (
+  page: Page,
+  testInfo: TestInfo,
+  name: string
+): Promise<void> => {
+  await testInfo.attach(`${testInfo.project.name}-${name}`, {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png'
+  });
+};
+
 const installCraftingSave = async (
   page: Page,
   options: CraftingSaveOptions
@@ -69,8 +82,21 @@ const continueGame = async (page: Page): Promise<void> => {
 };
 
 const openCrafting = async (page: Page, testInfo: TestInfo): Promise<void> => {
-  if (testInfo.project.name === 'mobile-chromium') {
-    await page.locator('[data-control="crafting"]').click();
+  if (isMobileProject(testInfo.project.name)) {
+    const button = page.locator('[data-control="crafting"]');
+    await expect(button).toBeVisible();
+    await button.dispatchEvent('pointerdown', {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      buttons: 1
+    });
+    await button.dispatchEvent('pointerup', {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      buttons: 0
+    });
   } else {
     await page.keyboard.press('c');
   }
@@ -133,6 +159,7 @@ test('Anežčina stanice vyrobí bylinný obklad a zachová ho po reloadu', asyn
     'data-craftable',
     'false'
   );
+  await attachEvidence(page, testInfo, 'alchemy-crafted');
 
   await closeCrafting(page);
   await page.keyboard.press('i');
@@ -148,6 +175,7 @@ test('Anežčina stanice vyrobí bylinný obklad a zachová ho po reloadu', asyn
   await continueGame(page);
   await page.keyboard.press('i');
   await expect(page.locator('[data-item="herbal-poultice"]')).toContainText('×1');
+  await attachEvidence(page, testInfo, 'alchemy-reloaded');
 });
 
 test('Bohdanova kovárna nahradí vybavený meč a uloží nový výrobek', async ({ page }, testInfo) => {
@@ -175,6 +203,7 @@ test('Bohdanova kovárna nahradí vybavený meč a uloží nový výrobek', asyn
   await expect(body).toHaveAttribute('data-last-craft', 'temper-sword');
   await expect(body).toHaveAttribute('data-equipped-weapon', '');
   await expect(body).toHaveAttribute('data-last-save', 'ok');
+  await attachEvidence(page, testInfo, 'forge-crafted');
   await closeCrafting(page);
 
   await page.keyboard.press('i');
@@ -199,8 +228,13 @@ test('mimo řemeslníky zůstane panel zavřený a zveřejní vysvětlení', asy
   const body = page.locator('body');
 
   await expect(body).toHaveAttribute('data-crafting-available', '');
-  if (testInfo.project.name === 'mobile-chromium') {
-    await page.locator('[data-control="crafting"]').click();
+  if (isMobileProject(testInfo.project.name)) {
+    await page.locator('[data-control="crafting"]').dispatchEvent('pointerdown', {
+      pointerId: 5,
+      pointerType: 'touch',
+      isPrimary: true,
+      buttons: 1
+    });
   } else {
     await page.keyboard.press('c');
   }
@@ -209,4 +243,5 @@ test('mimo řemeslníky zůstane panel zavřený a zveřejní vysvětlení', asy
     'data-crafting-message',
     'Řemeslo je dostupné pouze u Anežky nebo Bohdana.'
   );
+  await attachEvidence(page, testInfo, 'crafting-unavailable');
 });
