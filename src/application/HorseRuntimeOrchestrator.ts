@@ -12,10 +12,14 @@ import {
   type HorseEventContext,
   type HorseFailureSource,
   type HorseInteractionConfirmedEvent,
+  type HorseMountConfirmedEvent,
   type HorseQuestFailureConfirmedEvent,
   type HorseRuntimeCommand,
   type HorseRuntimeEvent,
+  type HorseRuntimePersistenceBoundary,
   type HorseRuntimeStateSnapshot,
+  type HorseTrialCheckpointConfirmedEvent,
+  type HorseTrialResetConfirmedEvent,
 } from "../contracts/horseRuntime";
 
 export interface HorseRuntimeTransition {
@@ -88,7 +92,11 @@ const applyEffects = (
       failed = true;
     }
 
-    if (effect.kind === "set_flag" && effect.target === "horse.jiskra.trial_completed" && effect.value === true) {
+    if (
+      effect.kind === "set_flag" &&
+      effect.target === "horse.jiskra.trial_completed" &&
+      effect.value === true
+    ) {
       completed = true;
     }
   }
@@ -102,8 +110,30 @@ const findInteraction = (
 ): HorseQuestInteraction | undefined =>
   content.interactions.find((interaction) => interaction.interactionId === interactionId);
 
+const withIdempotencyKey = (
+  state: HorseRuntimeStateSnapshot,
+  key: string,
+): HorseRuntimeStateSnapshot => ({
+  ...state,
+  appliedIdempotencyKeys: [...state.appliedIdempotencyKeys, key],
+});
+
 export class HorseRuntimeOrchestrator {
   public constructor(private readonly content: HorseQuestContentContract) {}
+
+  public async load(
+    boundary: HorseRuntimePersistenceBoundary,
+    fallback: HorseRuntimeStateSnapshot,
+  ): Promise<HorseRuntimeStateSnapshot> {
+    return (await boundary.load()) ?? fallback;
+  }
+
+  public async save(
+    boundary: HorseRuntimePersistenceBoundary,
+    snapshot: HorseRuntimeStateSnapshot,
+  ): Promise<void> {
+    await boundary.save(snapshot);
+  }
 
   public execute(
     command: HorseRuntimeCommand,
@@ -140,16 +170,100 @@ export class HorseRuntimeOrchestrator {
       const next = applyEffects(state, interaction.effects);
       return {
         state: {
-          ...next,
-          appliedIdempotencyKeys: [...next.appliedIdempotencyKeys, command.context.idempotencyKey],
+          ...withIdempotencyKey(next, command.context.idempotencyKey),
           selectedSolution: command.solution ?? next.selectedSolution,
         },
-        events: [confirmed, {
-          id: HorseEventIds.stateEffectsApplied,
-          context: confirmed.context,
-          sourceEventId: confirmed.id,
-          effects: interaction.effects,
-        }],
+        events: [
+          confirmed,
+          {
+            id: HorseEventIds.stateEffectsApplied,
+            context: confirmed.context,
+            sourceEventId: confirmed.id,
+            effects: interaction.effects,
+          },
+        ],
+      };
+    }
+
+    if (command.id === HorseCommandIds.requestMount) {
+      if (!state.worldFlags["horse.jiskra.claimed"]) {
+        return reject(command, "horse_not_claimed", "Horse must be claimed before mount can be requested.");
+      }
+      if (!state.worldFlags["horse.jiskra.mount_unlocked"]) {
+        return reject(command, "mount_not_unlocked", "Mount interaction is not unlocked.");
+      }
+
+      const confirmed: HorseMountConfirmedEvent = {
+        id: HorseEventIds.mountConfirmed,
+        context: eventContext(command),
+      };
+      return {
+        state: withIdempotencyKey(state, command.context.idempotencyKey),
+        events: [confirmed],
+      };
+    }
+
+    if (command.id === HorseCommandIds.confirmTrialCheckpoint) {
+      const route = this.content.trialRoute;
+      if (command.routeId !== route.routeId) {
+        return reject(command, "wrong_trial_checkpoint", "Trial route is not declared by the horse contract.");
+      }
+      const expectedIndex = state.counters[route.progressCounterId] ?? 0;
+      const expectedCheckpointId = route.checkpointIds[expectedIndex];
+      if (
+        command.checkpointIndex !== expectedIndex ||
+        command.checkpointId !== expectedCheckpointId
+      ) {
+        return reject(command, "wrong_trial_checkpoint", "Trial checkpoint is out of order.");
+      }
+
+      const nextCheckpointIndex = expectedIndex + 1;
+      const confirmed: HorseTrialCheckpointConfirmedEvent = {
+        id: HorseEventIds.trialCheckpointConfirmed,
+        context: eventContext(command),
+        routeId: command.routeId,
+        checkpointId: command.checkpointId,
+        checkpointIndex: command.checkpointIndex,
+        nextCheckpointIndex,
+      };
+      return {
+        state: withIdempotencyKey(
+          {
+            ...state,
+            counters: {
+              ...state.counters,
+              [route.progressCounterId]: nextCheckpointIndex,
+            },
+          },
+          command.context.idempotencyKey,
+        ),
+        events: [confirmed],
+      };
+    }
+
+    if (command.id === HorseCommandIds.resetTrial) {
+      if (command.routeId !== this.content.trialRoute.routeId) {
+        return reject(command, "wrong_trial_checkpoint", "Trial route is not declared by the horse contract.");
+      }
+      const confirmed: HorseTrialResetConfirmedEvent = {
+        id: HorseEventIds.trialResetConfirmed,
+        context: eventContext(command),
+        routeId: command.routeId,
+        reason: command.reason,
+        nextCheckpointIndex: 0,
+      };
+      return {
+        state: withIdempotencyKey(
+          {
+            ...state,
+            counters: {
+              ...state.counters,
+              [this.content.trialRoute.progressCounterId]: 0,
+            },
+          },
+          command.context.idempotencyKey,
+        ),
+        events: [confirmed],
       };
     }
 
@@ -164,7 +278,10 @@ export class HorseRuntimeOrchestrator {
       if (!failure || !sourceAllowed) {
         return reject(command, "invalid_failure_source", "Failure source is not declared by the content contract.");
       }
-      if (!conditionsMatch(failure.activeWhen, state, external) || conditionsMatch(failure.ignoredWhen, state, external)) {
+      if (
+        !conditionsMatch(failure.activeWhen, state, external) ||
+        conditionsMatch(failure.ignoredWhen, state, external)
+      ) {
         return reject(command, "condition_not_met", "Failure is not active in the current state.");
       }
 
@@ -176,15 +293,17 @@ export class HorseRuntimeOrchestrator {
         terminal: true,
       };
       return {
-        state: {
-          ...state,
-          failed: true,
-          appliedIdempotencyKeys: [...state.appliedIdempotencyKeys, command.context.idempotencyKey],
-        },
+        state: withIdempotencyKey(
+          {
+            ...state,
+            failed: true,
+          },
+          command.context.idempotencyKey,
+        ),
         events: [confirmed],
       };
     }
 
-    return reject(command, "condition_not_met", "Command is declared but not implemented in the architecture slice yet.");
+    return reject(command, "condition_not_met", "Command is not supported by the horse orchestrator.");
   }
 }
