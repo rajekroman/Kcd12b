@@ -7,7 +7,7 @@
     <meta name="description" content="Chronicles of Bohemia — 12bitové historické arkádové RPG." />
     <title>Chronicles of Bohemia</title>
   </head>
-  <body data-economy-open="false">
+  <body data-economy-open="false" data-crafting-open="false">
     <div id="app" aria-label="Herní obrazovka"></div>
     <div id="game-status" class="sr-only" role="status" aria-live="polite">Načítání hry.</div>
     <button
@@ -39,6 +39,21 @@
       </section>
     </div>
 
+    <div id="crafting-overlay" class="crafting-overlay" role="dialog" aria-modal="true" aria-labelledby="crafting-title" hidden>
+      <section class="crafting-panel">
+        <header class="crafting-header">
+          <div>
+            <p class="crafting-kicker">Alchymie a kovářství</p>
+            <h2 id="crafting-title">Řemeslná stanice</h2>
+          </div>
+          <button type="button" class="crafting-close" data-crafting-close aria-label="Zavřít řemeslnou stanici">×</button>
+        </header>
+        <div id="crafting-summary" class="crafting-summary"></div>
+        <div id="crafting-content" class="crafting-content"></div>
+        <p id="crafting-message" class="crafting-message" aria-live="polite">Přistup k řemeslníkovi.</p>
+      </section>
+    </div>
+
     <div id="mobile-controls" aria-label="Dotykové ovládání">
       <div class="dpad" aria-label="Pohyb">
         <button type="button" data-control="up" aria-label="Nahoru">▲</button>
@@ -49,6 +64,7 @@
       <div class="actions" aria-label="Akce">
         <button type="button" data-control="interact">Mluv</button>
         <button type="button" data-control="inventory">Batoh</button>
+        <button type="button" data-control="crafting">Řemeslo</button>
         <button type="button" data-control="block">Kryt</button>
         <button type="button" data-control="dodge">Úhyb</button>
         <button
