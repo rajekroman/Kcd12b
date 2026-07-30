@@ -3,7 +3,6 @@ import type {
   ContentEffect,
   HorseQuestContentContract,
   HorseQuestInteraction,
-  HorseQuestSolutionId,
 } from "../data/horseQuestContent";
 import {
   HorseCommandIds,
