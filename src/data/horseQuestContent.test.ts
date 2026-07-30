@@ -5,6 +5,7 @@ import {
   type ContentCondition,
   type ContentConditionSet,
   type ContentEffect,
+  type HorseQuestStageId,
 } from "./horseQuestContent";
 
 const duplicateValues = (values: readonly string[]): string[] => {
@@ -138,8 +139,8 @@ describe("firstHorseQuestContent", () => {
 
   it("defines a traversable stage graph with explicit terminal states", () => {
     const stages = new Map(firstHorseQuestContent.stages.map((stage) => [stage.id, stage]));
-    const visited = new Set<string>();
-    const pending = ["not_started"];
+    const visited = new Set<HorseQuestStageId>();
+    const pending: HorseQuestStageId[] = ["not_started"];
 
     while (pending.length > 0) {
       const stageId = pending.pop();
@@ -147,7 +148,7 @@ describe("firstHorseQuestContent", () => {
         continue;
       }
       visited.add(stageId);
-      const stage = stages.get(stageId as keyof typeof stages);
+      const stage = stages.get(stageId);
       expect(stage).toBeDefined();
       pending.push(...(stage?.nextStageIds ?? []));
     }
@@ -164,8 +165,9 @@ describe("firstHorseQuestContent", () => {
     }
 
     expect(visited.has("completed")).toBe(true);
-    expect(firstHorseQuestContent.failures.every((failure) => failure.terminalStageId === "failed"))
-      .toBe(true);
+    expect(
+      firstHorseQuestContent.failures.every((failure) => failure.terminalStageId === "failed"),
+    ).toBe(true);
   });
 
   it("provides a producer for every non-terminal stage completion condition", () => {
