@@ -5,8 +5,10 @@ import type {
 } from "../data/horseQuestContent";
 
 export const HorseCommandIds = {
+  selectSolution: "horse.command.select_solution",
   performInteraction: "horse.command.perform_interaction",
   requestMount: "horse.command.request_mount",
+  dismount: "horse.command.dismount",
   confirmTrialCheckpoint: "horse.command.confirm_trial_checkpoint",
   resetTrial: "horse.command.reset_trial",
   reportFailure: "horse.command.report_failure",
@@ -15,9 +17,10 @@ export const HorseCommandIds = {
 export type HorseCommandId = (typeof HorseCommandIds)[keyof typeof HorseCommandIds];
 
 export const HorseEventIds = {
+  solutionSelected: "horse.event.solution_selected",
   interactionConfirmed: "horse.event.interaction_confirmed",
   mountConfirmed: "horse.event.mount_confirmed",
-  mountRejected: "horse.event.mount_rejected",
+  dismountConfirmed: "horse.event.dismount_confirmed",
   trialCheckpointConfirmed: "horse.event.trial_checkpoint_confirmed",
   trialResetConfirmed: "horse.event.trial_reset_confirmed",
   acquisitionConfirmed: "horse.event.acquisition_confirmed",
@@ -32,9 +35,14 @@ export type HorseCommandRejectionCode =
   | "condition_not_met"
   | "duplicate_idempotency_key"
   | "wrong_solution"
+  | "solution_already_selected"
   | "wrong_trial_checkpoint"
+  | "trial_not_active"
   | "horse_not_claimed"
   | "mount_not_unlocked"
+  | "horse_already_mounted"
+  | "horse_not_mounted"
+  | "mount_owner_mismatch"
   | "quest_failed"
   | "quest_completed"
   | "invalid_failure_source";
@@ -45,6 +53,12 @@ export interface HorseCommandContext {
   readonly actorId: string;
   readonly issuedAtTick: number;
   readonly idempotencyKey: string;
+}
+
+export interface SelectHorseSolutionCommand {
+  readonly id: typeof HorseCommandIds.selectSolution;
+  readonly context: HorseCommandContext;
+  readonly solution: HorseQuestSolutionId;
 }
 
 export interface PerformHorseInteractionCommand {
@@ -58,6 +72,11 @@ export interface PerformHorseInteractionCommand {
 
 export interface RequestMountCommand {
   readonly id: typeof HorseCommandIds.requestMount;
+  readonly context: HorseCommandContext;
+}
+
+export interface DismountHorseCommand {
+  readonly id: typeof HorseCommandIds.dismount;
   readonly context: HorseCommandContext;
 }
 
@@ -94,8 +113,10 @@ export interface ReportHorseFailureCommand {
 }
 
 export type HorseRuntimeCommand =
+  | SelectHorseSolutionCommand
   | PerformHorseInteractionCommand
   | RequestMountCommand
+  | DismountHorseCommand
   | ConfirmTrialCheckpointCommand
   | ResetHorseTrialCommand
   | ReportHorseFailureCommand;
@@ -124,6 +145,13 @@ export interface HorseEventContext {
   readonly idempotencyKey: string;
 }
 
+export interface HorseSolutionSelectedEvent {
+  readonly id: typeof HorseEventIds.solutionSelected;
+  readonly context: HorseEventContext;
+  readonly solution: HorseQuestSolutionId;
+  readonly appliedEffects: readonly ContentEffect[];
+}
+
 export interface HorseInteractionConfirmedEvent {
   readonly id: typeof HorseEventIds.interactionConfirmed;
   readonly context: HorseEventContext;
@@ -135,15 +163,13 @@ export interface HorseInteractionConfirmedEvent {
 export interface HorseMountConfirmedEvent {
   readonly id: typeof HorseEventIds.mountConfirmed;
   readonly context: HorseEventContext;
+  readonly mountedActorId: string;
 }
 
-export interface HorseMountRejectedEvent {
-  readonly id: typeof HorseEventIds.mountRejected;
+export interface HorseDismountConfirmedEvent {
+  readonly id: typeof HorseEventIds.dismountConfirmed;
   readonly context: HorseEventContext;
-  readonly code: Extract<
-    HorseCommandRejectionCode,
-    "horse_not_claimed" | "mount_not_unlocked" | "quest_failed"
-  >;
+  readonly previousMountedActorId: string;
 }
 
 export interface HorseTrialCheckpointConfirmedEvent {
@@ -176,22 +202,21 @@ export interface HorseQuestFailureConfirmedEvent {
   readonly failureId: string;
   readonly source: HorseFailureSource;
   readonly terminal: true;
+  readonly appliedEffects: readonly ContentEffect[];
 }
 
 export interface HorseStateEffectsAppliedEvent {
   readonly id: typeof HorseEventIds.stateEffectsApplied;
   readonly context: HorseEventContext;
-  readonly sourceEventId: Exclude<
-    HorseEventId,
-    typeof HorseEventIds.stateEffectsApplied | typeof HorseEventIds.mountRejected
-  >;
+  readonly sourceEventId: Exclude<HorseEventId, typeof HorseEventIds.stateEffectsApplied>;
   readonly effects: readonly ContentEffect[];
 }
 
 export type HorseRuntimeEvent =
+  | HorseSolutionSelectedEvent
   | HorseInteractionConfirmedEvent
   | HorseMountConfirmedEvent
-  | HorseMountRejectedEvent
+  | HorseDismountConfirmedEvent
   | HorseTrialCheckpointConfirmedEvent
   | HorseTrialResetConfirmedEvent
   | HorseAcquisitionConfirmedEvent
@@ -205,6 +230,7 @@ export interface HorseRuntimeStateSnapshot {
   readonly counters: Readonly<Record<string, number>>;
   readonly appliedIdempotencyKeys: readonly string[];
   readonly selectedSolution: HorseQuestSolutionId | null;
+  readonly mountedActorId: string | null;
   readonly failed: boolean;
   readonly completed: boolean;
 }
