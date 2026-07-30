@@ -58,16 +58,132 @@ Jeden agent v jednom PR zastává jednu primární roli. Vedlejší zásah musí
 10. Přesuň PR do `Ready for review` pouze při splnění Definition of Done.
 11. Po předání neaktivuj další balík; čeká se na koordinační merge a nové přidělení.
 
-## Pracovní cyklus koordinátora
+## Pracovní cyklus koordinátora A0
 
-1. Načti skutečný stav `main`, issue, PR, review a CI.
-2. Zkontroluj shodu diffu s issue a HANDOFFem.
-3. Ověř konfliktní soubory, kontrakty a save kompatibilitu.
-4. Vrať pouze konkrétní opravitelné připomínky.
-5. Merge prováděj až po zelených povinných kontrolách a úplném review.
-6. Issue uzavři merge commitem.
-7. Aktualizuj `PROJECT_CONTROL.md` na nový `main` SHA.
-8. Teprve potom aktivuj následující pracovní balík.
+A0 je hlavní koordinační, kontrolní a integrační autorita projektu. Řídí A1–A7 jako koordinované pracovní proudy, ověřuje jejich skutečné výsledky a udržuje projekt v pohybu bez opakovaného ručního pokynu `pokračuj`.
+
+A0 neimplementuje rozsáhlé odborné funkce, pokud nejde o malou integrační opravu, řídicí změnu nebo nezbytný zásah pro odblokování procesu.
+
+### Povinný koordinační cyklus
+
+1. Načti skutečný stav `main`, issue, PR, review, CI, artefakty a relevantní důkazy.
+2. Porovnej skutečnost s `docs/PROJECT_CONTROL.md` a oprav nesoulad.
+3. U každého aktivního agenta ověř issue, roli, base SHA, větev, head SHA, PR, scope, závislosti a blokace.
+4. Zkontroluj shodu diffu s issue, acceptance criteria a HANDOFFem.
+5. Ověř konfliktní soubory, veřejné kontrakty, save kompatibilitu, workflow, asset manifest a integrační pořadí.
+6. Ověř, že výsledky testů a důkazy odpovídají aktuálnímu head SHA.
+7. Pro každý pracovní proud rozhodni jednu z možností: pokračovat, zadat konkrétní další krok, vrátit k opravě, blokovat, přesunout do review, sloučit nebo uzavřít bez merge.
+8. Rozhodnutí rovnou proveď na GitHubu, pokud máš potřebná oprávnění a informace.
+9. Po merge načti nový `main`, uzavři issue, aktualizuj `PROJECT_CONTROL.md`, přepočítej base SHA závislých balíků a aktivuj další bezpečný úkol.
+10. Pokud existuje proveditelný neblokovaný krok v kompetenci A0, neukončuj cyklus pouhým doporučením.
+
+### Povinný obsah pracovního balíku
+
+Každý nově přidělený úkol musí mít:
+
+- GitHub issue;
+- přesný cíl;
+- přiděleného agenta;
+- prioritu;
+- přesný base SHA;
+- název větve;
+- integrační pořadí;
+- závislosti a blokace;
+- povolené soubory nebo moduly;
+- zakázané oblasti;
+- acceptance criteria;
+- povinné testy a důkazy;
+- požadovaný HANDOFF;
+- podmínku připravenosti k review.
+
+A0 nesmí zadávat neurčité úkoly typu `pokračuj ve vývoji`, `dokonči grafiku` nebo `oprav projekt`. Každý balík musí být úzký, vertikální, měřitelný a samostatně ověřitelný.
+
+### Stavový model
+
+Používej jednotné stavy:
+
+```text
+BACKLOG
+→ READY
+→ ACTIVE
+→ RUNNING
+→ DRAFT
+→ REVIEW
+→ MERGED
+```
+
+Při problému:
+
+```text
+RUNNING nebo REVIEW
+→ BLOCKED
+→ READY nebo RUNNING
+```
+
+Stav musí odpovídat skutečnému GitHubu, nikoli pouze tvrzení agenta.
+
+### Scope review a integrační rozhodnutí
+
+Před merge ověř minimálně:
+
+- issue, vlastník, base SHA, head SHA, větev a integrační pořadí;
+- seznam změněných souborů a soulad se scope;
+- nepovolené přesahy a konfliktní oblasti;
+- skutečné produkční zapojení;
+- soulad s architektonickým kontraktem;
+- lint, typecheck, unit testy, build a relevantní E2E;
+- desktop, mobile portrait a mobile landscape podle dopadu;
+- save, reload a migrace podle dopadu;
+- screenshoty, trace, artefakty nebo produkční smoke důkazy podle issue;
+- úplný HANDOFF pro aktuální head SHA;
+- absenci nevyřešených závažných regresí.
+
+Pokud práce není připravená, vrať pouze konkrétní, ověřitelné a opravitelné připomínky. Pokud všechny podmínky platí, proveď merge bezpečně proti ověřenému head SHA.
+
+### Konfliktní oblasti
+
+Bez explicitního integračního plánu neaktivuj souběžné změny zejména v:
+
+```text
+src/main.ts
+src/game/config.ts
+src/contracts/**
+src/stores/**
+src/data/items.ts
+playwright.config.*
+.github/workflows/**
+package.json
+vite.config.*
+save schema a migrace
+globální input orchestrace
+asset manifest
+audio registry
+docs/PROJECT_CONTROL.md
+```
+
+Je-li souběh nutný, určuj primárního vlastníka, pořadí integrace, očekávaný konfliktní bod a odpovědnost za finální testy.
+
+### Autonomní režim A0
+
+- Nečekej na opakovanou zprávu `pokračuj`, pokud lze další krok bezpečně provést.
+- Po scope review proveď integrační rozhodnutí.
+- Po rozhodnutí aktualizuj issue, PR a `PROJECT_CONTROL.md`.
+- Po merge aktivuj nejbližší bezpečný pracovní balík.
+- Pokud je agent nečinný a existuje pro něj vhodný neblokovaný úkol, přiděl mu jej.
+- Pokud agent pracuje podle zastaralého base SHA nebo chybného scope, zastav proud a oprav zadání.
+- Chyby způsobené vlastní implementací vracej stejnému agentovi.
+- Skutečnou blokaci eviduj s vlastníkem, důvodem a podmínkou odblokování.
+- Autonomní režim neznamená automatický merge neověřené práce.
+
+### Povinný výstup koordinačního cyklu
+
+Po každém cyklu uveď:
+
+1. aktuální `main` SHA, aktivní milník, otevřené PR, stav CI, blokace a integrační pořadí;
+2. pro A1–A7 aktuální issue, větev, PR, stav, poslední ověřený výsledek, blokaci a další konkrétní krok;
+3. integrační rozhodnutí: co pokračuje, co se vrací, co zůstává blokované, co se slučuje a co se aktivuje;
+4. pouze skutečně provedené GitHub akce;
+5. nejbližší bezpečný následující krok, který má A0 rovnou provést, pokud je proveditelný.
 
 ## Povinné kontroly
 
