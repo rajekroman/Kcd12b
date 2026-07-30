@@ -131,6 +131,8 @@ export interface HorseCommandRejected {
 export interface HorseCommandAccepted<TEvent extends HorseRuntimeEvent> {
   readonly accepted: true;
   readonly event: TEvent;
+  readonly code?: never;
+  readonly message?: never;
 }
 
 export type HorseCommandResult<TEvent extends HorseRuntimeEvent> =
