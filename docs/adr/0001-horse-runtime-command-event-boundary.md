@@ -56,9 +56,7 @@ The contract covers:
 
 ## Validation
 
-Final implementation head before this documentation-only commit: `c855f3a492decc27e439fb1ce68a99c7031ffc04`.
-
-Workflow run `30529003198` completed successfully:
+Implementation head `c855f3a492decc27e439fb1ce68a99c7031ffc04` passed workflow run `30529003198`:
 
 - dependency installation: SUCCESS;
 - lint: SUCCESS;
@@ -67,3 +65,5 @@ Workflow run `30529003198` completed successfully:
 - production build: SUCCESS;
 - Playwright E2E: SUCCESS;
 - deploy: correctly SKIPPED for a pull request.
+
+Final documentation head `33c4f30aed9133ba09c5acbb80b28de4f4a2b9f2` is validated by workflow run `30539942388` before the PR may leave draft state.
