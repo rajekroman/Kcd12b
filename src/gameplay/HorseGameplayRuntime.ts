@@ -23,7 +23,6 @@ export interface HorseGameplayRuntimeOptions {
 }
 
 export type HorseGameplayDispatchResult = HorseRuntimeTransition | HorseCommandRejected;
-
 type OrchestratorResult = HorseRuntimeTransition | HorseCommandResult<HorseRuntimeEvent>;
 
 const isTransition = (result: OrchestratorResult): result is HorseRuntimeTransition =>
@@ -73,7 +72,7 @@ export class HorseGameplayRuntime {
       throw new Error("HorseGameplayRuntime must be initialized before dispatching commands.");
     }
 
-    const result = this.options.orchestrator.execute(
+    const result: OrchestratorResult = this.options.orchestrator.execute(
       command,
       this.snapshot,
       this.options.externalConditions?.() ?? {},
@@ -81,9 +80,7 @@ export class HorseGameplayRuntime {
 
     if (isRejected(result)) return result;
     if (!isTransition(result)) {
-      throw new Error(
-        `HorseRuntimeOrchestrator returned an accepted event without a state transition for ${command.id}.`,
-      );
+      throw new Error("Horse orchestrator accepted a command without a state transition.");
     }
 
     await this.options.orchestrator.save(this.options.persistence, result.state);
