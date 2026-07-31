@@ -18,6 +18,7 @@ const OWNER_APPROVAL = { x: 610, y: 295 };
 
 export class FirstHorseGameScene extends HorseGameScene {
   private covertDetectionLatched = false;
+  private trialRestartQueued = false;
   private replacementInteract?: () => void;
 
   public override create(): void {
@@ -41,15 +42,20 @@ export class FirstHorseGameScene extends HorseGameScene {
       const snapshot = internals.horseCoordinator.getSnapshot();
       if (
         internals.horseReady &&
-        !internals.producerBusy &&
         snapshot.mountedActorId === ACTOR_ID &&
         !snapshot.worldFlags["horse.jiskra.trial_started"] &&
         !snapshot.worldFlags["horse.jiskra.trial_completed"]
       ) {
-        void internals.runHorseAction(
-          "restart-trial",
-          internals.horseCoordinator.performInteraction("interaction.start_trial_ride"),
-        );
+        if (this.trialRestartQueued) return;
+        this.trialRestartQueued = true;
+        void internals
+          .runHorseAction(
+            "restart-trial",
+            internals.horseCoordinator.performInteraction("interaction.start_trial_ride"),
+          )
+          .finally(() => {
+            this.trialRestartQueued = false;
+          });
         return;
       }
       previousInteract();
@@ -60,6 +66,7 @@ export class FirstHorseGameScene extends HorseGameScene {
     EventBus.on(GameEvents.INTERACT, replacement);
     this.replacementInteract = replacement;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.trialRestartQueued = false;
       if (this.replacementInteract) {
         EventBus.off(GameEvents.INTERACT, this.replacementInteract);
         this.replacementInteract = undefined;
