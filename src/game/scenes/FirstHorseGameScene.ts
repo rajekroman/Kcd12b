@@ -30,12 +30,12 @@ export class FirstHorseGameScene extends HorseGameScene {
     this.produceCovertDetectionFailure();
   }
 
-  private internals(): HorseSceneInternals {
+  private horseInternals(): HorseSceneInternals {
     return this as unknown as HorseSceneInternals;
   }
 
   private installTrialRestartInteraction(): void {
-    const internals = this.internals();
+    const internals = this.horseInternals();
     const previousInteract = internals.interact;
     const replacement = () => {
       const snapshot = internals.horseCoordinator.getSnapshot();
@@ -68,7 +68,7 @@ export class FirstHorseGameScene extends HorseGameScene {
   }
 
   private produceCovertDetectionFailure(): void {
-    const internals = this.internals();
+    const internals = this.horseInternals();
     if (!internals.horseReady || internals.producerBusy || this.covertDetectionLatched) return;
 
     const snapshot = internals.horseCoordinator.getSnapshot();
