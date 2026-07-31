@@ -21,6 +21,7 @@ const LAWFUL_GATE = { x: 555, y: 330 };
 const LAWFUL_HERBS = { x: 500, y: 390 };
 const OWNER_APPROVAL = { x: 610, y: 295 };
 const COVERT_GATE = { x: 670, y: 330 };
+const TRIAL_RESTART_POINT = { x: 700, y: 350 };
 const CHECKPOINTS = [
   { x: 760, y: 350 },
   { x: 920, y: 430 },
@@ -107,7 +108,13 @@ const expectHorse = async (
 
 const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
   if (!isMobileProject(testInfo.project.name)) {
-    await page.keyboard.press('e');
+    const canvas = page.locator('canvas');
+    const bounds = await canvas.boundingBox();
+    if (!bounds) throw new Error('Canvas bounds are not available for keyboard interaction.');
+    await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+    await page.keyboard.down('e');
+    await page.waitForTimeout(80);
+    await page.keyboard.up('e');
     return;
   }
   const button = page.locator('[data-control="interact"]');
@@ -258,6 +265,7 @@ test('lawful horse path mounts, resets, reloads and completes the ordered trial'
       !snapshot.worldFlags['horse.jiskra.trial_started'] &&
       snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 0
   );
+  await reloadAt(page, TRIAL_RESTART_POINT);
   await pressInteract(page, testInfo);
   await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.trial_started']);
 
