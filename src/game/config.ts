@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
-import { GameScene } from './scenes/GameScene';
+import { HorseGameScene } from './scenes/HorseGameScene';
 import { MenuScene } from './scenes/MenuScene';
 import { UIScene } from './scenes/UIScene';
 
@@ -27,5 +27,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     pixelArt: true,
     roundPixels: true
   },
-  scene: [BootScene, MenuScene, GameScene, UIScene]
+  scene: [BootScene, MenuScene, HorseGameScene, UIScene]
 };
