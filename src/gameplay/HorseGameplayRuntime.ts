@@ -4,6 +4,7 @@ import {
 } from "../application/HorseRuntimeOrchestrator";
 import type {
   HorseCommandRejected,
+  HorseCommandResult,
   HorseRuntimeCommand,
   HorseRuntimeEvent,
   HorseRuntimePersistenceBoundary,
@@ -23,9 +24,13 @@ export interface HorseGameplayRuntimeOptions {
 
 export type HorseGameplayDispatchResult = HorseRuntimeTransition | HorseCommandRejected;
 
-const isTransition = (
-  result: HorseRuntimeTransition | HorseCommandRejected,
-): result is HorseRuntimeTransition => "state" in result;
+type OrchestratorResult = HorseRuntimeTransition | HorseCommandResult<HorseRuntimeEvent>;
+
+const isTransition = (result: OrchestratorResult): result is HorseRuntimeTransition =>
+  "state" in result;
+
+const isRejected = (result: OrchestratorResult): result is HorseCommandRejected =>
+  "accepted" in result && result.accepted === false;
 
 /**
  * Gameplay-owned adapter around the A1 orchestrator.
@@ -74,7 +79,12 @@ export class HorseGameplayRuntime {
       this.options.externalConditions?.() ?? {},
     );
 
-    if (!isTransition(result)) return result;
+    if (isRejected(result)) return result;
+    if (!isTransition(result)) {
+      throw new Error(
+        `HorseRuntimeOrchestrator returned an accepted event without a state transition for ${command.id}.`,
+      );
+    }
 
     await this.options.orchestrator.save(this.options.persistence, result.state);
     this.snapshot = result.state;
