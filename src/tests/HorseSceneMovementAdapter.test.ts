@@ -24,14 +24,14 @@ describe('HorseSceneMovementAdapter', () => {
   it('applies movement only for the authoritative mounted actor', () => {
     let mountedActorId: string | null = 'player.henry';
     let position = { x: 10, y: 20 };
-    let reported: HorseMovementState | null = null;
+    const reported: HorseMovementState[] = [];
     const adapter = new HorseSceneMovementAdapter({
       runtime: runtime(() => mountedActorId),
       actorId: 'player.henry',
       host: {
         getPosition: () => position,
         setPosition: (x, y) => { position = { x, y }; },
-        setMovementState: (state) => { reported = state; }
+        setMovementState: (state) => { reported.push(state); }
       },
       collision: { canOccupy: () => true }
     });
@@ -39,7 +39,7 @@ describe('HorseSceneMovementAdapter', () => {
     const moved = adapter.step({ axisX: 1, axisY: 0, sprint: false }, 1);
     expect(moved.x).toBe(80);
     expect(position.x).toBe(80);
-    expect(reported?.gait).toBe('walk');
+    expect(reported.at(-1)?.gait).toBe('walk');
 
     mountedActorId = null;
     const blocked = adapter.step({ axisX: 1, axisY: 0, sprint: true }, 1);
