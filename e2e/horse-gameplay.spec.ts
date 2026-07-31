@@ -112,18 +112,7 @@ const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
   }
   const button = page.locator('[data-control="interact"]');
   await expect(button).toBeVisible();
-  await button.dispatchEvent('pointerdown', {
-    pointerId: 31,
-    pointerType: 'touch',
-    isPrimary: true,
-    buttons: 1
-  });
-  await button.dispatchEvent('pointerup', {
-    pointerId: 31,
-    pointerType: 'touch',
-    isPrimary: true,
-    buttons: 0
-  });
+  await button.tap();
 };
 
 const repositionPrimarySave = async (page: Page, position: Position): Promise<void> => {
@@ -170,31 +159,40 @@ const holdMountedSprint = async (page: Page, testInfo: TestInfo): Promise<void> 
 
   const right = page.locator('[data-control="right"]');
   const sprint = page.locator('[data-control="dodge"]');
-  await right.dispatchEvent('pointerdown', {
-    pointerId: 41,
-    pointerType: 'touch',
-    isPrimary: true,
-    buttons: 1
+  await expect(right).toBeVisible();
+  await expect(sprint).toBeVisible();
+  const rightBounds = await right.boundingBox();
+  const sprintBounds = await sprint.boundingBox();
+  if (!rightBounds || !sprintBounds) throw new Error('Mobile horse control bounds are unavailable.');
+
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      {
+        x: rightBounds.x + rightBounds.width / 2,
+        y: rightBounds.y + rightBounds.height / 2,
+        id: 41,
+        radiusX: 3,
+        radiusY: 3,
+        force: 1
+      },
+      {
+        x: sprintBounds.x + sprintBounds.width / 2,
+        y: sprintBounds.y + sprintBounds.height / 2,
+        id: 42,
+        radiusX: 3,
+        radiusY: 3,
+        force: 1
+      }
+    ]
   });
-  await sprint.dispatchEvent('pointerdown', {
-    pointerId: 42,
-    pointerType: 'touch',
-    isPrimary: false,
-    buttons: 1
-  });
-  await expect.poll(async () => Number(await page.locator('body').getAttribute('data-horse-stamina'))).toBeLessThan(100);
-  await right.dispatchEvent('pointerup', {
-    pointerId: 41,
-    pointerType: 'touch',
-    isPrimary: true,
-    buttons: 0
-  });
-  await sprint.dispatchEvent('pointerup', {
-    pointerId: 42,
-    pointerType: 'touch',
-    isPrimary: false,
-    buttons: 0
-  });
+  try {
+    await expect.poll(async () => Number(await page.locator('body').getAttribute('data-horse-stamina'))).toBeLessThan(100);
+  } finally {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach();
+  }
 };
 
 test('lawful horse path mounts, resets, reloads and completes the ordered trial', async ({ page }, testInfo) => {
@@ -288,7 +286,9 @@ test('covert horse acquisition remains claimed after reload', async ({ page }, t
   await continueGame(page);
 
   await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.inspected']);
   await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.fed']);
   await pressInteract(page, testInfo);
   await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.trust_earned']);
 
