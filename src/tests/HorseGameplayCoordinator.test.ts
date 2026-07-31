@@ -112,4 +112,26 @@ describe("HorseGameplayCoordinator", () => {
     expect(coordinator.getSnapshot().worldFlags["horse.jiskra.injured"]).toBe(true);
     expect(boundary.read()?.failed).toBe(true);
   });
+
+  it("publishes covert detection effects through the declared failure command", async () => {
+    const base = createInitialHorseRuntimeState(firstHorseQuestContent);
+    const { coordinator } = await createCoordinator({
+      ...base,
+      selectedSolution: "covert_release",
+      worldFlags: {
+        ...base.worldFlags,
+        "horse.quest.first.covert_release": true,
+      },
+    });
+
+    await coordinator.reportFailure(
+      "failure.first_horse.covert_detection",
+      "covert_detection",
+    );
+
+    const snapshot = coordinator.getSnapshot();
+    expect(snapshot.failed).toBe(true);
+    expect(snapshot.worldFlags["stable.radovesice.covert_detected"]).toBe(true);
+    expect(snapshot.worldFlags["stable.radovesice.owner_hostile"]).toBe(true);
+  });
 });
