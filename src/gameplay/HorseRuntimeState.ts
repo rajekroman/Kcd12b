@@ -2,7 +2,9 @@ import type { HorseRuntimeStateSnapshot } from "../contracts/horseRuntime";
 import type { HorseQuestContentContract } from "../data/horseQuestContent";
 
 const initialWorldFlags = (content: HorseQuestContentContract): Record<string, boolean> => {
-  const flags: Record<string, boolean> = {};
+  const flags: Record<string, boolean> = Object.fromEntries(
+    content.worldFlags.map((flagId) => [flagId, false]),
+  );
 
   for (const stage of content.stages) {
     for (const effect of stage.onComplete) {
@@ -32,7 +34,18 @@ const initialWorldFlags = (content: HorseQuestContentContract): Record<string, b
   }
 
   flags["horse.quest.first.started"] = true;
+  flags["horse.jiskra.care_available"] = true;
   return flags;
+};
+
+const initialCounters = (content: HorseQuestContentContract): Record<string, number> => {
+  const counters: Record<string, number> = Object.fromEntries(
+    content.counters.map((counterId) => [counterId, 0]),
+  );
+  for (const model of content.progressModels) {
+    counters[model.counterId] = model.initialValue;
+  }
+  return counters;
 };
 
 export const createInitialHorseRuntimeState = (
@@ -41,9 +54,7 @@ export const createInitialHorseRuntimeState = (
   questId: content.questId,
   horseId: content.horseId,
   worldFlags: initialWorldFlags(content),
-  counters: Object.fromEntries(
-    content.progressModels.map((model) => [model.counterId, model.initialValue]),
-  ),
+  counters: initialCounters(content),
   appliedIdempotencyKeys: [],
   selectedSolution: null,
   mountedActorId: null,
