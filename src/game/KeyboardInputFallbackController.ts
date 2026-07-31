@@ -5,6 +5,8 @@ interface InputSnapshot {
   stamina: string | undefined;
   dialogueId: string | undefined;
   lastMessage: string | undefined;
+  horseAction: string | undefined;
+  horseLastEvent: string | undefined;
   attackDirection: string | undefined;
   dodgeReady: string | undefined;
 }
@@ -64,7 +66,12 @@ export class KeyboardInputFallbackController {
     }
 
     if (code === 'KeyE') {
-      if (after.dialogueId === before.dialogueId && after.lastMessage === before.lastMessage) {
+      if (
+        after.dialogueId === before.dialogueId &&
+        after.lastMessage === before.lastMessage &&
+        after.horseAction === before.horseAction &&
+        after.horseLastEvent === before.horseLastEvent
+      ) {
         EventBus.emit(GameEvents.INTERACT);
       }
       return;
@@ -93,6 +100,8 @@ export class KeyboardInputFallbackController {
       stamina: document.body.dataset.stamina,
       dialogueId: document.body.dataset.dialogueId,
       lastMessage: document.body.dataset.lastMessage,
+      horseAction: document.body.dataset.horseAction,
+      horseLastEvent: document.body.dataset.horseLastEvent,
       attackDirection: document.body.dataset.attackDirection,
       dodgeReady: document.body.dataset.dodgeReady
     };
