@@ -58,17 +58,18 @@ export const stepHorseMovement = (
   collision: HorseCollisionProbe,
   config: HorseMovementConfig = DEFAULT_HORSE_MOVEMENT_CONFIG,
 ): HorseMovementState => {
-  const dt = Math.max(0, deltaSeconds);
+  if (deltaSeconds <= 0) return state;
+
   const [axisX, axisY] = normalizeAxis(input.axisX, input.axisY);
   const moving = axisX !== 0 || axisY !== 0;
   const sprinting = moving && input.sprint && state.stamina > 0;
   const gait: HorseGait = !moving ? "idle" : sprinting ? "sprint" : input.sprint ? "canter" : "walk";
   const speed = gait === "sprint" ? config.sprintSpeed : gait === "canter" ? config.canterSpeed : gait === "walk" ? config.walkSpeed : 0;
   const nextStamina = sprinting
-    ? clamp(state.stamina - config.sprintDrainPerSecond * dt, 0, config.maxStamina)
-    : clamp(state.stamina + config.recoveryPerSecond * dt, 0, config.maxStamina);
-  const nextX = state.x + axisX * speed * dt;
-  const nextY = state.y + axisY * speed * dt;
+    ? clamp(state.stamina - config.sprintDrainPerSecond * deltaSeconds, 0, config.maxStamina)
+    : clamp(state.stamina + config.recoveryPerSecond * deltaSeconds, 0, config.maxStamina);
+  const nextX = state.x + axisX * speed * deltaSeconds;
+  const nextY = state.y + axisY * speed * deltaSeconds;
 
   if (!moving || collision.canOccupy(nextX, nextY)) {
     return { x: nextX, y: nextY, stamina: nextStamina, gait };
