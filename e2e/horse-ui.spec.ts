@@ -19,6 +19,7 @@ interface HorseSnapshot {
 
 const HORSE_STORAGE_KEY = 'chronicles.horse-runtime.v1';
 const HORSE_HOME = { x: 620, y: 350 };
+const OUTSIDE_TRIAL_ROUTE = { x: 240, y: 180 };
 
 const merchant = {
   id: 'trader-katerina',
@@ -96,6 +97,24 @@ const continueGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-horse-ready', 'true');
 };
 
+const isMobileProject = (projectName: string): boolean => projectName.startsWith('iphone-');
+
+const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
+  if (isMobileProject(testInfo.project.name)) {
+    const button = page.locator('[data-control="interact"]');
+    await expect(button).toBeVisible();
+    await button.tap();
+    return;
+  }
+  const canvas = page.locator('canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Canvas bounds are not available for keyboard interaction.');
+  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+  await page.keyboard.down('e');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('e');
+};
+
 const attachEvidence = async (page: Page, testInfo: TestInfo, name: string): Promise<void> => {
   await testInfo.attach(`${testInfo.project.name}-${name}`, {
     body: await page.screenshot({ fullPage: true }),
@@ -141,6 +160,29 @@ test('horse HUD stays read-only, safe-area bounded and hides mount status before
   await attachEvidence(page, testInfo, 'horse-hud-pre-unlock');
 });
 
+test('rejected mount request gets deterministic UI feedback without mutating horse ownership', async ({ page }, testInfo) => {
+  await installState(
+    page,
+    snapshot({
+      worldFlags: {
+        'horse.jiskra.claimed': true,
+        'horse.jiskra.mount_unlocked': false,
+      },
+      counters: { 'horse.jiskra.trust_points': 3 },
+      selectedSolution: 'lawful_service',
+    }),
+  );
+  await continueGame(page);
+  await pressInteract(page, testInfo);
+
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-horse-rejection', 'mount_not_unlocked');
+  await expect(body).toHaveAttribute('data-horse-feedback', 'Nasednutí ještě není odemčené.');
+  await expect(body).toHaveAttribute('data-last-message', 'Nasednutí ještě není odemčené.');
+  await expect(body).toHaveAttribute('data-horse-mounted', '');
+  await attachEvidence(page, testInfo, 'horse-mount-rejection');
+});
+
 test('horse HUD shows authoritative mounted, gait, stamina and checkpoint state', async ({ page }, testInfo) => {
   await installState(
     page,
@@ -170,6 +212,37 @@ test('horse HUD shows authoritative mounted, gait, stamina and checkpoint state'
   await expect(hud.locator('[data-horse-hud-stamina]')).toContainText('Výdrž:');
   await expectInsideViewport(page);
   await attachEvidence(page, testInfo, 'horse-hud-mounted');
+});
+
+test('trial route reset publishes confirmed reset feedback', async ({ page }, testInfo) => {
+  await installState(
+    page,
+    snapshot({
+      worldFlags: {
+        'horse.jiskra.claimed': true,
+        'horse.jiskra.mount_unlocked': true,
+        'horse.jiskra.trial_started': true,
+      },
+      counters: {
+        'horse.jiskra.trust_points': 3,
+        'horse.jiskra.trial_checkpoint_index': 2,
+      },
+      selectedSolution: 'lawful_service',
+      mountedActorId: 'player.henry',
+    }),
+    OUTSIDE_TRIAL_ROUTE,
+  );
+  await continueGame(page);
+
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-horse-last-event', 'horse.event.trial_reset_confirmed');
+  await expect(body).toHaveAttribute(
+    'data-horse-feedback',
+    'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
+  );
+  await expect(body).toHaveAttribute('data-horse-trial-active', 'false');
+  await expect(body).toHaveAttribute('data-horse-trial-index', '0');
+  await attachEvidence(page, testInfo, 'horse-trial-reset-feedback');
 });
 
 test('terminal horse failure remains visible and accessible', async ({ page }, testInfo) => {
