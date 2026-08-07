@@ -18,7 +18,7 @@ export class HorseHudController {
       </div>
       <div class="horse-hud__row">
         <span data-horse-hud-trust></span>
-        <span data-horse-hud-mount></span>
+        <span data-horse-hud-mount hidden></span>
       </div>
       <div class="horse-hud__row" data-horse-hud-ride>
         <span data-horse-hud-gait></span>
@@ -43,16 +43,13 @@ export class HorseHudController {
 
     this.text('[data-horse-hud-status]', viewModel.statusLabel);
     this.text('[data-horse-hud-trust]', viewModel.trust.label);
-    this.text(
-      '[data-horse-hud-mount]',
-      viewModel.mounted
-        ? 'Nasednuto'
-        : viewModel.mountUnlocked
-          ? 'Nasednutí dostupné'
-          : viewModel.claimed
-            ? 'Nasednutí zamčeno'
-            : 'Kůň nezískán',
-    );
+
+    const mount = this.root.querySelector<HTMLElement>('[data-horse-hud-mount]');
+    if (mount) {
+      mount.hidden = !viewModel.mountUnlocked && !viewModel.mounted;
+      mount.textContent = viewModel.mounted ? 'Nasednuto' : 'Nasednutí dostupné';
+    }
+
     this.text('[data-horse-hud-gait]', `Chod: ${viewModel.gait}`);
     this.text('[data-horse-hud-stamina]', `Výdrž: ${viewModel.stamina}`);
     this.text('[data-horse-hud-trial]', viewModel.trial.label);
