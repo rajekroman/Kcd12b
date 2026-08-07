@@ -1,3 +1,4 @@
+import '../../styles/horse-hud.css';
 import type { HorseHudViewModel } from './HorseHudViewModel';
 
 export class HorseHudController {
