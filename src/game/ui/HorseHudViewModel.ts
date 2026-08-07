@@ -66,7 +66,7 @@ export const createHorseHudViewModel = ({
           : `Důvěra Jiskry ${trust}/${trustTarget}.`;
 
   return {
-    visible: !snapshot.failed || claimed || snapshot.completed,
+    visible: true,
     trust: {
       current: trust,
       target: trustTarget,
