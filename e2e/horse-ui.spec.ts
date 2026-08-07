@@ -165,6 +165,10 @@ test('rejected mount request gets deterministic UI feedback without mutating hor
     page,
     snapshot({
       worldFlags: {
+        'horse.jiskra.inspected': true,
+        'horse.jiskra.fed': true,
+        'horse.jiskra.groomed': true,
+        'horse.jiskra.trust_earned': true,
         'horse.jiskra.claimed': true,
         'horse.jiskra.mount_unlocked': false,
       },
@@ -235,9 +239,12 @@ test('trial route reset publishes confirmed reset feedback', async ({ page }, te
   await continueGame(page);
 
   const body = page.locator('body');
-  await expect(body).toHaveAttribute('data-horse-last-event', 'horse.event.trial_reset_confirmed');
   await expect(body).toHaveAttribute(
     'data-horse-feedback',
+    'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
+  );
+  await expect(body).toHaveAttribute(
+    'data-last-message',
     'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
   );
   await expect(body).toHaveAttribute('data-horse-trial-active', 'false');
