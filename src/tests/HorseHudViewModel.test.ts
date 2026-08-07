@@ -70,7 +70,7 @@ describe('createHorseHudViewModel', () => {
     expect(viewModel.mounted).toBe(false);
   });
 
-  it('surfaces terminal failure and clamps presentation values', () => {
+  it('keeps terminal failure visible and clamps presentation values', () => {
     const viewModel = createHorseHudViewModel({
       snapshot: snapshot({
         failed: true,
@@ -83,6 +83,7 @@ describe('createHorseHudViewModel', () => {
       actorId: 'player.henry',
     });
 
+    expect(viewModel.visible).toBe(true);
     expect(viewModel.failed).toBe(true);
     expect(viewModel.trust.current).toBe(3);
     expect(viewModel.trial.checkpointIndex).toBe(3);
