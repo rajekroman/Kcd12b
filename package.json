@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "validate:assets": "node scripts/validate-assets.mjs"
+    "validate:assets": "node scripts/validate-assets.mjs",
+    "export:assets": "node scripts/export-atlases.mjs",
+    "check:asset-exports": "node scripts/export-atlases.mjs --check"
   },
   "dependencies": {
     "phaser": "3.90.0"
