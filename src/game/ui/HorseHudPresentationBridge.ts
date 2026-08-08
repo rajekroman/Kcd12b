@@ -1,52 +1,33 @@
-import type { HorseRuntimeStateSnapshot } from '../../contracts/horseRuntime';
 import { firstHorseQuestContent } from '../../data/horseQuestContent';
-import { createInitialHorseRuntimeState } from '../../gameplay/HorseRuntimeState';
-import { HORSE_RUNTIME_STORAGE_KEY } from '../../gameplay/HorseRuntimeStorage';
-import type { HorseMovementState } from '../../gameplay/HorseMovementModel';
 import { HorseHudController } from './HorseHudController';
-import { createHorseHudViewModel } from './HorseHudViewModel';
+import {
+  createHorseHudViewModel,
+  type HorseHudGait,
+  type HorseHudSolution,
+} from './HorseHudViewModel';
 
 const ACTOR_ID = 'player.henry';
+const ALLOWED_GAITS: readonly HorseHudGait[] = ['idle', 'walk', 'canter', 'sprint'];
 
-const isHorseSnapshot = (value: unknown): value is HorseRuntimeStateSnapshot => {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<HorseRuntimeStateSnapshot>;
-  return (
-    typeof candidate.questId === 'string' &&
-    typeof candidate.horseId === 'string' &&
-    !!candidate.worldFlags &&
-    typeof candidate.worldFlags === 'object' &&
-    !!candidate.counters &&
-    typeof candidate.counters === 'object' &&
-    Array.isArray(candidate.appliedIdempotencyKeys) &&
-    (candidate.selectedSolution === null || typeof candidate.selectedSolution === 'string') &&
-    (candidate.mountedActorId === null || typeof candidate.mountedActorId === 'string') &&
-    typeof candidate.failed === 'boolean' &&
-    typeof candidate.completed === 'boolean'
-  );
+const readBoolean = (value: string | undefined): boolean => value === 'true';
+
+const readNumber = (value: string | undefined, fallback = 0): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const movementFromDataset = (dataset: DOMStringMap): Pick<HorseMovementState, 'gait' | 'stamina'> => {
-  const gait = dataset.horseGait;
-  const allowedGaits: readonly HorseMovementState['gait'][] = ['idle', 'walk', 'canter', 'sprint'];
-  const stamina = Number(dataset.horseStamina ?? 100);
-  return {
-    gait: allowedGaits.includes(gait as HorseMovementState['gait'])
-      ? (gait as HorseMovementState['gait'])
-      : 'idle',
-    stamina: Number.isFinite(stamina) ? stamina : 100,
-  };
-};
+const readGait = (value: string | undefined): HorseHudGait =>
+  ALLOWED_GAITS.includes(value as HorseHudGait) ? (value as HorseHudGait) : 'idle';
+
+const readSolution = (value: string | undefined): HorseHudSolution =>
+  value === 'lawful_service' || value === 'covert_release' ? value : null;
 
 export class HorseHudPresentationBridge {
   private readonly controller: HorseHudController;
   private readonly observer: MutationObserver;
   private destroyed = false;
 
-  public constructor(
-    private readonly host: HTMLElement = document.body,
-    private readonly storage: Storage = window.localStorage,
-  ) {
+  public constructor(private readonly host: HTMLElement = document.body) {
     this.controller = new HorseHudController(host);
     this.controller.getElement().hidden = true;
     this.observer = new MutationObserver(() => this.render());
@@ -54,9 +35,11 @@ export class HorseHudPresentationBridge {
       attributes: true,
       attributeFilter: [
         'data-horse-ready',
+        'data-horse-trust',
         'data-horse-mounted',
         'data-horse-solution',
         'data-horse-claimed',
+        'data-horse-mount-unlocked',
         'data-horse-trial-active',
         'data-horse-trial-index',
         'data-horse-completed',
@@ -65,6 +48,7 @@ export class HorseHudPresentationBridge {
         'data-horse-stamina',
         'data-horse-action',
         'data-horse-last-event',
+        'data-horse-feedback',
       ],
     });
     this.render();
@@ -84,28 +68,23 @@ export class HorseHudPresentationBridge {
       return;
     }
 
-    const snapshot = this.readSnapshot();
+    const dataset = this.host.dataset;
     this.controller.render(
       createHorseHudViewModel({
-        snapshot,
-        movement: movementFromDataset(this.host.dataset),
-        actorId: ACTOR_ID,
+        trustCurrent: readNumber(dataset.horseTrust),
         trustTarget: firstHorseQuestContent.progressModels[0]?.threshold ?? 3,
+        solution: readSolution(dataset.horseSolution),
+        claimed: readBoolean(dataset.horseClaimed),
+        mounted: dataset.horseMounted === ACTOR_ID,
+        mountUnlocked: readBoolean(dataset.horseMountUnlocked),
+        gait: readGait(dataset.horseGait),
+        stamina: readNumber(dataset.horseStamina, 100),
+        trialActive: readBoolean(dataset.horseTrialActive),
+        trialCompleted: readBoolean(dataset.horseCompleted),
+        trialCheckpointIndex: readNumber(dataset.horseTrialIndex),
         checkpointCount: firstHorseQuestContent.trialRoute.checkpointIds.length,
+        failed: readBoolean(dataset.horseFailed),
       }),
     );
-  }
-
-  private readSnapshot(): HorseRuntimeStateSnapshot {
-    const serialized = this.storage.getItem(HORSE_RUNTIME_STORAGE_KEY);
-    if (serialized) {
-      try {
-        const parsed: unknown = JSON.parse(serialized);
-        if (isHorseSnapshot(parsed)) return parsed;
-      } catch {
-        // The runtime storage boundary also treats malformed data as absent.
-      }
-    }
-    return createInitialHorseRuntimeState(firstHorseQuestContent);
   }
 }
