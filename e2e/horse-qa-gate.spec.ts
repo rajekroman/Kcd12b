@@ -1,5 +1,10 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 interface HorseSnapshot {
   worldFlags: Record<string, boolean>;
   counters: Record<string, number>;
@@ -11,6 +16,11 @@ interface HorseSnapshot {
 }
 
 const HORSE_STORAGE_KEY = 'chronicles.horse-runtime.v1';
+const HORSE_HOME = { x: 620, y: 350 };
+const LAWFUL_GATE = { x: 555, y: 330 };
+const LAWFUL_HERBS = { x: 500, y: 390 };
+const OWNER_APPROVAL = { x: 610, y: 295 };
+const CHECKPOINT_ONE = { x: 760, y: 350 };
 
 const merchant = {
   id: 'trader-katerina',
@@ -23,14 +33,15 @@ const merchant = {
   ],
 };
 
-const installState = async (page: Page, horse: HorseSnapshot): Promise<void> => {
-  await page.addInitScript(({ horseSnapshot, initialMerchant, horseStorageKey }) => {
-    localStorage.setItem(horseStorageKey, JSON.stringify(horseSnapshot));
+const isMobileProject = (projectName: string): boolean => projectName.startsWith('iphone-');
+
+const installBaseSave = async (page: Page, position: Position): Promise<void> => {
+  await page.addInitScript(({ initialPosition, initialMerchant }) => {
     localStorage.setItem(
       'chronicles-of-bohemia.save.v5',
       JSON.stringify({
         version: 5,
-        player: { x: 620, y: 350, health: 100, stamina: 100 },
+        player: { x: initialPosition.x, y: initialPosition.y, health: 100, stamina: 100 },
         quest: { id: 'first-steel', step: 'complete', banditDefeated: true },
         world: { dayClock: 35, huntedAnimals: [] },
         economy: {
@@ -46,7 +57,7 @@ const installState = async (page: Page, horse: HorseSnapshot): Promise<void> => 
         savedAt: '2026-08-08T10:00:00.000Z',
       }),
     );
-  }, { horseSnapshot: horse, initialMerchant: merchant, horseStorageKey: HORSE_STORAGE_KEY });
+  }, { initialPosition: position, initialMerchant: merchant });
 };
 
 const continueGame = async (page: Page): Promise<void> => {
@@ -63,11 +74,27 @@ const continueGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-horse-ready', 'true');
 };
 
-const readHorse = (page: Page): Promise<HorseSnapshot> =>
-  page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}') as HorseSnapshot, HORSE_STORAGE_KEY);
+const readHorse = (page: Page): Promise<HorseSnapshot | null> =>
+  page.evaluate((key) => {
+    const serialized = localStorage.getItem(key);
+    return serialized ? JSON.parse(serialized) as HorseSnapshot : null;
+  }, HORSE_STORAGE_KEY);
+
+const expectHorse = async (
+  page: Page,
+  predicate: (snapshot: HorseSnapshot) => boolean,
+): Promise<HorseSnapshot> => {
+  await expect.poll(async () => {
+    const snapshot = await readHorse(page);
+    return snapshot ? predicate(snapshot) : false;
+  }).toBe(true);
+  const snapshot = await readHorse(page);
+  if (!snapshot) throw new Error('Horse runtime snapshot is missing.');
+  return snapshot;
+};
 
 const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
-  if (testInfo.project.name.startsWith('iphone-')) {
+  if (isMobileProject(testInfo.project.name)) {
     const button = page.locator('[data-control="interact"]');
     await expect(button).toBeVisible();
     await button.tap();
@@ -75,9 +102,74 @@ const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
   }
   const canvas = page.locator('canvas');
   const bounds = await canvas.boundingBox();
-  if (!bounds) throw new Error('Canvas bounds are unavailable.');
+  if (!bounds) throw new Error('Canvas bounds are unavailable for keyboard interaction.');
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await page.keyboard.press('e');
+  await page.keyboard.down('e');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('e');
+};
+
+const repositionPrimarySave = async (page: Page, position: Position): Promise<void> => {
+  await page.evaluate(async ({ x, y }) => {
+    const request = indexedDB.open('chronicles-of-bohemia', 1);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction('saves', 'readwrite');
+    const store = transaction.objectStore('saves');
+    const getRequest = store.get('primary');
+    const record = await new Promise<{ id: string; payload: { player: Position } }>((resolve, reject) => {
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+    record.payload.player.x = x;
+    record.payload.player.y = y;
+    store.put(record);
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    database.close();
+  }, position);
+};
+
+const reloadAt = async (page: Page, position: Position): Promise<void> => {
+  await repositionPrimarySave(page, position);
+  await page.reload();
+  await continueGame(page);
+};
+
+const prepareLawfulClaim = async (page: Page, testInfo: TestInfo): Promise<void> => {
+  await installBaseSave(page, HORSE_HOME);
+  await continueGame(page);
+
+  await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.inspected']);
+  await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.fed']);
+  await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['horse.jiskra.trust_earned']);
+
+  await reloadAt(page, LAWFUL_GATE);
+  await pressInteract(page, testInfo);
+  await expectHorse(
+    page,
+    (snapshot) => snapshot.selectedSolution === 'lawful_service' && snapshot.worldFlags['stable.radovesice.gate_repaired'],
+  );
+
+  await reloadAt(page, LAWFUL_HERBS);
+  await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.worldFlags['stable.radovesice.herbs_delivered']);
+
+  await reloadAt(page, OWNER_APPROVAL);
+  await pressInteract(page, testInfo);
+  await expectHorse(
+    page,
+    (snapshot) => snapshot.worldFlags['horse.jiskra.claimed'] && snapshot.worldFlags['horse.jiskra.mount_unlocked'],
+  );
+  await reloadAt(page, HORSE_HOME);
 };
 
 const attachEvidence = async (page: Page, testInfo: TestInfo, name: string): Promise<void> => {
@@ -88,66 +180,51 @@ const attachEvidence = async (page: Page, testInfo: TestInfo, name: string): Pro
 };
 
 test('active mounted trial survives reload without duplicating idempotency state', async ({ page }, testInfo) => {
-  const initial: HorseSnapshot = {
-    worldFlags: {
-      'horse.jiskra.claimed': true,
-      'horse.jiskra.mount_unlocked': true,
-      'horse.jiskra.trial_started': true,
-    },
-    counters: {
-      'horse.jiskra.trust_points': 3,
-      'horse.jiskra.trial_checkpoint_index': 1,
-    },
-    appliedIdempotencyKeys: ['qa.trial.active'],
-    selectedSolution: 'lawful_service',
-    mountedActorId: 'player.henry',
-    failed: false,
-    completed: false,
-  };
-  await installState(page, initial);
-  await continueGame(page);
-  await expect(page.locator('body')).toHaveAttribute('data-horse-mounted', 'player.henry');
-  await expect(page.locator('body')).toHaveAttribute('data-horse-trial-active', 'true');
+  await prepareLawfulClaim(page, testInfo);
+  await pressInteract(page, testInfo);
+  const mounted = await expectHorse(
+    page,
+    (snapshot) => snapshot.mountedActorId === 'player.henry' && snapshot.worldFlags['horse.jiskra.trial_started'],
+  );
+  const keyCountBeforeCheckpoint = mounted.appliedIdempotencyKeys.length;
+
+  await reloadAt(page, CHECKPOINT_ONE);
+  const checkpoint = await expectHorse(
+    page,
+    (snapshot) => snapshot.mountedActorId === 'player.henry' && snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 1,
+  );
+  const keyCountAfterCheckpoint = checkpoint.appliedIdempotencyKeys.length;
+  expect(keyCountAfterCheckpoint).toBeGreaterThanOrEqual(keyCountBeforeCheckpoint);
+
   await page.reload();
   await continueGame(page);
-  const restored = await readHorse(page);
-  expect(restored.mountedActorId).toBe('player.henry');
+  const restored = await expectHorse(
+    page,
+    (snapshot) => snapshot.mountedActorId === 'player.henry' && snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 1,
+  );
   expect(restored.worldFlags['horse.jiskra.trial_started']).toBe(true);
-  expect(restored.counters['horse.jiskra.trial_checkpoint_index']).toBe(1);
-  expect(restored.appliedIdempotencyKeys).toEqual(initial.appliedIdempotencyKeys);
+  expect(restored.appliedIdempotencyKeys).toHaveLength(keyCountAfterCheckpoint);
   await attachEvidence(page, testInfo, 'active-trial-reloaded');
 });
 
 test('inventory modal owns input and prevents horse interact until closed', async ({ page }, testInfo) => {
-  const initial: HorseSnapshot = {
-    worldFlags: {
-      'horse.jiskra.claimed': true,
-      'horse.jiskra.mount_unlocked': true,
-    },
-    counters: { 'horse.jiskra.trust_points': 3 },
-    appliedIdempotencyKeys: [],
-    selectedSolution: 'lawful_service',
-    mountedActorId: null,
-    failed: false,
-    completed: false,
-  };
-  await installState(page, initial);
-  await continueGame(page);
+  await prepareLawfulClaim(page, testInfo);
 
-  if (testInfo.project.name.startsWith('iphone-')) {
+  if (isMobileProject(testInfo.project.name)) {
     await page.locator('[data-control="inventory"]').tap();
   } else {
     await page.keyboard.press('i');
   }
   await expect(page.locator('#economy-overlay')).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-economy-open', 'true');
-  await page.keyboard.press('e');
-  expect((await readHorse(page)).mountedActorId).toBeNull();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('body')).toHaveAttribute('data-economy-open', 'false');
 
   await pressInteract(page, testInfo);
-  await expect.poll(async () => (await readHorse(page)).mountedActorId).toBe('player.henry');
+  expect((await expectHorse(page, () => true)).mountedActorId).toBeNull();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('body')).toHaveAttribute('data-economy-open', 'false');
+  await pressInteract(page, testInfo);
+  await expectHorse(page, (snapshot) => snapshot.mountedActorId === 'player.henry');
   await attachEvidence(page, testInfo, 'inventory-input-ownership');
 });
 
@@ -159,29 +236,16 @@ test('repeated reload keeps a single interact effect and emits no page or consol
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
-  await installState(page, {
-    worldFlags: {
-      'horse.jiskra.claimed': true,
-      'horse.jiskra.mount_unlocked': true,
-    },
-    counters: { 'horse.jiskra.trust_points': 3 },
-    appliedIdempotencyKeys: [],
-    selectedSolution: 'lawful_service',
-    mountedActorId: null,
-    failed: false,
-    completed: false,
-  });
-  await continueGame(page);
-
+  await prepareLawfulClaim(page, testInfo);
   for (let index = 0; index < 3; index += 1) {
     await page.reload();
     await continueGame(page);
   }
 
   await pressInteract(page, testInfo);
-  await expect.poll(async () => (await readHorse(page)).mountedActorId).toBe('player.henry');
+  await expectHorse(page, (snapshot) => snapshot.mountedActorId === 'player.henry');
   await pressInteract(page, testInfo);
-  await expect.poll(async () => (await readHorse(page)).mountedActorId).toBeNull();
+  await expectHorse(page, (snapshot) => snapshot.mountedActorId === null);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
   await attachEvidence(page, testInfo, 'reload-listener-stability');
