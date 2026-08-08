@@ -175,6 +175,7 @@ export class HorseGameScene extends GameScene {
       },
       collision: { canOccupy: (x, y) => this.canHorseOccupy(x, y) },
     });
+    this.hydrateActiveCheckpointZone();
     this.horseReady = true;
     document.body.dataset.horseReady = "true";
     this.syncHorseDatasets();
@@ -272,6 +273,35 @@ export class HorseGameScene extends GameScene {
   private near(point: Point, radius = INTERACTION_RADIUS): boolean {
     const player = this.internals().player;
     return distance({ x: player.x, y: player.y }, point) <= radius;
+  }
+
+  private hydrateActiveCheckpointZone(): void {
+    const snapshot = this.horseCoordinator.getSnapshot();
+    if (
+      !snapshot.worldFlags["horse.jiskra.trial_started"] ||
+      snapshot.completed ||
+      snapshot.mountedActorId !== ACTOR_ID
+    ) {
+      this.activeCheckpointZone = null;
+      return;
+    }
+
+    const progress = snapshot.counters[firstHorseQuestContent.trialRoute.progressCounterId] ?? 0;
+    if (progress <= 0) {
+      this.activeCheckpointZone = null;
+      return;
+    }
+
+    const confirmedIndex = Math.min(progress - 1, TRIAL_POINTS.length - 1);
+    const confirmedPoint = TRIAL_POINTS[confirmedIndex];
+    const confirmedId = firstHorseQuestContent.trialRoute.checkpointIds[confirmedIndex];
+    const player = this.internals().player;
+    this.activeCheckpointZone =
+      confirmedPoint &&
+      confirmedId &&
+      distance({ x: player.x, y: player.y }, confirmedPoint) <= CHECKPOINT_RADIUS
+        ? confirmedId
+        : null;
   }
 
   private async handleHorseInteraction(): Promise<boolean> {
