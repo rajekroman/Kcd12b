@@ -25,6 +25,7 @@ export class HorseHudController {
         <span data-horse-hud-stamina></span>
         <span data-horse-hud-trial></span>
       </div>
+      <div class="horse-hud__feedback" data-horse-hud-feedback hidden></div>
     `;
     host.append(root);
     this.root = root;
@@ -56,6 +57,12 @@ export class HorseHudController {
 
     const ride = this.root.querySelector<HTMLElement>('[data-horse-hud-ride]');
     if (ride) ride.hidden = !viewModel.mounted && !viewModel.trial.active;
+
+    const feedback = this.root.querySelector<HTMLElement>('[data-horse-hud-feedback]');
+    if (feedback) {
+      feedback.hidden = !viewModel.feedback;
+      feedback.textContent = viewModel.feedback ?? '';
+    }
   }
 
   public destroy(): void {
