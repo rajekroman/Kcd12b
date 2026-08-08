@@ -94,6 +94,23 @@ const continueGame = async (page: Page): Promise<void> => {
 
 const isMobileProject = (projectName: string): boolean => projectName.startsWith('iphone-');
 
+const pressInteract = async (page: Page, testInfo: TestInfo): Promise<void> => {
+  if (isMobileProject(testInfo.project.name)) {
+    const button = page.locator('[data-control="interact"]');
+    await expect(button).toBeVisible();
+    await button.tap();
+    return;
+  }
+
+  const canvas = page.locator('canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Canvas bounds are unavailable for keyboard interaction.');
+  await page.mouse.click(bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5);
+  await page.keyboard.down('e');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('e');
+};
+
 const attachEvidence = async (page: Page, testInfo: TestInfo): Promise<void> => {
   await testInfo.attach(`${testInfo.project.name}-horse-modal-input-ownership`, {
     body: await page.screenshot({ fullPage: true }),
@@ -132,16 +149,8 @@ test('inventory modal owns horse interact on keyboard and touch', async ({ page 
   await expect(body).not.toHaveAttribute('data-horse-action', 'mount');
   await attachEvidence(page, testInfo);
 
-  if (isMobileProject(testInfo.project.name)) {
-    await page.locator('[data-economy-close]').click();
-    await expect(body).toHaveAttribute('data-economy-open', 'false');
-    await expect(interact).toBeVisible();
-    await interact.tap();
-  } else {
-    await page.keyboard.press('Escape');
-    await expect(body).toHaveAttribute('data-economy-open', 'false');
-    await page.keyboard.press('e');
-  }
-
+  await page.keyboard.press('Escape');
+  await expect(body).toHaveAttribute('data-economy-open', 'false');
+  await pressInteract(page, testInfo);
   await expect(body).toHaveAttribute('data-horse-mounted', 'player.henry');
 });
