@@ -151,12 +151,13 @@ test('horse HUD stays read-only, safe-area bounded and hides mount status before
   await expect(hud).toHaveAttribute('data-mount-unlocked', 'false');
   await expect(hud.locator('[data-horse-hud-trust]')).toHaveText('Důvěra 3/3');
   await expect(hud.locator('[data-horse-hud-mount]')).toBeHidden();
+  await expect(hud.locator('[data-horse-hud-feedback]')).toBeHidden();
   expect(await hud.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
   await expectInsideViewport(page);
   await attachEvidence(page, testInfo, 'horse-hud-pre-unlock');
 });
 
-test('rejected mount request gets deterministic UI feedback without mutating horse ownership', async ({ page }, testInfo) => {
+test('rejected mount request keeps dedicated horse feedback visible across global message changes', async ({ page }, testInfo) => {
   await installState(
     page,
     snapshot({
@@ -176,9 +177,18 @@ test('rejected mount request gets deterministic UI feedback without mutating hor
   await pressInteract(page, testInfo);
 
   const body = page.locator('body');
+  const feedback = page.locator('[data-horse-hud-feedback]');
   await expect(body).toHaveAttribute('data-horse-rejection', 'mount_not_unlocked');
   await expect(body).toHaveAttribute('data-horse-feedback', 'Nasednutí ještě není odemčené.');
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveText('Nasednutí ještě není odemčené.');
   await expect(body).toHaveAttribute('data-horse-mounted', '');
+
+  await page.evaluate(() => {
+    document.body.dataset.lastMessage = 'Jiná globální systémová zpráva.';
+  });
+  await expect(body).not.toHaveAttribute('data-last-message', 'Nasednutí ještě není odemčené.');
+  await expect(feedback).toHaveText('Nasednutí ještě není odemčené.');
   await attachEvidence(page, testInfo, 'horse-mount-rejection');
 });
 
@@ -213,7 +223,7 @@ test('horse HUD shows authoritative mounted, gait, stamina and checkpoint state'
   await attachEvidence(page, testInfo, 'horse-hud-mounted');
 });
 
-test('trial route reset publishes confirmed reset feedback', async ({ page }, testInfo) => {
+test('trial route reset publishes dedicated scoped reset feedback', async ({ page }, testInfo) => {
   await installState(
     page,
     snapshot({
@@ -234,16 +244,18 @@ test('trial route reset publishes confirmed reset feedback', async ({ page }, te
   await continueGame(page);
 
   const body = page.locator('body');
+  const feedback = page.locator('[data-horse-hud-feedback]');
   await expect(body).toHaveAttribute(
     'data-horse-feedback',
     'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
   );
+  await expect(feedback).toHaveText('Opustil jsi zkušební trasu. Checkpointy byly resetovány.');
   await expect(body).toHaveAttribute('data-horse-trial-active', 'false');
   await expect(body).toHaveAttribute('data-horse-trial-index', '0');
   await attachEvidence(page, testInfo, 'horse-trial-reset-feedback');
 });
 
-test('terminal horse failure remains visible and accessible', async ({ page }, testInfo) => {
+test('terminal horse failure keeps dedicated scoped feedback visible', async ({ page }, testInfo) => {
   await installState(
     page,
     snapshot({
@@ -253,10 +265,24 @@ test('terminal horse failure remains visible and accessible', async ({ page }, t
   );
   await continueGame(page);
 
+  const body = page.locator('body');
   const hud = page.locator('[data-horse-hud="true"]');
+  const feedback = hud.locator('[data-horse-hud-feedback]');
   await expect(hud).toBeVisible();
   await expect(hud).toHaveAttribute('data-failed', 'true');
   await expect(hud.locator('[data-horse-hud-status]')).toHaveText('Jezdecký úkol selhal.');
+
+  await page.evaluate(() => {
+    document.body.dataset.horseFeedback = 'Jiskra se zranila v nebezpečném boxu.';
+  });
+  await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
+
+  await page.evaluate(() => {
+    document.body.dataset.lastMessage = 'Jiná globální systémová zpráva.';
+  });
+  await expect(body).not.toHaveAttribute('data-last-message', 'Jiskra se zranila v nebezpečném boxu.');
+  await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
   await expectInsideViewport(page);
   await attachEvidence(page, testInfo, 'horse-hud-failure');
 });

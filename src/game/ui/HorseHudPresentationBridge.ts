@@ -84,6 +84,7 @@ export class HorseHudPresentationBridge {
         trialCheckpointIndex: readNumber(dataset.horseTrialIndex),
         checkpointCount: firstHorseQuestContent.trialRoute.checkpointIds.length,
         failed: readBoolean(dataset.horseFailed),
+        feedback: dataset.horseFeedback ?? null,
       }),
     );
   }

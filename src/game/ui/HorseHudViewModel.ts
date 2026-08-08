@@ -23,6 +23,7 @@ export interface HorseHudViewModel {
   };
   readonly failed: boolean;
   readonly statusLabel: string;
+  readonly feedback: string | null;
 }
 
 export interface HorseHudPresentationInput {
@@ -39,6 +40,7 @@ export interface HorseHudPresentationInput {
   readonly trialCheckpointIndex: number;
   readonly checkpointCount?: number;
   readonly failed: boolean;
+  readonly feedback?: string | null;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -58,10 +60,12 @@ export const createHorseHudViewModel = ({
   trialCheckpointIndex,
   checkpointCount = 3,
   failed,
+  feedback = null,
 }: HorseHudPresentationInput): HorseHudViewModel => {
   const trust = clamp(trustCurrent, 0, trustTarget);
   const checkpointIndex = clamp(trialCheckpointIndex, 0, checkpointCount);
   const stamina = clamp(Math.round(rawStamina), 0, 100);
+  const scopedFeedback = feedback?.trim() || null;
 
   const statusLabel = failed
     ? 'Jezdecký úkol selhal.'
@@ -97,5 +101,6 @@ export const createHorseHudViewModel = ({
     },
     failed,
     statusLabel,
+    feedback: scopedFeedback,
   };
 };

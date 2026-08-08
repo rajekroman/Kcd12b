@@ -36,6 +36,19 @@
   color: #f0d69a;
 }
 
+.horse-hud__feedback {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(209, 179, 110, 0.38);
+  color: #ffe7ad;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.horse-hud__feedback[hidden] {
+  display: none;
+}
+
 .horse-hud[data-mounted='true'] {
   border-color: rgba(240, 214, 154, 0.98);
 }
@@ -66,5 +79,10 @@
 
   .horse-hud__row + .horse-hud__row {
     margin-top: 3px;
+  }
+
+  .horse-hud__feedback {
+    margin-top: 4px;
+    padding-top: 4px;
   }
 }
