@@ -22,7 +22,6 @@ export interface HorseGameplayCoordinatorOptions {
 }
 
 export class HorseGameplayCoordinator {
-  private sequence = 0;
   private commandQueue: Promise<void> = Promise.resolve();
 
   public constructor(private readonly options: HorseGameplayCoordinatorOptions) {}
@@ -35,15 +34,25 @@ export class HorseGameplayCoordinator {
     return this.options.runtime.getSnapshot();
   }
 
+  private nextIdempotencyKey(action: string): string {
+    const applied = new Set(this.options.runtime.getSnapshot().appliedIdempotencyKeys);
+    let ordinal = 1;
+    let candidate = `${action}:command-${ordinal}`;
+    while (applied.has(candidate)) {
+      ordinal += 1;
+      candidate = `${action}:command-${ordinal}`;
+    }
+    return candidate;
+  }
+
   private context(action: string): HorseCommandContext {
     const issuedAtTick = Math.max(0, Math.floor(this.options.nowTick()));
-    this.sequence += 1;
     return {
       questId: this.options.content.questId,
       horseId: this.options.content.horseId,
       actorId: this.options.actorId,
       issuedAtTick,
-      idempotencyKey: `${action}:${issuedAtTick}:${this.sequence}`,
+      idempotencyKey: this.nextIdempotencyKey(action),
     };
   }
 
