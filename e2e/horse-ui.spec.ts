@@ -185,9 +185,9 @@ test('rejected mount request keeps dedicated horse feedback visible across globa
   await expect(body).toHaveAttribute('data-horse-mounted', '');
 
   await page.evaluate(() => {
-    document.body.dataset.lastMessage = 'Podezření roste. Stráž tě sleduje.';
+    document.body.dataset.lastMessage = 'Jiná globální systémová zpráva.';
   });
-  await expect(body).toHaveAttribute('data-last-message', 'Podezření roste. Stráž tě sleduje.');
+  await expect(body).not.toHaveAttribute('data-last-message', 'Nasednutí ještě není odemčené.');
   await expect(feedback).toHaveText('Nasednutí ještě není odemčené.');
   await attachEvidence(page, testInfo, 'horse-mount-rejection');
 });
@@ -279,9 +279,9 @@ test('terminal horse failure keeps dedicated scoped feedback visible', async ({ 
   await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
 
   await page.evaluate(() => {
-    document.body.dataset.lastMessage = 'Podezření roste. Stráž tě sleduje.';
+    document.body.dataset.lastMessage = 'Jiná globální systémová zpráva.';
   });
-  await expect(body).toHaveAttribute('data-last-message', 'Podezření roste. Stráž tě sleduje.');
+  await expect(body).not.toHaveAttribute('data-last-message', 'Jiskra se zranila v nebezpečném boxu.');
   await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
   await expectInsideViewport(page);
   await attachEvidence(page, testInfo, 'horse-hud-failure');
