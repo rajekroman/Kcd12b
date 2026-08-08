@@ -1,6 +1,10 @@
 import Phaser from "phaser";
 import { HorseRuntimeOrchestrator } from "../../application/HorseRuntimeOrchestrator";
-import { HorseEventIds, type HorseRuntimeEvent } from "../../contracts/horseRuntime";
+import {
+  HorseEventIds,
+  type HorseCommandRejected,
+  type HorseRuntimeEvent,
+} from "../../contracts/horseRuntime";
 import { EventBus, GameEvents } from "../../core/EventBus";
 import { firstHorseQuestContent } from "../../data/horseQuestContent";
 import { HorseGameplayCoordinator } from "../../gameplay/HorseGameplayCoordinator";
@@ -9,6 +13,7 @@ import type { HorseMovementInput, HorseMovementState } from "../../gameplay/Hors
 import { createInitialHorseRuntimeState } from "../../gameplay/HorseRuntimeState";
 import { HorseRuntimeStorage } from "../../gameplay/HorseRuntimeStorage";
 import { HorseSceneMovementAdapter } from "../controllers/HorseSceneMovementAdapter";
+import { getHorseRejectionMessage, getHorseTrialResetMessage } from "../ui/HorseFeedback";
 import { GameScene } from "./GameScene";
 
 interface BaseSceneInternals {
@@ -47,6 +52,12 @@ const CHECKPOINT_RADIUS = 30;
 const ROUTE_BOUNDS = new Phaser.Geom.Rectangle(535, 215, 600, 375);
 
 const distance = (a: Point, b: Point): number => Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+
+const isHorseCommandRejected = (value: unknown): value is HorseCommandRejected =>
+  typeof value === "object" &&
+  value !== null &&
+  "accepted" in value &&
+  (value as { accepted?: unknown }).accepted === false;
 
 export class HorseGameScene extends GameScene {
   private horseRuntime!: HorseGameplayRuntime;
@@ -349,8 +360,19 @@ export class HorseGameScene extends GameScene {
     this.producerBusy = true;
     document.body.dataset.horseAction = action;
     try {
-      await result;
-      if (message) EventBus.emit(GameEvents.MESSAGE, message);
+      const outcome = await result;
+      if (isHorseCommandRejected(outcome)) {
+        const feedback = getHorseRejectionMessage(outcome.code);
+        document.body.dataset.horseRejection = outcome.code;
+        document.body.dataset.horseFeedback = feedback;
+        EventBus.emit(GameEvents.MESSAGE, feedback);
+        return;
+      }
+      delete document.body.dataset.horseRejection;
+      if (message) {
+        document.body.dataset.horseFeedback = message;
+        EventBus.emit(GameEvents.MESSAGE, message);
+      }
       this.syncHorseDatasets();
     } finally {
       this.producerBusy = false;
@@ -425,6 +447,7 @@ export class HorseGameScene extends GameScene {
 
   private onHorseEvent(event: HorseRuntimeEvent): void {
     document.body.dataset.horseLastEvent = event.id;
+    delete document.body.dataset.horseRejection;
     if (event.id === HorseEventIds.mountConfirmed) {
       const player = this.internals().player;
       this.horseWorldPosition = { x: player.x, y: player.y };
@@ -432,6 +455,11 @@ export class HorseGameScene extends GameScene {
     if (event.id === HorseEventIds.dismountConfirmed) {
       const player = this.internals().player;
       this.horseWorldPosition = { x: player.x, y: player.y };
+    }
+    if (event.id === HorseEventIds.trialResetConfirmed) {
+      const feedback = getHorseTrialResetMessage(event.reason);
+      document.body.dataset.horseFeedback = feedback;
+      EventBus.emit(GameEvents.MESSAGE, feedback);
     }
     this.syncHorseDatasets();
   }
@@ -475,5 +503,7 @@ export class HorseGameScene extends GameScene {
     delete document.body.dataset.horseStamina;
     delete document.body.dataset.horseAction;
     delete document.body.dataset.horseLastEvent;
+    delete document.body.dataset.horseRejection;
+    delete document.body.dataset.horseFeedback;
   }
 }

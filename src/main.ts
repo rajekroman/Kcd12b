@@ -5,6 +5,7 @@ import { CharacterAnimationController } from './game/CharacterAnimationControlle
 import { ConfirmedAttackController } from './game/ConfirmedAttackController';
 import { CraftingUiController } from './game/CraftingUiController';
 import { gameConfig } from './game/config';
+import { HorseHudPresentationBridge } from './game/ui/HorseHudPresentationBridge';
 import { HuntingController } from './game/HuntingController';
 import { InventoryUiController } from './game/InventoryUiController';
 import { KeyboardInputFallbackController } from './game/KeyboardInputFallbackController';
@@ -28,6 +29,7 @@ const characterAnimationController = new CharacterAnimationController(game);
 const huntingController = new HuntingController(game);
 const weatherController = new WeatherController(game);
 const keyboardInputFallback = new KeyboardInputFallbackController();
+const horseHud = new HorseHudPresentationBridge();
 const audioController = new AdaptiveAudioController();
 const audioButton = document.querySelector<HTMLButtonElement>('[data-audio-toggle]');
 
@@ -39,6 +41,7 @@ audioButton?.addEventListener('click', releasePointerFocus);
 window.addEventListener('pagehide', () => {
   audioButton?.removeEventListener('click', releasePointerFocus);
   void audioController.destroy();
+  horseHud.destroy();
   keyboardInputFallback.destroy();
   weatherController.destroy();
   huntingController.destroy();
