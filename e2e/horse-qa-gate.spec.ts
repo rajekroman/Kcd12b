@@ -11,7 +11,6 @@ interface HorseSnapshot {
 }
 
 const HORSE_STORAGE_KEY = 'chronicles.horse-runtime.v1';
-const HORSE_HOME = { x: 620, y: 350 };
 
 const merchant = {
   id: 'trader-katerina',
