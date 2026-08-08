@@ -105,6 +105,7 @@ const loadModules = async () => {
   const vite = await createServer({
     appType: 'custom',
     logLevel: 'error',
+    optimizeDeps: { noDiscovery: true },
     server: { middlewareMode: true }
   });
 
@@ -211,6 +212,10 @@ const checkCommittedExports = async (exports) => {
       throw new Error(`Missing committed PNG for ${item.entry.id}: ${item.entry.targetPath}`);
     }
     if (!existing.equals(item.png)) {
+      console.error(
+        `ATLAS_MISMATCH\t${item.entry.targetPath}\texpected=${item.sha256}\tcommitted=${digest(existing)}`
+      );
+      console.error(`EXPECTED_BASE64\t${item.entry.targetPath}\t${item.png.toString('base64')}`);
       throw new Error(`Committed PNG differs from deterministic export: ${item.entry.targetPath}`);
     }
   }
