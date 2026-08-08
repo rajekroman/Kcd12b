@@ -178,22 +178,27 @@ const writeExports = async (exports, root = '.') => {
   }
 };
 
+const buildReport = (exports) => ({
+  generatedAt: null,
+  count: exports.length,
+  totalBytes: exports.reduce((sum, item) => sum + item.png.length, 0),
+  assets: exports.map((item) => ({
+    id: item.entry.id,
+    targetPath: item.entry.targetPath,
+    frameWidth: item.entry.frameWidth,
+    frameHeight: item.entry.frameHeight,
+    frameCount: item.entry.frameCount,
+    bytes: item.png.length,
+    sha256: item.sha256
+  }))
+});
+
 const writeReport = async (exports, root) => {
-  const report = {
-    generatedAt: null,
-    count: exports.length,
-    assets: exports.map((item) => ({
-      id: item.entry.id,
-      targetPath: item.entry.targetPath,
-      frameWidth: item.entry.frameWidth,
-      frameHeight: item.entry.frameHeight,
-      frameCount: item.entry.frameCount,
-      bytes: item.png.length,
-      sha256: item.sha256
-    }))
-  };
   await mkdir(resolve(root), { recursive: true });
-  await writeFile(resolve(root, 'atlas-export-report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(
+    resolve(root, 'atlas-export-report.json'),
+    `${JSON.stringify(buildReport(exports), null, 2)}\n`
+  );
 };
 
 const checkCommittedExports = async (exports) => {
@@ -228,5 +233,12 @@ if (argSet.has('--check')) {
 
 for (const item of exports) {
   console.log(`${item.entry.id}\t${item.entry.targetPath}\t${item.png.length} B\t${item.sha256}`);
+  if (argSet.has('--emit-base64')) {
+    console.log(`ATLAS_BASE64\t${item.entry.targetPath}\t${item.png.toString('base64')}`);
+  }
+}
+if (argSet.has('--emit-report-base64')) {
+  const report = Buffer.from(`${JSON.stringify(buildReport(exports), null, 2)}\n`);
+  console.log(`ATLAS_REPORT_BASE64\treports/atlas-export-report.json\t${report.toString('base64')}`);
 }
 console.log(`Verified ${exports.length} deterministic atlas PNG exports.`);
