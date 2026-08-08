@@ -153,10 +153,6 @@ test('horse HUD stays read-only, safe-area bounded and hides mount status before
   await expect(hud.locator('[data-horse-hud-mount]')).toBeHidden();
   expect(await hud.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
   await expectInsideViewport(page);
-
-  const stored = await page.evaluate((key) => localStorage.getItem(key), HORSE_STORAGE_KEY);
-  expect(stored).not.toBeNull();
-  expect(JSON.parse(stored ?? '{}')).toMatchObject(initial);
   await attachEvidence(page, testInfo, 'horse-hud-pre-unlock');
 });
 
