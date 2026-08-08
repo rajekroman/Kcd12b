@@ -100,6 +100,51 @@ describe("HorseGameplayCoordinator", () => {
     ).toBe(0);
   });
 
+  it("keeps checkpoint idempotency keys unique after coordinator recreation", async () => {
+    const active = claimedState();
+    const progressCounterId = firstHorseQuestContent.trialRoute.progressCounterId;
+    const checkpointId = firstHorseQuestContent.trialRoute.checkpointIds[0];
+    const { coordinator: firstCoordinator } = await createCoordinator({
+      ...active,
+      mountedActorId: "player.henry",
+      worldFlags: {
+        ...active.worldFlags,
+        "horse.jiskra.trial_started": true,
+      },
+    });
+
+    await firstCoordinator.confirmCheckpoint(checkpointId, 0);
+    const firstSnapshot = firstCoordinator.getSnapshot();
+    const firstCheckpointKeys = firstSnapshot.appliedIdempotencyKeys.filter((key) =>
+      key.startsWith("checkpoint-0:"),
+    );
+    expect(firstCheckpointKeys).toHaveLength(1);
+
+    const recreatedInitial: HorseRuntimeStateSnapshot = {
+      ...firstSnapshot,
+      worldFlags: {
+        ...firstSnapshot.worldFlags,
+        "horse.jiskra.trial_started": true,
+      },
+      counters: {
+        ...firstSnapshot.counters,
+        [progressCounterId]: 0,
+      },
+    };
+    const { coordinator: recreatedCoordinator } = await createCoordinator(recreatedInitial);
+
+    const repeated = await recreatedCoordinator.confirmCheckpoint(checkpointId, 0);
+    expect("state" in repeated).toBe(true);
+    const repeatedSnapshot = recreatedCoordinator.getSnapshot();
+    expect(repeatedSnapshot.counters[progressCounterId]).toBe(1);
+
+    const checkpointKeys = repeatedSnapshot.appliedIdempotencyKeys.filter((key) =>
+      key.startsWith("checkpoint-0:"),
+    );
+    expect(checkpointKeys).toHaveLength(2);
+    expect(new Set(checkpointKeys).size).toBe(2);
+  });
+
   it("publishes terminal pre-claim injury through the declared failure command", async () => {
     const { coordinator, boundary } = await createCoordinator();
 
