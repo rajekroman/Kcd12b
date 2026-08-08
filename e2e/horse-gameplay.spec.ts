@@ -241,7 +241,27 @@ test('lawful horse path mounts, resets, reloads and completes the ordered trial'
   await attachEvidence(page, testInfo, 'horse-mounted-sprint');
 
   await reloadAt(page, CHECKPOINTS[0]);
-  await expectHorse(page, (snapshot) => snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 1);
+  const checkpointOne = await expectHorse(
+    page,
+    (snapshot) =>
+      snapshot.mountedActorId === 'player.henry' &&
+      snapshot.worldFlags['horse.jiskra.trial_started'] &&
+      snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 1
+  );
+  const checkpointOneKeyCount = checkpointOne.appliedIdempotencyKeys.length;
+
+  await page.reload();
+  await continueGame(page);
+  const checkpointOneReloaded = await expectHorse(
+    page,
+    (snapshot) =>
+      snapshot.mountedActorId === 'player.henry' &&
+      snapshot.worldFlags['horse.jiskra.trial_started'] &&
+      snapshot.counters['horse.jiskra.trial_checkpoint_index'] === 1
+  );
+  expect(checkpointOneReloaded.appliedIdempotencyKeys).toHaveLength(checkpointOneKeyCount);
+  await attachEvidence(page, testInfo, 'horse-checkpoint-one-reloaded');
+
   await pressInteract(page, testInfo);
   await expectHorse(
     page,
