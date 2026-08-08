@@ -18,6 +18,7 @@ const presentation = (
   trialCompleted: false,
   trialCheckpointIndex: 0,
   failed: false,
+  feedback: null,
   ...overrides,
 });
 
@@ -86,5 +87,14 @@ describe('createHorseHudViewModel', () => {
     expect(viewModel.trial.checkpointIndex).toBe(3);
     expect(viewModel.stamina).toBe(0);
     expect(viewModel.statusLabel).toBe('Jezdecký úkol selhal.');
+  });
+
+  it('carries trimmed horse-specific feedback independently from global messages', () => {
+    const viewModel = createHorseHudViewModel(
+      presentation({ feedback: '  Nasednutí ještě není odemčené.  ' }),
+    );
+
+    expect(viewModel.feedback).toBe('Nasednutí ještě není odemčené.');
+    expect(createHorseHudViewModel(presentation({ feedback: '   ' })).feedback).toBeNull();
   });
 });
