@@ -1,5 +1,5 @@
-import type { HorseRuntimeStateSnapshot } from '../../contracts/horseRuntime';
-import type { HorseMovementState } from '../../gameplay/HorseMovementModel';
+export type HorseHudGait = 'idle' | 'walk' | 'canter' | 'sprint';
+export type HorseHudSolution = 'lawful_service' | 'covert_release' | null;
 
 export interface HorseHudViewModel {
   readonly visible: boolean;
@@ -8,11 +8,11 @@ export interface HorseHudViewModel {
     readonly target: number;
     readonly label: string;
   };
-  readonly solution: 'lawful_service' | 'covert_release' | null;
+  readonly solution: HorseHudSolution;
   readonly claimed: boolean;
   readonly mounted: boolean;
   readonly mountUnlocked: boolean;
-  readonly gait: HorseMovementState['gait'] | 'idle';
+  readonly gait: HorseHudGait;
   readonly stamina: number;
   readonly trial: {
     readonly active: boolean;
@@ -25,42 +25,50 @@ export interface HorseHudViewModel {
   readonly statusLabel: string;
 }
 
-export interface HorseHudViewModelInput {
-  readonly snapshot: HorseRuntimeStateSnapshot;
-  readonly movement?: Pick<HorseMovementState, 'gait' | 'stamina'>;
-  readonly actorId: string;
+export interface HorseHudPresentationInput {
+  readonly trustCurrent: number;
   readonly trustTarget?: number;
+  readonly solution: HorseHudSolution;
+  readonly claimed: boolean;
+  readonly mounted: boolean;
+  readonly mountUnlocked: boolean;
+  readonly gait: HorseHudGait;
+  readonly stamina: number;
+  readonly trialActive: boolean;
+  readonly trialCompleted: boolean;
+  readonly trialCheckpointIndex: number;
   readonly checkpointCount?: number;
+  readonly failed: boolean;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
 export const createHorseHudViewModel = ({
-  snapshot,
-  movement,
-  actorId,
+  trustCurrent,
   trustTarget = 3,
+  solution,
+  claimed,
+  mounted,
+  mountUnlocked,
+  gait,
+  stamina: rawStamina,
+  trialActive,
+  trialCompleted,
+  trialCheckpointIndex,
   checkpointCount = 3,
-}: HorseHudViewModelInput): HorseHudViewModel => {
-  const trust = clamp(snapshot.counters['horse.jiskra.trust_points'] ?? 0, 0, trustTarget);
-  const checkpointIndex = clamp(
-    snapshot.counters['horse.jiskra.trial_checkpoint_index'] ?? 0,
-    0,
-    checkpointCount,
-  );
-  const claimed = Boolean(snapshot.worldFlags['horse.jiskra.claimed']);
-  const mountUnlocked = Boolean(snapshot.worldFlags['horse.jiskra.mount_unlocked']);
-  const trialActive = Boolean(snapshot.worldFlags['horse.jiskra.trial_started']);
-  const mounted = snapshot.mountedActorId === actorId;
-  const stamina = clamp(Math.round(movement?.stamina ?? 100), 0, 100);
+  failed,
+}: HorseHudPresentationInput): HorseHudViewModel => {
+  const trust = clamp(trustCurrent, 0, trustTarget);
+  const checkpointIndex = clamp(trialCheckpointIndex, 0, checkpointCount);
+  const stamina = clamp(Math.round(rawStamina), 0, 100);
 
-  const statusLabel = snapshot.failed
+  const statusLabel = failed
     ? 'Jezdecký úkol selhal.'
-    : snapshot.completed
+    : trialCompleted
       ? 'Jiskra je připravena k jízdě.'
       : mounted
-        ? `Jízda: ${movement?.gait ?? 'idle'}, výdrž ${stamina}.`
+        ? `Jízda: ${gait}, výdrž ${stamina}.`
         : claimed
           ? 'Jiskra je získána.'
           : `Důvěra Jiskry ${trust}/${trustTarget}.`;
@@ -72,22 +80,22 @@ export const createHorseHudViewModel = ({
       target: trustTarget,
       label: `Důvěra ${trust}/${trustTarget}`,
     },
-    solution: snapshot.selectedSolution,
+    solution,
     claimed,
     mounted,
     mountUnlocked,
-    gait: movement?.gait ?? 'idle',
+    gait,
     stamina,
     trial: {
       active: trialActive,
-      completed: snapshot.completed,
+      completed: trialCompleted,
       checkpointIndex,
       checkpointCount,
-      label: snapshot.completed
+      label: trialCompleted
         ? 'Zkušební jízda dokončena'
         : `Trasa ${checkpointIndex}/${checkpointCount}`,
     },
-    failed: snapshot.failed,
+    failed,
     statusLabel,
   };
 };
