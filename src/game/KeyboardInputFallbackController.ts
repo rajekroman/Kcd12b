@@ -35,8 +35,7 @@ export class KeyboardInputFallbackController {
   private onKeyDown = (event: KeyboardEvent): void => {
     if (
       event.repeat ||
-      document.body.dataset.scene !== 'game' ||
-      document.body.dataset.saveReady !== 'true' ||
+      !this.isGameReady() ||
       !this.isSupportedCode(event.code) ||
       this.isFormControl(event.target)
     ) {
@@ -120,7 +119,8 @@ export class KeyboardInputFallbackController {
   private isGameReady(): boolean {
     return (
       document.body.dataset.scene === 'game' &&
-      document.body.dataset.saveReady === 'true'
+      document.body.dataset.saveReady === 'true' &&
+      document.body.dataset.economyOpen !== 'true'
     );
   }
 
