@@ -473,9 +473,11 @@ export class HorseGameScene extends GameScene {
     if (!this.horseRuntime) return;
     const snapshot = this.horseRuntime.getSnapshot();
     document.body.dataset.horseReady = this.horseReady ? "true" : "false";
+    document.body.dataset.horseTrust = String(snapshot.counters["horse.jiskra.trust_points"] ?? 0);
     document.body.dataset.horseMounted = snapshot.mountedActorId ?? "";
     document.body.dataset.horseSolution = snapshot.selectedSolution ?? "";
     document.body.dataset.horseClaimed = String(Boolean(snapshot.worldFlags["horse.jiskra.claimed"]));
+    document.body.dataset.horseMountUnlocked = String(Boolean(snapshot.worldFlags["horse.jiskra.mount_unlocked"]));
     document.body.dataset.horseTrialActive = String(Boolean(snapshot.worldFlags["horse.jiskra.trial_started"]));
     document.body.dataset.horseTrialIndex = String(
       snapshot.counters[firstHorseQuestContent.trialRoute.progressCounterId] ?? 0,
@@ -492,9 +494,11 @@ export class HorseGameScene extends GameScene {
     this.horseControlCleanup.forEach((cleanup) => cleanup());
     this.horseControlCleanup = [];
     delete document.body.dataset.horseReady;
+    delete document.body.dataset.horseTrust;
     delete document.body.dataset.horseMounted;
     delete document.body.dataset.horseSolution;
     delete document.body.dataset.horseClaimed;
+    delete document.body.dataset.horseMountUnlocked;
     delete document.body.dataset.horseTrialActive;
     delete document.body.dataset.horseTrialIndex;
     delete document.body.dataset.horseCompleted;
