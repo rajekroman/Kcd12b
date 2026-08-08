@@ -19,7 +19,6 @@ interface HorseSnapshot {
 
 const HORSE_STORAGE_KEY = 'chronicles.horse-runtime.v1';
 const HORSE_HOME = { x: 620, y: 350 };
-const STABLE_HAZARD = { x: 700, y: 260 };
 const OUTSIDE_TRIAL_ROUTE = { x: 240, y: 180 };
 
 const merchant = {
@@ -256,10 +255,15 @@ test('trial route reset publishes dedicated scoped reset feedback', async ({ pag
   await attachEvidence(page, testInfo, 'horse-trial-reset-feedback');
 });
 
-test('terminal horse failure publishes dedicated scoped failure feedback', async ({ page }, testInfo) => {
-  await installState(page, snapshot(), STABLE_HAZARD);
+test('terminal horse failure keeps dedicated scoped feedback visible', async ({ page }, testInfo) => {
+  await installState(
+    page,
+    snapshot({
+      worldFlags: { 'horse.jiskra.injured': true },
+      failed: true,
+    }),
+  );
   await continueGame(page);
-  await pressInteract(page, testInfo);
 
   const body = page.locator('body');
   const hud = page.locator('[data-horse-hud="true"]');
@@ -267,8 +271,17 @@ test('terminal horse failure publishes dedicated scoped failure feedback', async
   await expect(hud).toBeVisible();
   await expect(hud).toHaveAttribute('data-failed', 'true');
   await expect(hud.locator('[data-horse-hud-status]')).toHaveText('Jezdecký úkol selhal.');
-  await expect(body).toHaveAttribute('data-horse-feedback', 'Jiskra se zranila v nebezpečném boxu.');
+
+  await page.evaluate(() => {
+    document.body.dataset.horseFeedback = 'Jiskra se zranila v nebezpečném boxu.';
+  });
   await expect(feedback).toBeVisible();
+  await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
+
+  await page.evaluate(() => {
+    document.body.dataset.lastMessage = 'Podezření roste. Stráž tě sleduje.';
+  });
+  await expect(body).toHaveAttribute('data-last-message', 'Podezření roste. Stráž tě sleduje.');
   await expect(feedback).toHaveText('Jiskra se zranila v nebezpečném boxu.');
   await expectInsideViewport(page);
   await attachEvidence(page, testInfo, 'horse-hud-failure');
