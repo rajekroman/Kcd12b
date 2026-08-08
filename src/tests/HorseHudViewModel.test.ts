@@ -1,33 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import type { HorseRuntimeStateSnapshot } from '../contracts/horseRuntime';
-import { createHorseHudViewModel } from '../game/ui/HorseHudViewModel';
+import {
+  createHorseHudViewModel,
+  type HorseHudPresentationInput,
+} from '../game/ui/HorseHudViewModel';
 
-const snapshot = (overrides: Partial<HorseRuntimeStateSnapshot> = {}): HorseRuntimeStateSnapshot => ({
-  questId: 'quest.first_horse.oak_and_reins',
-  horseId: 'horse.dun_mare_jiskra',
-  worldFlags: {},
-  counters: {},
-  appliedIdempotencyKeys: [],
-  selectedSolution: null,
-  mountedActorId: null,
+const presentation = (
+  overrides: Partial<HorseHudPresentationInput> = {},
+): HorseHudPresentationInput => ({
+  trustCurrent: 0,
+  solution: null,
+  claimed: false,
+  mounted: false,
+  mountUnlocked: false,
+  gait: 'idle',
+  stamina: 100,
+  trialActive: false,
+  trialCompleted: false,
+  trialCheckpointIndex: 0,
   failed: false,
-  completed: false,
   ...overrides,
 });
 
 describe('createHorseHudViewModel', () => {
-  it('maps authoritative trust and mount unlock state without mutating the snapshot', () => {
-    const source = snapshot({
-      worldFlags: {
-        'horse.jiskra.claimed': true,
-        'horse.jiskra.mount_unlocked': true,
-      },
-      counters: { 'horse.jiskra.trust_points': 3 },
-      selectedSolution: 'lawful_service',
+  it('maps live trust and mount unlock presentation state without mutating its input', () => {
+    const source = presentation({
+      trustCurrent: 3,
+      solution: 'lawful_service',
+      claimed: true,
+      mountUnlocked: true,
     });
     const before = JSON.stringify(source);
 
-    const viewModel = createHorseHudViewModel({ snapshot: source, actorId: 'player.henry' });
+    const viewModel = createHorseHudViewModel(source);
 
     expect(viewModel.trust).toEqual({ current: 3, target: 3, label: 'Důvěra 3/3' });
     expect(viewModel.claimed).toBe(true);
@@ -37,20 +41,18 @@ describe('createHorseHudViewModel', () => {
     expect(JSON.stringify(source)).toBe(before);
   });
 
-  it('shows mounted gait, stamina and trial checkpoint progress from runtime inputs', () => {
-    const viewModel = createHorseHudViewModel({
-      snapshot: snapshot({
-        worldFlags: {
-          'horse.jiskra.claimed': true,
-          'horse.jiskra.mount_unlocked': true,
-          'horse.jiskra.trial_started': true,
-        },
-        counters: { 'horse.jiskra.trial_checkpoint_index': 2 },
-        mountedActorId: 'player.henry',
+  it('shows mounted gait, stamina and trial checkpoint progress from presentation inputs', () => {
+    const viewModel = createHorseHudViewModel(
+      presentation({
+        claimed: true,
+        mounted: true,
+        mountUnlocked: true,
+        gait: 'canter',
+        stamina: 67.6,
+        trialActive: true,
+        trialCheckpointIndex: 2,
       }),
-      movement: { gait: 'canter', stamina: 67.6 },
-      actorId: 'player.henry',
-    });
+    );
 
     expect(viewModel.mounted).toBe(true);
     expect(viewModel.gait).toBe('canter');
@@ -59,11 +61,8 @@ describe('createHorseHudViewModel', () => {
     expect(viewModel.statusLabel).toContain('canter');
   });
 
-  it('does not expose mount unlock before the authoritative flag is set', () => {
-    const viewModel = createHorseHudViewModel({
-      snapshot: snapshot({ worldFlags: { 'horse.jiskra.claimed': true } }),
-      actorId: 'player.henry',
-    });
+  it('does not expose mount unlock before the live flag is set', () => {
+    const viewModel = createHorseHudViewModel(presentation({ claimed: true }));
 
     expect(viewModel.claimed).toBe(true);
     expect(viewModel.mountUnlocked).toBe(false);
@@ -71,17 +70,15 @@ describe('createHorseHudViewModel', () => {
   });
 
   it('keeps terminal failure visible and clamps presentation values', () => {
-    const viewModel = createHorseHudViewModel({
-      snapshot: snapshot({
+    const viewModel = createHorseHudViewModel(
+      presentation({
+        trustCurrent: 99,
+        trialCheckpointIndex: 99,
+        gait: 'sprint',
+        stamina: -4,
         failed: true,
-        counters: {
-          'horse.jiskra.trust_points': 99,
-          'horse.jiskra.trial_checkpoint_index': 99,
-        },
       }),
-      movement: { gait: 'sprint', stamina: -4 },
-      actorId: 'player.henry',
-    });
+    );
 
     expect(viewModel.visible).toBe(true);
     expect(viewModel.failed).toBe(true);

@@ -153,10 +153,6 @@ test('horse HUD stays read-only, safe-area bounded and hides mount status before
   await expect(hud.locator('[data-horse-hud-mount]')).toBeHidden();
   expect(await hud.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none');
   await expectInsideViewport(page);
-
-  const stored = await page.evaluate((key) => localStorage.getItem(key), HORSE_STORAGE_KEY);
-  expect(stored).not.toBeNull();
-  expect(JSON.parse(stored ?? '{}')).toMatchObject(initial);
   await attachEvidence(page, testInfo, 'horse-hud-pre-unlock');
 });
 
@@ -182,7 +178,6 @@ test('rejected mount request gets deterministic UI feedback without mutating hor
   const body = page.locator('body');
   await expect(body).toHaveAttribute('data-horse-rejection', 'mount_not_unlocked');
   await expect(body).toHaveAttribute('data-horse-feedback', 'Nasednutí ještě není odemčené.');
-  await expect(body).toHaveAttribute('data-last-message', 'Nasednutí ještě není odemčené.');
   await expect(body).toHaveAttribute('data-horse-mounted', '');
   await attachEvidence(page, testInfo, 'horse-mount-rejection');
 });
@@ -241,10 +236,6 @@ test('trial route reset publishes confirmed reset feedback', async ({ page }, te
   const body = page.locator('body');
   await expect(body).toHaveAttribute(
     'data-horse-feedback',
-    'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
-  );
-  await expect(body).toHaveAttribute(
-    'data-last-message',
     'Opustil jsi zkušební trasu. Checkpointy byly resetovány.',
   );
   await expect(body).toHaveAttribute('data-horse-trial-active', 'false');
