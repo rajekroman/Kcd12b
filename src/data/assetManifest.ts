@@ -27,6 +27,7 @@ export interface AtlasAssetManifestEntry {
   sourceKind: AssetSourceKind;
   sourceModule: string;
   targetPath: string;
+  loadPath: string;
   frameWidth: number;
   frameHeight: number;
   frameCount: number;
@@ -39,9 +40,10 @@ const characterEntries: readonly AtlasAssetManifestEntry[] = CHARACTER_ATLAS_DEF
     id: `atlas.character.${key}`,
     family: 'character',
     runtimeKey: key,
-    sourceKind: 'runtime-generated',
+    sourceKind: 'static-file',
     sourceModule: 'src/systems/CharacterAtlasSystem.ts',
     targetPath: `public/assets/atlases/characters/${key}.png`,
+    loadPath: `assets/atlases/characters/${key}.png`,
     frameWidth: CHARACTER_FRAME_WIDTH,
     frameHeight: CHARACTER_FRAME_HEIGHT,
     frameCount: CHARACTER_FRAME_STATES.length,
@@ -55,9 +57,10 @@ const portraitEntries: readonly AtlasAssetManifestEntry[] = PORTRAIT_DEFINITIONS
     id: `atlas.portrait.${npcId}`,
     family: 'portrait',
     runtimeKey: `portrait:${npcId}`,
-    sourceKind: 'runtime-generated',
+    sourceKind: 'static-file',
     sourceModule: 'src/systems/PortraitSystem.ts',
     targetPath: `public/assets/atlases/portraits/${npcId}.png`,
+    loadPath: `assets/atlases/portraits/${npcId}.png`,
     frameWidth: PORTRAIT_WIDTH,
     frameHeight: PORTRAIT_HEIGHT,
     frameCount: PORTRAIT_EXPRESSIONS.length,
@@ -71,9 +74,10 @@ const faunaEntries: readonly AtlasAssetManifestEntry[] = Object.keys(ANIMAL_SPEC
     id: `atlas.fauna.${species}`,
     family: 'fauna',
     runtimeKey: `fauna:${species}`,
-    sourceKind: 'runtime-generated',
+    sourceKind: 'static-file',
     sourceModule: 'src/systems/FaunaAtlasSystem.ts',
     targetPath: `public/assets/atlases/fauna/${species}.png`,
+    loadPath: `assets/atlases/fauna/${species}.png`,
     frameWidth: FAUNA_FRAME_WIDTH,
     frameHeight: FAUNA_FRAME_HEIGHT,
     frameCount: FAUNA_FRAME_STATES.length,

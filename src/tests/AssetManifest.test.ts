@@ -15,7 +15,7 @@ describe('atlas asset manifest', () => {
     expect(ATLAS_ASSET_MANIFEST.filter(({ family }) => family === 'fauna')).toHaveLength(3);
   });
 
-  it('has unique ids, runtime keys and target PNG paths', () => {
+  it('has unique ids, runtime keys and production PNG paths', () => {
     const result = validateAssetManifest(ATLAS_ASSET_MANIFEST);
     expect(result).toEqual({ valid: true, errors: [] });
     expect(() => assertValidAssetManifest(ATLAS_ASSET_MANIFEST)).not.toThrow();
@@ -28,6 +28,7 @@ describe('atlas asset manifest', () => {
       id: first.id,
       runtimeKey: first.runtimeKey,
       targetPath: first.targetPath,
+      loadPath: first.loadPath,
       frameWidth: 0
     };
 
@@ -36,10 +37,14 @@ describe('atlas asset manifest', () => {
     expect(result.errors).toContain(`Duplicate asset id: ${first.id}`);
     expect(result.errors).toContain(`Duplicate runtime key: ${first.runtimeKey}`);
     expect(result.errors).toContain(`Duplicate target path: ${first.targetPath}`);
+    expect(result.errors).toContain(`Duplicate load path: ${first.loadPath}`);
     expect(result.errors).toContain(`Invalid frame geometry: ${duplicate.id}`);
   });
 
-  it('keeps the first checkpoint inventory-only', () => {
-    expect(ATLAS_ASSET_MANIFEST.every(({ sourceKind }) => sourceKind === 'runtime-generated')).toBe(true);
+  it('maps every committed exporter target to a boot-loadable static path', () => {
+    for (const entry of ATLAS_ASSET_MANIFEST) {
+      expect(entry.sourceKind).toBe('static-file');
+      expect(entry.targetPath).toBe(`public/${entry.loadPath}`);
+    }
   });
 });

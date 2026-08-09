@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ANIMAL_SPAWNS,
   ANIMAL_SPECIES,
@@ -17,6 +17,7 @@ import {
 import {
   buildFaunaAtlas,
   buildFaunaFrame,
+  registerFaunaAtlases,
   validateFaunaFrame
 } from '../systems/FaunaAtlasSystem';
 
@@ -48,6 +49,33 @@ describe('HuntingSystem', () => {
     expect(dead.pixels).not.toEqual(idle.pixels);
     expect(getFaunaFrameIndex('dead')).toBe(4);
     expect(getFaunaAnimationKey('hare', 'walk')).toBe('fauna:hare:walk');
+  });
+
+  it('registruje fauna animace i pro již přednačtené statické textury', () => {
+    const create = vi.fn();
+    vi.stubGlobal('document', { body: { dataset: {} } });
+
+    try {
+      registerFaunaAtlases({
+        textures: { exists: () => true },
+        anims: { exists: () => false, create }
+      } as never);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(create).toHaveBeenCalledTimes(12);
+    expect(create).toHaveBeenCalledWith({
+      key: 'fauna:hare:walk',
+      frames: [
+        { key: 'fauna:hare', frame: 1 },
+        { key: 'fauna:hare', frame: 0 },
+        { key: 'fauna:hare', frame: 2 },
+        { key: 'fauna:hare', frame: 0 }
+      ],
+      frameRate: 8,
+      repeat: -1
+    });
   });
 
   it('respektuje denní aktivitu každého druhu', () => {

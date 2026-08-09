@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CHARACTER_ATLAS_DEFINITIONS,
   CHARACTER_FRAME_STATES,
@@ -9,6 +9,7 @@ import {
 import {
   buildCharacterAtlas,
   buildCharacterFrame,
+  registerCharacterAtlases,
   validateCharacterFrame
 } from '../systems/CharacterAtlasSystem';
 
@@ -69,6 +70,28 @@ describe('CharacterAtlasSystem', () => {
     expect(getCharacterFrameIndex('idle')).toBe(0);
     expect(getCharacterFrameIndex('sleep')).toBe(5);
     expect(getCharacterAnimationKey('guard-vojtech', 'walk')).toBe('guard-vojtech:walk');
+  });
+
+  it('registruje animace i pro již přednačtené statické textury', () => {
+    const create = vi.fn();
+
+    registerCharacterAtlases({
+      textures: { exists: () => true },
+      anims: { exists: () => false, create }
+    } as never);
+
+    expect(create).toHaveBeenCalledTimes(60);
+    expect(create).toHaveBeenCalledWith({
+      key: 'player:walk',
+      frames: [
+        { key: 'player', frame: 1 },
+        { key: 'player', frame: 0 },
+        { key: 'player', frame: 2 },
+        { key: 'player', frame: 0 }
+      ],
+      frameRate: 7,
+      repeat: -1
+    });
   });
 
   it('neznámý atlas je explicitní chyba', () => {
