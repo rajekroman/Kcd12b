@@ -5,7 +5,7 @@ import { CharacterAnimationController } from './game/CharacterAnimationControlle
 import { ConfirmedAttackController } from './game/ConfirmedAttackController';
 import { CraftingUiController } from './game/CraftingUiController';
 import { gameConfig } from './game/config';
-import { HorseHudPresentationBridge } from './game/ui/HorseHudPresentationBridge';
+import { HorseHudPresentationBridge } from './presentation/ui/horse/HorseHudPresentationBridge';
 import { HuntingController } from './game/HuntingController';
 import { InventoryUiController } from './game/InventoryUiController';
 import { KeyboardInputFallbackController } from './game/KeyboardInputFallbackController';

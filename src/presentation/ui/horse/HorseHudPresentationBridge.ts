@@ -1,4 +1,4 @@
-import { firstHorseQuestContent } from '../../data/horseQuestContent';
+import { firstHorseQuestContent } from '../../../data/horseQuestContent';
 import { HorseHudController } from './HorseHudController';
 import {
   createHorseHudViewModel,
