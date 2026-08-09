@@ -7,6 +7,7 @@
 - První runtime checkpoint nyní zobrazuje hráče, čtyři odlišné profesní postavy a koně Jiskru bez světových debug labelů.
 - Kůň používá authored pixel-art asset místo obdélníkového runtime placeholderu; denní a večerní asset se přepíná podle existujícího světového času.
 - Přidán úzký medieval presentation HUD skin s heraldickým blokem, grafickými HP/ST bary, minimapou, objective panelem a quickbarem; gameplay eventy zůstávají beze změny.
+- Denní runtime podklad byl nahrazen novou originální rasterovou scenic plate s hustou ulicí, domy po obou stranách, kostelem na kopci, koněm, povozem a výrazně hlubší perspektivou.
 - Zachována herní logika, save schema, questy, combat, economy, audio a horse ownership; změna se týká pouze presentation vrstvy.
 
 ## 0.13.0 — hunting, fauna and persistent world state

@@ -31,8 +31,9 @@ export const createVillageStreetPresentation = (
     .setDepth(-40)
     .setVisible(false);
   const dayImage = scene.add
-    .image(worldWidth / 2, worldHeight / 2, 'village-street-day')
+    .image(worldWidth / 2, worldHeight / 2, 'village-street-authored-day')
     .setOrigin(0.5)
+    .setDisplaySize(worldWidth, worldHeight)
     .setDepth(-40);
 
   // Collision silhouettes are invisible gameplay scaffolding, independent of art assets.

@@ -16,6 +16,7 @@ Předložit skutečný runtime composition checkpoint, který nahrazuje původn�
 ### Implementováno
 
 - Authored day/evening pixel-art assets pro village street, fasády, střechy, kostel, cestu, props a vegetaci.
+- Denní checkpoint používá originální rasterovou scenic plate `public/assets/world/village-street-authored-day.png`, komponovanou podle schválené referenční hustoty a perspektivy; neobsahuje převzaté postavy, značky ani text.
 - Přepnutí GameScene na 3/4 scenic framing s foreground/midground/background hloubkou.
 - Hráč, čtyři statické presentation NPC figury a authored kůň Jiskra ve čitelné velikosti.
 - Medieval presentation HUD skin: heraldický identity frame, HP/ST bars, minimap, objective panel and quickbar; existing HUD event/state contracts remain unchanged.
