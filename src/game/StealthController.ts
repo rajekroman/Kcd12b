@@ -111,7 +111,8 @@ export class StealthController {
         padding: { x: 6, y: 3 }
       })
       .setScrollFactor(0)
-      .setDepth(200);
+      .setDepth(200)
+      .setVisible(document.body.dataset.visualReboot !== 'village-street-authored-assets');
 
     return { scene, player, guard, cone, indicator };
   }

@@ -18,12 +18,13 @@ Předložit skutečný runtime composition checkpoint, který nahrazuje původn�
 - Authored day/evening pixel-art assets pro village street, fasády, střechy, kostel, cestu, props a vegetaci.
 - Přepnutí GameScene na 3/4 scenic framing s foreground/midground/background hloubkou.
 - Hráč, čtyři statické presentation NPC figury a authored kůň Jiskra ve čitelné velikosti.
+- Medieval presentation HUD skin: heraldický identity frame, HP/ST bars, minimap, objective panel and quickbar; existing HUD event/state contracts remain unchanged.
 - Odstranění starých tiled/house/tree placeholderů a world debug labelů z runtime viewportu.
 - Večerní asset se přepíná přes existující `dayClock`; gameplay, save a horse ownership zůstávají beze změny.
 
 ### Mimo rozsah
 
-- Medieval HUD redesign, dialogue/inventory skin a mobilní safe-area layout — A5.
+- Full dialogue/inventory skin and mobile safe-area layout — A5 follow-up; this checkpoint adds only the runtime composition HUD frame required by the reference gate.
 - Combat, quest progression, save schema, economy, audio a horse state ownership.
 
 ### Změněné kontrakty
@@ -46,6 +47,7 @@ Předložit skutečný runtime composition checkpoint, který nahrazuje původn�
 
 - Desktop daylight: live runtime screenshot 2026-08-09 — hráč, 4 NPC, kůň, dvě fasády, road depth, kostel/horizont, props a vegetace.
 - Desktop evening: live runtime screenshot 2026-08-09 — večerní authored asset + světelná vrstva a srážky.
+- Desktop reference-aligned HUD: live runtime screenshot 2026-08-09 — dřevěno-zlatý frame, map panel, quest panel and quickbar rendered by `UIScene`.
 - Mobile portrait: N/A pro A4 composition-only checkpoint; předává se A5.
 - Mobile landscape: N/A pro A4 composition-only checkpoint; A5/A7 gate.
 - Zařízení/browser: Codex in-app browser, desktop viewport; interní render 480 × 270.

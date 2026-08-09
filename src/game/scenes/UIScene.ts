@@ -31,6 +31,11 @@ interface DialoguePayload {
 }
 
 export class UIScene extends Phaser.Scene {
+  private hudFrame!: Phaser.GameObjects.Graphics;
+  private healthBar!: Phaser.GameObjects.Graphics;
+  private staminaBar!: Phaser.GameObjects.Graphics;
+  private minimap!: Phaser.GameObjects.Graphics;
+  private quickbar!: Phaser.GameObjects.Graphics;
   private healthText!: Phaser.GameObjects.Text;
   private staminaText!: Phaser.GameObjects.Text;
   private combatText!: Phaser.GameObjects.Text;
@@ -45,22 +50,25 @@ export class UIScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.uiScene = 'active';
-    this.healthText = this.add.text(12, 10, 'Zdraví 100', this.hudStyle());
-    this.staminaText = this.add.text(12, 27, 'Výdrž 100', this.hudStyle());
-    this.combatText = this.add.text(12, 44, 'Postoj: horní', this.hudStyle());
+    this.createMedievalHud();
+    this.healthText = this.add.text(20, 13, 'ZDRAVÍ 100', this.hudStyle()).setDepth(182);
+    this.staminaText = this.add.text(20, 25, 'VÝDRŽ 100', this.hudStyle()).setDepth(182);
+    this.combatText = this.add.text(20, 38, 'POSTOJ: HORNÍ', this.hudStyle()).setDepth(182);
     this.enemyText = this.add
-      .text(this.scale.width - 12, 10, '', this.hudStyle())
+      .text(this.scale.width - 88, 13, '', this.hudStyle())
       .setOrigin(1, 0)
+      .setDepth(182)
       .setVisible(false);
     this.objectiveText = this.add
-      .text(this.scale.width / 2, 10, '', {
+      .text(this.scale.width - 18, 68, '', {
         fontFamily: 'Georgia, serif',
-        fontSize: '11px',
+        fontSize: '8px',
         color: '#f0dbab',
-        backgroundColor: '#17110dcc',
-        padding: { x: 8, y: 5 }
+        wordWrap: { width: 105 },
+        padding: { x: 5, y: 3 }
       })
-      .setOrigin(0.5, 0);
+      .setOrigin(1, 0)
+      .setDepth(182);
 
     this.messageText = this.add
       .text(this.scale.width / 2, this.scale.height - 52, '', {
@@ -71,7 +79,8 @@ export class UIScene extends Phaser.Scene {
         padding: { x: 8, y: 5 }
       })
       .setOrigin(0.5)
-      .setAlpha(0);
+      .setAlpha(0)
+      .setDepth(190);
 
     EventBus.on(GameEvents.HUD_UPDATE, this.onHudUpdate, this);
     EventBus.on(GameEvents.MESSAGE, this.onMessage, this);
@@ -106,11 +115,17 @@ export class UIScene extends Phaser.Scene {
 
     this.healthText.setText(`Zdraví ${payload.health}`);
     this.staminaText.setText(`Výdrž ${payload.stamina}`);
-    this.combatText.setText(`Postoj: ${direction}${defense}${incoming}${dodge}`);
+    this.combatText.setText(
+      document.body.dataset.visualReboot === 'village-street-authored-assets'
+        ? `POSTOJ: ${direction}`
+        : `Postoj: ${direction}${defense}${incoming}${dodge}`
+    );
     this.objectiveText.setText(payload.objective);
     this.enemyText
       .setText(payload.banditHealth > 0 ? `Lapka ${payload.banditHealth}` : '')
       .setVisible(payload.banditHealth > 0);
+    this.drawBar(this.healthBar, 14, 9, 82, payload.health / 100, 0xa84738);
+    this.drawBar(this.staminaBar, 14, 22, 82, payload.stamina / 100, 0x78904a);
 
     document.body.dataset.health = String(payload.health);
     document.body.dataset.stamina = String(payload.stamina);
@@ -243,10 +258,84 @@ export class UIScene extends Phaser.Scene {
   private hudStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
       fontFamily: 'monospace',
-      fontSize: '10px',
+      fontSize: '7px',
+      fontStyle: 'bold',
       color: '#f2dfba',
-      backgroundColor: '#17110dcc',
-      padding: { x: 6, y: 3 }
+      shadow: { offsetX: 1, offsetY: 1, color: '#140d08', blur: 0, stroke: true, fill: true }
     };
+  }
+
+  private createMedievalHud(): void {
+    const width = this.scale.width;
+    const height = this.scale.height;
+    this.hudFrame = this.add.graphics().setDepth(180);
+    this.hudFrame.fillStyle(0x211710, 0.94);
+    this.hudFrame.fillRoundedRect(8, 7, 96, 50, 3);
+    this.hudFrame.lineStyle(2, 0x0e0906, 1);
+    this.hudFrame.strokeRoundedRect(7, 6, 98, 52, 3);
+    this.hudFrame.lineStyle(1, 0xb18a4c, 1);
+    this.hudFrame.strokeRoundedRect(10, 9, 92, 46, 2);
+    this.hudFrame.fillStyle(0xb18a4c, 1);
+    this.hudFrame.fillTriangle(13, 12, 19, 12, 16, 18);
+    this.hudFrame.fillTriangle(93, 12, 99, 12, 96, 18);
+
+    this.healthBar = this.add.graphics().setDepth(181);
+    this.staminaBar = this.add.graphics().setDepth(181);
+    this.drawBar(this.healthBar, 14, 9, 82, 1, 0xa84738);
+    this.drawBar(this.staminaBar, 14, 22, 82, 1, 0x78904a);
+
+    this.minimap = this.add.graphics().setDepth(180);
+    this.minimap.fillStyle(0x1b241e, 0.95);
+    this.minimap.fillRect(width - 86, 8, 74, 48);
+    this.minimap.lineStyle(2, 0x0e0906, 1);
+    this.minimap.strokeRect(width - 87, 7, 76, 50);
+    this.minimap.lineStyle(1, 0xb18a4c, 1);
+    this.minimap.strokeRect(width - 84, 10, 70, 44);
+    this.minimap.fillStyle(0x667c55, 1);
+    this.minimap.fillTriangle(width - 79, 48, width - 45, 17, width - 19, 48);
+    this.minimap.fillStyle(0x9d7548, 1);
+    this.minimap.lineStyle(2, 0xd0a45f, 1);
+    this.minimap.lineBetween(width - 77, 48, width - 45, 29);
+    this.minimap.lineBetween(width - 45, 29, width - 19, 48);
+    this.minimap.fillStyle(0xd7c36e, 1);
+    this.minimap.fillCircle(width - 45, 30, 2);
+
+    this.hudFrame.fillStyle(0x211710, 0.94);
+    this.hudFrame.fillRect(width - 124, 63, 112, 45);
+    this.hudFrame.lineStyle(1, 0xb18a4c, 1);
+    this.hudFrame.strokeRect(width - 123, 64, 110, 43);
+    this.hudFrame.fillStyle(0x8e6b3d, 1);
+    this.hudFrame.fillTriangle(width - 118, 69, width - 110, 69, width - 114, 76);
+    this.add.text(width - 104, 67, 'ÚKOL', {
+      fontFamily: 'monospace', fontSize: '7px', fontStyle: 'bold', color: '#d5b46e'
+    }).setDepth(182);
+
+    this.quickbar = this.add.graphics().setDepth(180);
+    const barWidth = 176;
+    const startX = (width - barWidth) / 2;
+    const y = height - 31;
+    this.quickbar.fillStyle(0x1d150e, 0.95);
+    this.quickbar.fillRect(startX - 6, y - 5, barWidth + 12, 29);
+    this.quickbar.lineStyle(2, 0x0e0906, 1);
+    this.quickbar.strokeRect(startX - 7, y - 6, barWidth + 14, 31);
+    this.quickbar.lineStyle(1, 0xb18a4c, 1);
+    this.quickbar.strokeRect(startX - 4, y - 3, barWidth + 8, 25);
+    for (let index = 0; index < 8; index += 1) {
+      const slotX = startX + index * 22;
+      this.quickbar.fillStyle(index === 0 ? 0x75512b : 0x33251a, 1);
+      this.quickbar.fillRect(slotX, y, 19, 19);
+      this.quickbar.lineStyle(1, index === 0 ? 0xe3bd6d : 0x80623a, 1);
+      this.quickbar.strokeRect(slotX, y, 19, 19);
+      this.quickbar.fillStyle(index % 2 === 0 ? 0xc99554 : 0x708a66, 1);
+      this.quickbar.fillRect(slotX + 6, y + 6, 7, 7);
+    }
+  }
+
+  private drawBar(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, ratio: number, color: number): void {
+    graphics.clear();
+    graphics.fillStyle(0x160e0a, 1);
+    graphics.fillRect(x, y, width, 6);
+    graphics.fillStyle(color, 1);
+    graphics.fillRect(x + 1, y + 1, Math.max(0, (width - 2) * Math.max(0, Math.min(1, ratio))), 4);
   }
 }
