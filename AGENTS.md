@@ -10,12 +10,26 @@ Před každým pracovním balíkem načti v tomto pořadí:
 
 1. `AGENTS.md`;
 2. `docs/PROJECT_CONTROL.md`;
-3. `docs/ARCHITECTURE_CONTRACT.md`;
-4. přidělenou GitHub issue;
-5. aktuální stav větve, otevřené PR a relevantní poslední commity;
-6. `docs/DEFINITION_OF_DONE.md`.
+3. `docs/ART_DIRECTION.md`;
+4. `docs/ARCHITECTURE_CONTRACT.md`;
+5. přidělenou GitHub issue;
+6. aktuální stav větve, otevřené PR a relevantní poslední commity;
+7. `docs/DEFINITION_OF_DONE.md`.
 
 Pokud jsou starší instrukce v chatu v rozporu s těmito zdroji, platí aktuální repozitář a issue.
+
+## Visual reboot gate — issue #68
+
+Do explicitního A0/A7 vizuálního schválení issue #68 je celý projekt v režimu **VISUAL REBOOT**.
+
+- `docs/ART_DIRECTION.md` je autoritativní vizuální kontrakt.
+- `docs/visual-concept.svg` je pouze historický koncept a není acceptance target.
+- A4 je primární implementační vlastník presentation layer vertikálního řezu.
+- A5 smí pracovat pouze na UI potřebném pro tento řez.
+- A1/A2/A3/A6 nesmí rozšiřovat feature scope; smějí pouze podporovat nezbytnou integraci řezu.
+- A7 musí hodnotit runtime screenshoty a vizuální konzistenci; zelené CI samo nestačí.
+- A8 nesmí označit release za hotový před vizuálním schválením #68.
+- Plochý top-down world, procedurální kruhové stromy, obdélníkové domy, opakované základní tiles a diagnostické textové boxy nesmějí být prezentovány jako finální art.
 
 ## Aktivace práce
 
@@ -84,11 +98,11 @@ Před `Ready for review` musí výsledky odpovídat aktuálnímu head SHA. U dř
 
 ## Prioritní zásady produktu
 
-1. přesné a příjemné mobilní ovládání;
-2. zábavná a čitelná hratelnost;
-3. hluboká atmosféra a originalita;
+1. hluboká atmosféra a jasná vizuální identita;
+2. přesné a příjemné mobilní ovládání;
+3. zábavná a čitelná hratelnost;
 4. stabilita, save bezpečnost a výkon;
-5. konzistentní 12bitový vizuál;
+5. konzistentní 12/16bitový malířský pixel-art;
 6. historická uvěřitelnost;
 7. datově řízený obsah;
 8. modulární a testovatelná architektura.

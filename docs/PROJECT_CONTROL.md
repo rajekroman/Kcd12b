@@ -2,138 +2,166 @@
 
 Tento dokument je autoritativní přehled řízení projektu. Aktualizuje jej pouze A0 po ověření skutečného stavu GitHub issues, větví, pull requestů, CI a HANDOFFů.
 
-## 1. Projekt
+## 1. Aktuální rozhodnutí A0
+
+Status: **VISUAL REBOOT ACTIVE**
+
+Původní presentation layer byla 2026-08-09 odmítnuta jako cílová podoba produktu. Projekt zachovává použitelnou herní logiku a infrastrukturu, ale restartuje renderer/world presentation, environment art, gameplay character art a UI skin.
+
+Autoritativní zdroje pro tuto fázi:
+
+1. issue **#68** — `A0/A4: Visual reboot — authoritative 90s historical RPG vertical slice`;
+2. `docs/ART_DIRECTION.md`;
+3. `AGENTS.md` visual reboot gate;
+4. `GAME_DESIGN_DOCUMENT.md` aktualizovaná perspektiva.
+
+`docs/visual-concept.svg` je pouze historický koncept a není acceptance target.
+
+## 2. Projekt
 
 - Produkt: **Chronicles of Bohemia**
 - Repozitář: `rajekroman/Kcd12b`
 - Platformy: web, iPhone, iPad, desktop
 - Stack: TypeScript, Phaser 3, Vite, Vitest, Playwright, PWA
 - Výchozí větev: `main`
-- Poslední feature merge: **issue #36 / PR #43 — first horse gameplay vertical slice**
-- Aktivní milník: **M4.6 Horse Mobile UX + controlled asset checkpoint**
-- Prioritní implementační vlastník: **A5 / issue #37**
-- Paralelní omezený vlastník: **A4 / issue #25 / PR #44**
-
-## 2. Stavový model
-
-`BACKLOG → READY → ACTIVE → RUNNING → DRAFT → REVIEW → MERGED`
-
-Při ověřené blokaci:
-
-`RUNNING nebo REVIEW → BLOCKED → READY nebo RUNNING`
-
-Stav se odvozuje ze skutečného GitHubu. Samotný commit, komentář nebo tvrzení agenta není důkazem dokončení.
+- Visual-reboot base: `e79130c014758f2992cb63196dfd6329917fc506`
+- Aktivní milník: **M-VR1 — production-quality village street vertical slice**
+- Primární vlastník: **A4 / issue #68**
+- Aktivní větev: `agent/a4-visual-reboot-vertical-slice`
 
 ## 3. Stav agentů A0–A8
 
-| Agent | Issue | Větev | Přidělený feature base | PR | Stav | Poslední ověřený výsledek | Další krok |
-|---|---:|---|---|---:|---|---|---|
-| A0 | — | `main` | — | — | ACTIVE | A2 merged; A4/A5 lanes řízeny odděleně | chránit scope a integrační pořadí |
-| A1 | #35 | `agent/horse-runtime-contract` | `766c2eff...` | #41 | MERGED | merge `ba5c0c20...` | standby; pouze eskalované contract fixy |
-| A2 | #36 | `agent/first-horse-gameplay` | `ba5c0c20...` | #43 | MERGED | merge `77f8c11d...`, workflow `30600172375` SUCCESS | standby; pouze eskalované gameplay fixy |
-| A3 | #24 | `agent/horse-world-content-contract` | — | #34 | MERGED | merge `e988e5e1...` | žádná nová práce bez issue |
-| A4 | #25 | `agent/pixel-atlas-asset-pipeline` | `4ea0d020...` | #44 | ACTIVE-PARALLEL | head `d31799bd...`; inventura/manifest/validace; CI `30602734078` běží | dokončit CI; nepřekročit omezený checkpoint |
-| A5 | #37 | `agent/horse-mobile-ui` | `77f8c11d...` | — | ACTIVE | větev bez implementačního commitu | baseline, read-only view-model, draft PR |
-| A6 | #26 | `agent/audio-mixer-sfx-foundation` | přidělí A0 po A4 gate | — | BLOCKED | závisí na A4 | čekat na A4 merge a nový base |
-| A7 | #38 | `agent/horse-qa-gate` | přidělí A0 po #37 | — | BLOCKED | QA kontrakt připraven | čekat na merge A5 |
-| A8 | #27 | `agent/release-production-gate` | přidělí A0 po A6/A7 | — | BLOCKED | release kontrakt připraven | čekat na A6/A7 |
+| Agent | Stav | Aktivní scope | Další krok |
+|---|---|---|---|
+| A0 | ACTIVE | koordinace #68, scope a visual gate | hlídat freeze, review A4 checkpointu |
+| A1 | STANDBY | pouze nezbytné renderer/contract zásahy po eskalaci | žádná nová architektura bez #68 dependency |
+| A2 | STANDBY | zachovat existující gameplay runtime | žádné nové gameplay features |
+| A3 | STANDBY | obsah pouze pro jeden schválený slice | žádná expanze světa |
+| A4 | ACTIVE | art direction, 3/4 world presentation, environment, characters, animation | dodat první runtime composition checkpoint |
+| A5 | BLOCKED | medieval UI redesign pro schválený slice | aktivovat až po A4 composition seam |
+| A6 | BLOCKED | ambience pouze pro schválený slice | aktivovat až po vizuálním checkpointu |
+| A7 | READY-BLOCKED | visual QA + functional QA | připravit screenshot review gate, spustit po A4/A5 |
+| A8 | BLOCKED | release/deployment | #66 zůstává infra track; release až po #68 PASS |
 
-## 4. Aktivní integrační pořadí
+## 4. Development freeze
 
-Prioritní horse fronta:
+Do A0/A7 PASS issue #68 platí:
 
-1. **A5 #37** — read-only horse view-model, HUD, safe-area a input presentation.
-2. **A7 #38** — nezávislá QA brána po merge A5.
-3. **A0** — integrační rozhodnutí horse milestone.
+- žádné nové gameplay systémy;
+- žádná expanze questů, lokací nebo content databází mimo slice;
+- žádné broad audio feature work;
+- žádný release-ready claim;
+- žádné acceptance založené pouze na CI, počtu assetů nebo testů;
+- žádné prezentování procedurálních placeholderů jako finální grafiky.
 
-Kontrolovaná paralelní asset fronta:
+Povolená je pouze práce potřebná pro dosažení production-quality vertikálního řezu a zachování kompatibility existujícího funkčního základu.
 
-1. **A4 #25 / PR #44** — pouze inventura, typovaný manifest, validátor, cílené testy a `validate:assets` script.
-2. **A4 runtime preload/export migrace** — BLOKOVÁNA do dalšího explicitního A0 gate.
-3. **A6 #26** — až po dokončení A4 a novém A0 base.
-4. **A8 #27** — až po A6 a finálním QA.
+## 5. Autoritativní vizuální cíl
 
-## 5. Integrované balíky prvního koně
+Cíl je detailní historické RPG/adventura 90. let s:
 
-### A3 #24 / PR #34 — obsahový kontrakt
+- 3/4 scenic perspective;
+- viditelnými fasádami, střechami a horizontem;
+- foreground/midground/background hloubkou;
+- hustou českou středověkou vesnicí;
+- painterly 12/16bit pixel-artem;
+- velkými čitelnými postavami;
+- daylight + evening variantou;
+- plně integrovaným medieval UI;
+- runtime screenshoty jako povinnou acceptance evidence.
 
-- merge: `e988e5e16f7e248df9b80cd28c91a9715891e299`;
-- workflow `30518698707`: SUCCESS.
+Podrobný kontrakt: `docs/ART_DIRECTION.md`.
 
-### A1 #35 / PR #41 — runtime command/event kontrakt
+## 6. M-VR1 — první vertikální řez
 
-- merge: `ba5c0c202a73edc542c1803f9a3755f3fc57d37a`;
-- workflow `30553991420`: SUCCESS.
+A4 musí dodat jednu reálnou gameplay scénu obsahující minimálně:
 
-### A2 #36 / PR #43 — gameplay vertical slice
+- vesnickou ulici;
+- kovárnu a hostinec;
+- vzdálený kostel/dominantu;
+- ploty, props, vegetaci a materiálově členitý terén;
+- hráče + čtyři odlišné NPC + koně;
+- čitelné idle/walk/interact states;
+- denní a večerní světlo;
+- skutečnou scenic depth bez top-down debug mapy.
 
-- merge: `77f8c11dc81704ca7e716fa98e23c1818bb30d40`;
-- finální head: `fcfbe40c7855fdb6b3b5834e105b04fb3d90494d`;
-- workflow `30600172375`: SUCCESS;
-- unit: 146 PASS;
-- Playwright: 98 PASS / 1 existující desktop skip;
-- evidence artifact `8781640544`;
-- digest `e5a30856012e5bb74886a0eb560275f3c15b5467ced9cc0234cf23ca573f3905`.
+A4 může pro dosažení cíle agresivně nahradit presentation-layer kód a placeholder assets, nesmí však bez samostatné eskalace měnit doménová pravidla, save schema nebo autoritativní gameplay kontrakty.
 
-## 6. Aktivní A5 #37
+## 7. A5 integrační gate
 
-A5 smí měnit presentation/UI vrstvy, cílené scénové presentation wiring, styly a odpovídající testy. Horse stav musí pouze číst z autoritativního snapshotu / confirmed eventů.
+A5 se aktivuje až poté, co A4 předloží první runtime composition checkpoint a A0 potvrdí:
 
-První povinný checkpoint:
+- perspektivu;
+- měřítko postav;
+- safe UI regions;
+- kompozici scény;
+- základní paletu a materiálový jazyk.
 
-1. baseline lint/typecheck/unit/build/Playwright;
-2. malý implementační commit;
-3. draft PR `Refs #37`;
-4. read-only HUD/view-model seam;
-5. cílené testy a stabilní `data-*` selektory;
-6. A0 scope review před layout/touch wiringem.
+A5 následně vytvoří jeden konzistentní medieval UI skin: player panel, HP/ST/XP, minimap, active quest, dialogue portrait panel, quickbar a inventory/crafting/options affordance.
 
-Zakázány jsou změny A1 kontraktu, orchestrátoru, `src/gameplay/**` pravidel, mount physics, trial pravidel, persistence, save verze, assetů a audia.
+## 8. A7 visual QA gate
 
-## 7. Aktivní omezený A4 #25 / PR #44
+A7 nebude hodnotit pouze funkčnost.
 
-Aktuální povolené cesty:
+Povinná evidence:
 
-- `src/data/assetManifest.ts`;
-- `src/systems/AssetManifestValidator.ts`;
-- `src/tests/AssetManifest.test.ts`;
-- `scripts/validate-assets.mjs`;
-- `package.json` pouze pro `validate:assets`.
+1. desktop daylight gameplay;
+2. desktop evening gameplay;
+3. dialogue state;
+4. inventory/quickbar state;
+5. iPhone portrait UI handling;
+6. iPhone landscape gameplay.
 
-Do dalšího A0 gate jsou zakázány BootScene/preload/runtime wiring, PNG produkční export, `src/game/**`, horse HUD, gameplay, save, audio, Playwright config a sdílené E2E helpery.
+PASS vyžaduje současně:
 
-PR #44 musí zůstat DRAFT. Merge není povolen bez kompletně zeleného CI, scope review a synchronizace s aktuálním `main`.
+- zelené povinné CI;
+- žádné major placeholder presentation;
+- vizuální konzistenci světa/postav/UI;
+- shodu s `docs/ART_DIRECTION.md`;
+- screenshot-level schválení A0/A7.
 
-## 8. Konfliktní oblasti
+## 9. Reuse policy
 
-V jednom integračním okně mají jediného vlastníka:
+Preferovaně zachovat:
 
-- `src/main.ts`;
-- `src/game/config.ts`;
-- `src/contracts/**`;
-- `src/application/HorseRuntimeOrchestrator.ts`;
-- `src/gameplay/**` horse runtime;
-- globální input orchestrace;
-- `src/stores/**` a save schema/migrace;
-- `playwright.config.*` a sdílené E2E helpery;
-- `.github/workflows/**`;
-- `package.json`, `vite.config.*`;
-- asset manifest;
-- audio registry;
-- `docs/PROJECT_CONTROL.md`.
+- save/persistence;
+- combat a další doménové systémy;
+- quest/dialogue data;
+- event contracts;
+- NPC runtime chování;
+- PWA/build/deployment infrastrukturu;
+- E2E a asset validation tooling.
 
-Výjimka pro A4: `package.json` je dočasně povolen výhradně pro jediný script `validate:assets`; A5 nesmí `package.json` měnit bez A0 eskalace.
+Lze nahradit:
 
-## 9. Bezprostřední další krok
+- world renderer/presentation;
+- camera presentation;
+- environment assets;
+- gameplay character sprites/atlases;
+- portrait art;
+- HUD/dialog/inventory presentation;
+- procedural placeholder texture generation.
 
-### A5
+## 10. Aktivní integrační pořadí
 
-Dodat první read-only view-model checkpoint a draft PR bez gameplay změn.
+1. **A4 / #68** — art-direction contract + runtime village composition checkpoint.
+2. **A0** — visual/scope review checkpointu.
+3. **A4** — production art pass vertikálního řezu.
+4. **A5** — UI integration na schválenou kompozici.
+5. **A7** — desktop + iPhone portrait + landscape visual/functional QA.
+6. **A0** — finální visual reboot decision.
+7. **A8** — release/deployment až po PASS #68 a dořešení infra tracku #66.
+
+## 11. Bezprostřední další krok
 
 ### A4
 
-Dokončit CI na headu `d31799bd6d1024b7573f9ab3b6015e8d9a60053a`; nepřidávat runtime/preload změny. Po výsledku CI provede A0 scope gate.
+Na větvi `agent/a4-visual-reboot-vertical-slice` z base `e79130c014758f2992cb63196dfd6329917fc506` připravit první **runtime composition checkpoint**. Cílem není další manifest ani počet assetů, ale screenshot reálné gameplay scény dokazující novou 3/4 perspektivu, hloubku, měřítko postavy a hustotu prostředí.
 
-### A7
+### A0
 
-Zůstává BLOCKED do merge A5.
+Po checkpointu zkontrolovat vizuální směr před rozšířením asset produkce.
+
+### Ostatní agenti
+
+STANDBY/BLOCKED podle tabulky výše.
