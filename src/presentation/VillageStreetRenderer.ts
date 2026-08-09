@@ -25,6 +25,8 @@ export const createVillageStreetPresentation = (
 ): VillageStreetPresentation => {
   const worldWidth = 960;
   const worldHeight = 540;
+  scene.textures.get('village-street-authored-day')?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  scene.textures.get('village-street-evening')?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   const eveningImage = scene.add
     .image(worldWidth / 2, worldHeight / 2, 'village-street-evening')
     .setOrigin(0.5)
