@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — A4 authored village street visual slice
+
+- Nahrazen rejected top-down/procedural world presentation ručně komponovanými denními a večerními pixel-art scénami české středověké ulice.
+- Přidána 3/4 scenic perspektiva s cestou do hloubky, fasádami, střechami, kostelem, horizontem, ploty, kovárenským ohněm, vozem, dřevem, kameny a vrstvenou vegetací.
+- První runtime checkpoint nyní zobrazuje hráče, čtyři odlišné profesní postavy a koně Jiskru bez světových debug labelů.
+- Kůň používá authored pixel-art asset místo obdélníkového runtime placeholderu; denní a večerní asset se přepíná podle existujícího světového času.
+- Zachována herní logika, save schema, questy, combat, economy, audio a horse ownership; změna se týká pouze presentation vrstvy.
+
 ## 0.13.0 — hunting, fauna and persistent world state
 
 - Přidány tři lovné druhy: zajíc, srnec a kanec.

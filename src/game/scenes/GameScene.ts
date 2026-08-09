@@ -21,6 +21,7 @@ import {
 } from '../../systems/QuestSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { NpcManager } from '../NpcManager';
+import { createVillageStreetPresentation } from '../../presentation/VillageStreetRenderer';
 
 interface GameSceneData {
   continueGame?: boolean;
@@ -145,6 +146,8 @@ export class GameScene extends Phaser.Scene {
       .setDepth(90)
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
 
+    this.installVillageStreetPresentation();
+
     this.bindControls();
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
     this.emitHud();
@@ -160,6 +163,59 @@ export class GameScene extends Phaser.Scene {
       delete document.body.dataset.lastSave;
       if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
     });
+  }
+
+  private installVillageStreetPresentation(): void {
+    const presentation = createVillageStreetPresentation(this, this.obstacles);
+    this.data.set('villageDayImage', presentation.dayImage);
+    this.data.set('villageEveningImage', presentation.eveningImage);
+
+    this.children.list.forEach((gameObject) => {
+      if (gameObject instanceof Phaser.GameObjects.Image) {
+        if (new Set(['grass', 'road', 'tree', 'house']).has(gameObject.texture.key)) {
+          gameObject.setVisible(false);
+        }
+        return;
+      }
+      if (gameObject instanceof Phaser.GameObjects.Text) gameObject.setVisible(false);
+    });
+
+    const presentationNpcs: ReadonlyArray<readonly [string, number, number]> = [
+      ['smith-bohdan', 314, 330],
+      ['innkeeper-marta', 546, 336],
+      ['guard-vojtech', 463, 307],
+      ['farmer-ondra', 398, 286]
+    ];
+    const characterSprites = this.children.list.filter(
+      (gameObject): gameObject is Phaser.GameObjects.Sprite =>
+        gameObject instanceof Phaser.GameObjects.Sprite
+    );
+    characterSprites.forEach((sprite) => {
+      sprite.setScale(2.5).setDepth(16);
+      if (sprite.getData('npcId')) sprite.setVisible(false);
+    });
+    const player = characterSprites.find((sprite) => sprite.texture.key === 'player');
+    if (player) {
+      player.setPosition(400, 338).setDepth(18);
+      (player as Phaser.Physics.Arcade.Sprite).body?.setSize(12, 12).setOffset(4, 17);
+    }
+    presentationNpcs.forEach(([textureKey, x, y], index) => {
+      this.add
+        .sprite(x, y, textureKey, 0)
+        .setScale(2.5)
+        .setDepth(14 + index)
+        .setData('presentationOnly', true);
+    });
+
+    const camera = this.cameras.main;
+    camera.stopFollow();
+    camera.setZoom(0.72);
+    camera.setBounds(0, 0, presentation.worldWidth, presentation.worldHeight);
+    camera.setScroll(80, 100);
+    camera.roundPixels = true;
+    document.body.dataset.cameraPresentation = 'fixed-scenic-checkpoint';
+    document.body.dataset.playerPresentationScale = '2';
+    document.body.dataset.presentationNpcCount = String(presentationNpcs.length);
   }
 
   update(time: number, delta: number): void {
@@ -204,37 +260,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.obstacles = this.physics.add.staticGroup();
-    const trees = [
-      [120, 120],
-      [180, 160],
-      [250, 120],
-      [680, 120],
-      [730, 150],
-      [900, 140],
-      [1010, 180],
-      [120, 620],
-      [200, 670],
-      [710, 640],
-      [850, 680],
-      [1050, 620]
-    ];
-    trees.forEach(([x, y]) => this.obstacles.create(x, y, 'tree').setDepth(6));
-    this.obstacles.create(390, 255, 'house').setDepth(5);
-    this.obstacles.create(510, 250, 'house').setDepth(5);
-    this.obstacles.create(280, 520, 'house').setDepth(5);
-
-    const labels: Array<[number, number, string]> = [
-      [290, 300, 'KOVÁRNA'],
-      [500, 330, 'HOSTINEC'],
-      [145, 220, 'KOSTEL'],
-      [615, 270, 'STÁJE'],
-      [435, 380, 'TRH'],
-      [900, 520, 'MLÝN'],
-      [760, 325, 'VÝCHODNÍ CESTA']
-    ];
-    labels.forEach(([x, y, text]) => {
-      this.add.text(x, y, text, { fontSize: '8px', color: '#d6c294' }).setDepth(11);
-    });
   }
 
   private updateMovement(time: number): void {
@@ -552,6 +577,13 @@ export class GameScene extends Phaser.Scene {
     const phase = this.dayClock / 120;
     const darkness = Math.max(0, Math.sin((phase - 0.25) * Math.PI * 2)) * 0.52;
     this.nightOverlay.setAlpha(darkness);
+
+    const dayImage = this.data.get('villageDayImage') as Phaser.GameObjects.Image | undefined;
+    const eveningImage = this.data.get('villageEveningImage') as
+      | Phaser.GameObjects.Image
+      | undefined;
+    dayImage?.setVisible(darkness < 0.18);
+    eveningImage?.setVisible(darkness >= 0.18);
 
     if (this.blocking) {
       this.stamina = Math.max(0, this.stamina - delta * 0.004);

@@ -171,9 +171,13 @@ export class NpcManager {
       runtime.activityLabel
         .setPosition(runtime.sprite.x, runtime.sprite.y + 20)
         .setVisible(
-          Phaser.Math.Distance.BetweenPoints(this.player, runtime.sprite) <=
-            runtime.definition.interactionRadius * 1.8
+          document.body.dataset.visualReboot !== 'village-street-authored-assets' &&
+            Phaser.Math.Distance.BetweenPoints(this.player, runtime.sprite) <=
+              runtime.definition.interactionRadius * 1.8
         );
+      runtime.nameLabel.setVisible(
+        document.body.dataset.visualReboot !== 'village-street-authored-assets'
+      );
     }
 
     const nearestId = this.getNearestInteractable()?.definition.id;
