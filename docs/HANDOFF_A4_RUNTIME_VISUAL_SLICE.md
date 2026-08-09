@@ -33,7 +33,7 @@ Předložit skutečný runtime composition checkpoint, který nahrazuje původn�
 - Eventy: N/A.
 - Stores: N/A.
 - Save verze/migrace: N/A.
-- Strukturální boundary: world presentation je izolována v `src/presentation/world/` a UI scene v `src/presentation/ui/`, obě s veřejným entrypointem `index.ts`; game config importuje UI přes presentation boundary.
+- Strukturální boundary: world presentation je izolována v `src/presentation/world/`, UI scene v `src/presentation/ui/` a UI-specific horse styling v `src/presentation/ui/styles/`; presentation entrypointy jsou explicitní a gameplay importuje pouze kompatibilní boundary.
 - Asset ID: nové `village-street-day`, `village-street-evening`, `horse-jiskra` runtime textures.
 - Veřejné UI/inputy: N/A; diagnostické world labely jsou skryté.
 
