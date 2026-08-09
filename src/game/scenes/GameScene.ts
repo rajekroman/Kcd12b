@@ -181,37 +181,37 @@ export class GameScene extends Phaser.Scene {
     });
 
     const presentationNpcs: ReadonlyArray<readonly [string, number, number]> = [
-      ['smith-bohdan', 314, 330],
-      ['innkeeper-marta', 546, 336],
-      ['guard-vojtech', 463, 307],
-      ['farmer-ondra', 398, 286]
+      ['smith-bohdan', 310, 412],
+      ['innkeeper-marta', 585, 412],
+      ['guard-vojtech', 470, 355],
+      ['farmer-ondra', 390, 350]
     ];
     const characterSprites = this.children.list.filter(
       (gameObject): gameObject is Phaser.GameObjects.Sprite =>
         gameObject instanceof Phaser.GameObjects.Sprite
     );
     characterSprites.forEach((sprite) => {
-      sprite.setScale(2.5).setDepth(16);
+      sprite.setScale(3.1).setDepth(16);
       if (sprite.getData('npcId')) sprite.setVisible(false);
     });
     const player = characterSprites.find((sprite) => sprite.texture.key === 'player');
     if (player) {
-      player.setPosition(400, 338).setDepth(18);
+      player.setPosition(480, 405).setDepth(18);
       (player as Phaser.Physics.Arcade.Sprite).body?.setSize(12, 12).setOffset(4, 17);
     }
     presentationNpcs.forEach(([textureKey, x, y], index) => {
       this.add
         .sprite(x, y, textureKey, 0)
-        .setScale(2.5)
+        .setScale(3.1)
         .setDepth(14 + index)
         .setData('presentationOnly', true);
     });
 
     const camera = this.cameras.main;
     camera.stopFollow();
-    camera.setZoom(0.72);
+    camera.setZoom(0.5);
     camera.setBounds(0, 0, presentation.worldWidth, presentation.worldHeight);
-    camera.setScroll(80, 100);
+    camera.setScroll(0, 0);
     camera.roundPixels = true;
     document.body.dataset.cameraPresentation = 'fixed-scenic-checkpoint';
     document.body.dataset.playerPresentationScale = '2';
