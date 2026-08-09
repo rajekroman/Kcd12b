@@ -78,6 +78,7 @@ test('zajíc uteče při přiblížení a lov respektuje počasí i denní aktiv
   const body = page.locator('body');
 
   await expect(body).toHaveAttribute('data-fauna-atlases', '3');
+  await expect(body).toHaveAttribute('data-atlas-asset-source', 'static-file');
   await expect(body).toHaveAttribute('data-fauna-count', '3');
   await expect(body).toHaveAttribute('data-fauna-species', '["hare","roe-deer","boar"]');
   await expect(body).toHaveAttribute('data-world-hour', '6.00');

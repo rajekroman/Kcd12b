@@ -22,6 +22,8 @@ test('boot registruje dvanáct atlasů a deset unikátních profesních NPC', as
   const body = page.locator('body');
 
   await expect(body).toHaveAttribute('data-character-atlases', '12');
+  await expect(body).toHaveAttribute('data-atlas-asset-source', 'static-file');
+  await expect(body).toHaveAttribute('data-atlas-assets-loaded', '25');
   const rawKeys = await body.getAttribute('data-npc-atlas-keys');
   if (!rawKeys) throw new Error('NPC atlas key snapshot is unavailable.');
   const keys = JSON.parse(rawKeys) as string[];

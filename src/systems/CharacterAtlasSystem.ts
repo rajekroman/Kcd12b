@@ -308,37 +308,6 @@ export const validateCharacterFrame = (frame: CharacterFrameModel): string[] => 
 
 export const registerCharacterAtlases = (scene: Phaser.Scene): void => {
   for (const definition of CHARACTER_ATLAS_DEFINITIONS) {
-    if (scene.textures.exists(definition.key)) continue;
-    const frames = buildCharacterAtlas(definition);
-    const graphics = scene.add.graphics();
-
-    frames.forEach((frame, index) => {
-      const offsetX = index * CHARACTER_FRAME_WIDTH;
-      for (const pixel of frame.pixels) {
-        graphics.fillStyle(pixel.color, pixel.alpha ?? 1);
-        graphics.fillRect(offsetX + pixel.x, pixel.y, pixel.width, pixel.height);
-      }
-    });
-
-    graphics.generateTexture(
-      definition.key,
-      CHARACTER_FRAME_WIDTH * frames.length,
-      CHARACTER_FRAME_HEIGHT
-    );
-    graphics.destroy();
-
-    const texture = scene.textures.get(definition.key);
-    frames.forEach((_frame, index) => {
-      texture.add(
-        index,
-        0,
-        index * CHARACTER_FRAME_WIDTH,
-        0,
-        CHARACTER_FRAME_WIDTH,
-        CHARACTER_FRAME_HEIGHT
-      );
-    });
-
     const animationDefinitions: Array<{
       name: 'idle' | 'walk' | 'action' | 'hurt' | 'sleep';
       frames: CharacterFrameState[];

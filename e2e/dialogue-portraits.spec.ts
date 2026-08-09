@@ -58,6 +58,7 @@ const continueGame = async (page: Page): Promise<void> => {
   await expect(body).toHaveAttribute('data-has-save', 'true');
   await expect(body).toHaveAttribute('data-portrait-atlases', '10');
   await expect(body).toHaveAttribute('data-portrait-expressions', '6');
+  await expect(body).toHaveAttribute('data-atlas-asset-source', 'static-file');
 
   const canvas = page.locator('canvas');
   const bounds = await canvas.boundingBox();

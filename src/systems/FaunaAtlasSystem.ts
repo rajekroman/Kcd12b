@@ -214,57 +214,49 @@ export const validateFaunaFrame = (frame: FaunaFrameModel): string[] => {
 export const registerFaunaAtlases = (scene: Phaser.Scene): void => {
   for (const species of Object.keys(ANIMAL_SPECIES) as AnimalSpecies[]) {
     const key = getFaunaTextureKey(species);
-    if (scene.textures.exists(key)) continue;
-    const frames = buildFaunaAtlas(species);
-    const graphics = scene.add.graphics();
-
-    for (const frame of frames) {
-      const index = getFaunaFrameIndex(frame.state);
-      const offsetX = index * FAUNA_FRAME_WIDTH;
-      for (const pixel of frame.pixels) {
-        graphics.fillStyle(pixel.color, pixel.alpha ?? 1);
-        graphics.fillRect(offsetX + pixel.x, pixel.y, pixel.width, pixel.height);
+    const animations = [
+      {
+        name: 'idle' as const,
+        frames: [{ key, frame: getFaunaFrameIndex('idle') }],
+        frameRate: 1,
+        repeat: -1
+      },
+      {
+        name: 'walk' as const,
+        frames: ['walk-a', 'idle', 'walk-b', 'idle'].map((state) => ({
+          key,
+          frame: getFaunaFrameIndex(state as FaunaFrameState)
+        })),
+        frameRate: 8,
+        repeat: -1
+      },
+      {
+        name: 'hurt' as const,
+        frames: [
+          { key, frame: getFaunaFrameIndex('hurt') },
+          { key, frame: getFaunaFrameIndex('idle') }
+        ],
+        frameRate: 7,
+        repeat: 0
+      },
+      {
+        name: 'dead' as const,
+        frames: [{ key, frame: getFaunaFrameIndex('dead') }],
+        frameRate: 1,
+        repeat: 0
       }
-    }
+    ];
 
-    graphics.generateTexture(key, FAUNA_FRAME_WIDTH * frames.length, FAUNA_FRAME_HEIGHT);
-    graphics.destroy();
-    const texture = scene.textures.get(key);
-    for (const frame of frames) {
-      const index = getFaunaFrameIndex(frame.state);
-      texture.add(index, 0, index * FAUNA_FRAME_WIDTH, 0, FAUNA_FRAME_WIDTH, FAUNA_FRAME_HEIGHT);
+    for (const animation of animations) {
+      const animationKey = getFaunaAnimationKey(species, animation.name);
+      if (scene.anims.exists(animationKey)) continue;
+      scene.anims.create({
+        key: animationKey,
+        frames: animation.frames,
+        frameRate: animation.frameRate,
+        repeat: animation.repeat
+      });
     }
-
-    scene.anims.create({
-      key: getFaunaAnimationKey(species, 'idle'),
-      frames: [{ key, frame: getFaunaFrameIndex('idle') }],
-      frameRate: 1,
-      repeat: -1
-    });
-    scene.anims.create({
-      key: getFaunaAnimationKey(species, 'walk'),
-      frames: ['walk-a', 'idle', 'walk-b', 'idle'].map((state) => ({
-        key,
-        frame: getFaunaFrameIndex(state as FaunaFrameState)
-      })),
-      frameRate: 8,
-      repeat: -1
-    });
-    scene.anims.create({
-      key: getFaunaAnimationKey(species, 'hurt'),
-      frames: [
-        { key, frame: getFaunaFrameIndex('hurt') },
-        { key, frame: getFaunaFrameIndex('idle') }
-      ],
-      frameRate: 7,
-      repeat: 0
-    });
-    scene.anims.create({
-      key: getFaunaAnimationKey(species, 'dead'),
-      frames: [{ key, frame: getFaunaFrameIndex('dead') }],
-      frameRate: 1,
-      repeat: 0
-    });
   }
 
   document.body.dataset.faunaAtlases = String(Object.keys(ANIMAL_SPECIES).length);

@@ -1,0 +1,32 @@
+{
+  "generatedAt": null,
+  "count": 25,
+  "totalBytes": 20207,
+  "assets": [
+    {"id":"atlas.character.player","targetPath":"public/assets/atlases/characters/player.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":596,"sha256":"1bb2c6b609de81b0a6b212c19431f35833e86548dfbf58a817b34606c87d9867"},
+    {"id":"atlas.character.smith-bohdan","targetPath":"public/assets/atlases/characters/smith-bohdan.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":603,"sha256":"76869e2eefdf6ca3ef654dac14a4cf0e7fe081e9eb20ef18e41f76fec08981a2"},
+    {"id":"atlas.character.innkeeper-marta","targetPath":"public/assets/atlases/characters/innkeeper-marta.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":626,"sha256":"dbcc3d27f2aa92c7aa650c59c215298385b97239d3b5e12faa9b46e7e7cde466"},
+    {"id":"atlas.character.guard-vojtech","targetPath":"public/assets/atlases/characters/guard-vojtech.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":598,"sha256":"b028786491343a6372f3cbf8d3c831b381d7945861ac6d1c7b731ba95718af1e"},
+    {"id":"atlas.character.farmer-ondra","targetPath":"public/assets/atlases/characters/farmer-ondra.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":617,"sha256":"cdd3bb63c1e47a1649e5f1816fb3c278839920d841df322473175b192705e38f"},
+    {"id":"atlas.character.herbalist-agnes","targetPath":"public/assets/atlases/characters/herbalist-agnes.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":566,"sha256":"8ac592340df0e2ff2a4f3e62e47d117a480e9ce89463e10ebce0771726b1200c"},
+    {"id":"atlas.character.miller-jakub","targetPath":"public/assets/atlases/characters/miller-jakub.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":603,"sha256":"e887381f9f9fd291174070aa078d797c79c1816ead93da9b22fbff22905266f0"},
+    {"id":"atlas.character.priest-matej","targetPath":"public/assets/atlases/characters/priest-matej.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":515,"sha256":"269a01e7143b97a6f3f5414861a5e69bc8cc8e9b4328cd917a402edd2815bcb0"},
+    {"id":"atlas.character.trader-katerina","targetPath":"public/assets/atlases/characters/trader-katerina.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":546,"sha256":"4660e657e235193a9d5a97ceaa036817728087a0a7af981f2d5fb26bea421da4"},
+    {"id":"atlas.character.stablehand-pavel","targetPath":"public/assets/atlases/characters/stablehand-pavel.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":570,"sha256":"a8b40c7f474248dc1f160065f1714d74c6eeee24b3e662194619a5e23008c6d5"},
+    {"id":"atlas.character.washerwoman-anna","targetPath":"public/assets/atlases/characters/washerwoman-anna.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":645,"sha256":"f7014103453e1a83cf2912cb420c001d0ca4fea92444cffa734f3cf6c664854b"},
+    {"id":"atlas.character.bandit","targetPath":"public/assets/atlases/characters/bandit.png","frameWidth":20,"frameHeight":28,"frameCount":6,"bytes":599,"sha256":"f802d53d0a7d1e5adaf4c1941d0cb35efa7344fb84c3a6fb9684941f5d65f785"},
+    {"id":"atlas.portrait.smith-bohdan","targetPath":"public/assets/atlases/portraits/smith-bohdan.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1303,"sha256":"a6c24167c839134a3cf16bf94eb77326f7933573634c2ade657b5e3852977429"},
+    {"id":"atlas.portrait.innkeeper-marta","targetPath":"public/assets/atlases/portraits/innkeeper-marta.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1124,"sha256":"2ce8bb0775749c4b21cf38d7d93c360240a56c540caac4b7d502f2acee768997"},
+    {"id":"atlas.portrait.guard-vojtech","targetPath":"public/assets/atlases/portraits/guard-vojtech.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1204,"sha256":"288641506c1e7116bfd49512d2aabc00581da15c4a2bd479e22fe239c7e8a649"},
+    {"id":"atlas.portrait.farmer-ondra","targetPath":"public/assets/atlases/portraits/farmer-ondra.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1322,"sha256":"03cb94513147621d8265f08adea4ce4ab2fc82a9a0f362c066a506efdd397347"},
+    {"id":"atlas.portrait.herbalist-agnes","targetPath":"public/assets/atlases/portraits/herbalist-agnes.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1220,"sha256":"caa257dec6a31d3d597aa3e9f6d7f2d1f3115f626c710f15568c81054e9d704f"},
+    {"id":"atlas.portrait.miller-jakub","targetPath":"public/assets/atlases/portraits/miller-jakub.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1317,"sha256":"f4e9a9815175ea4c5af9829abc73ddc4137776e99e1eb467c71c4aaa2c9722c6"},
+    {"id":"atlas.portrait.priest-matej","targetPath":"public/assets/atlases/portraits/priest-matej.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1114,"sha256":"2be369f3dcbeacf5e8a56123c8fb6449c2fc7fee0f899a6e3502870d8cd3b1a7"},
+    {"id":"atlas.portrait.trader-katerina","targetPath":"public/assets/atlases/portraits/trader-katerina.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1118,"sha256":"500108cf55125a5709d3a6dd419a69eb0a91aa6a66c94f614a8160a6c06bda0e"},
+    {"id":"atlas.portrait.stablehand-pavel","targetPath":"public/assets/atlases/portraits/stablehand-pavel.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1187,"sha256":"c096bbabfd8d6046a3ba32435a721ef0da984607f1a02298efceadaad5836504"},
+    {"id":"atlas.portrait.washerwoman-anna","targetPath":"public/assets/atlases/portraits/washerwoman-anna.png","frameWidth":48,"frameHeight":56,"frameCount":6,"bytes":1149,"sha256":"3ba2bde2b8c7087cf247b5a4d873b1643c226388664a439d71b444b578fdfde6"},
+    {"id":"atlas.fauna.hare","targetPath":"public/assets/atlases/fauna/hare.png","frameWidth":24,"frameHeight":18,"frameCount":5,"bytes":349,"sha256":"66052432979116f0b7383fa0e1b90de2b73ea3f01d957d0eccb5bb4f0796890f"},
+    {"id":"atlas.fauna.roe-deer","targetPath":"public/assets/atlases/fauna/roe-deer.png","frameWidth":24,"frameHeight":18,"frameCount":5,"bytes":381,"sha256":"6627ac56931bb8eb942e756f77f95b1926c8f651bec219f54ae477f7650cdb2b"},
+    {"id":"atlas.fauna.boar","targetPath":"public/assets/atlases/fauna/boar.png","frameWidth":24,"frameHeight":18,"frameCount":5,"bytes":335,"sha256":"72028e40de948e1523957fe0760528ca8315da62d92dfa62723075fd71108b29"}
+  ]
+}

@@ -9,7 +9,6 @@ import {
   PORTRAIT_EXPRESSIONS,
   PORTRAIT_HEIGHT,
   PORTRAIT_WIDTH,
-  getPortraitFrameIndex,
   getPortraitTextureKey,
   type FaceShape,
   type PortraitDefinition,
@@ -435,33 +434,8 @@ export const validatePortraitFrame = (frame: PortraitFrameModel): string[] => {
 export const registerPortraitAtlases = (scene: Phaser.Scene): void => {
   for (const definition of PORTRAIT_DEFINITIONS) {
     const key = getPortraitTextureKey(definition.npcId);
-    if (scene.textures.exists(key)) continue;
-    const frames = buildPortraitAtlas(definition);
-    const graphics = scene.add.graphics();
-
-    for (const frame of frames) {
-      const frameIndex = getPortraitFrameIndex(frame.expression);
-      const offsetX = frameIndex * PORTRAIT_WIDTH;
-      for (const pixel of frame.pixels) {
-        graphics.fillStyle(pixel.color, pixel.alpha ?? 1);
-        graphics.fillRect(offsetX + pixel.x, pixel.y, pixel.width, pixel.height);
-      }
-    }
-
-    graphics.generateTexture(key, PORTRAIT_WIDTH * frames.length, PORTRAIT_HEIGHT);
-    graphics.destroy();
-
-    const texture = scene.textures.get(key);
-    for (const frame of frames) {
-      const frameIndex = getPortraitFrameIndex(frame.expression);
-      texture.add(
-        frameIndex,
-        0,
-        frameIndex * PORTRAIT_WIDTH,
-        0,
-        PORTRAIT_WIDTH,
-        PORTRAIT_HEIGHT
-      );
+    if (!scene.textures.exists(key)) {
+      throw new Error(`Missing preloaded portrait atlas ${key}.`);
     }
   }
 

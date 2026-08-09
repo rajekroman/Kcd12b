@@ -1,14 +1,31 @@
 import Phaser from 'phaser';
+import { ATLAS_ASSET_MANIFEST } from '../../data/assetManifest';
+import {
+  assertStaticAtlasTextures,
+  describeAtlasLoadFailure,
+  getAtlasEntryByRuntimeKey,
+  queueStaticAtlasPreloads
+} from '../../systems/AtlasRuntimeLoader';
 import { registerCharacterAtlases } from '../../systems/CharacterAtlasSystem';
 import { registerFaunaAtlases } from '../../systems/FaunaAtlasSystem';
 import { registerPortraitAtlases } from '../../systems/PortraitSystem';
 
 export class BootScene extends Phaser.Scene {
+  private atlasLoadFailure: string | undefined;
+
   constructor() {
     super('BootScene');
   }
 
+  preload(): void {
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleAtlasLoadError, this);
+    queueStaticAtlasPreloads(this.load);
+  }
+
   create(): void {
+    this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleAtlasLoadError, this);
+    if (this.atlasLoadFailure) throw new Error(this.atlasLoadFailure);
+    assertStaticAtlasTextures(this.textures);
     registerCharacterAtlases(this);
     registerPortraitAtlases(this);
     registerFaunaAtlases(this);
@@ -17,7 +34,16 @@ export class BootScene extends Phaser.Scene {
     this.createObstacleTexture('tree', 0x2f3e27, 0x5b3f28);
     this.createObstacleTexture('house', 0x755039, 0x3b2b25, 32, 28);
     document.body.dataset.characterAtlases = '12';
+    document.body.dataset.atlasAssetSource = 'static-file';
+    document.body.dataset.atlasAssetsLoaded = String(ATLAS_ASSET_MANIFEST.length);
     this.scene.start('MenuScene');
+  }
+
+  private handleAtlasLoadError(file: Phaser.Loader.File): void {
+    const entry = getAtlasEntryByRuntimeKey(file.key);
+    if (!entry) return;
+    this.atlasLoadFailure = describeAtlasLoadFailure(entry);
+    document.body.dataset.atlasLoadError = this.atlasLoadFailure;
   }
 
   private createGroundTexture(key: string, base: number, detail: number): void {
