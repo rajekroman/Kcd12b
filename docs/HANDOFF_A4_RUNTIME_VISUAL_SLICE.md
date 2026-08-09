@@ -5,7 +5,7 @@
 - Issue: #70
 - Větev: `agent/a4-runtime-visual-slice`
 - Base SHA: `3984def9ecdc0a11bd4fbccde73794fcbcbe2fb2`
-- Head SHA: doplnit po posledním commitu
+- Implementation head SHA: `906141d2f7d05353f28ba9a6776f2f03d116b4c9`
 - Pracovní proud: A4 — vizuál / animace / scene composition
 - Integrační pořadí: A4 → A0 composition review → A5 UI
 
