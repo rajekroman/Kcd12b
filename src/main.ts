@@ -13,9 +13,6 @@ import { ReputationController } from './game/ReputationController';
 import { StealthController } from './game/StealthController';
 import { WeatherController } from './game/WeatherController';
 import './styles/main.css';
-import './styles/reputation.css';
-import './styles/audio.css';
-import './styles/crafting.css';
 
 registerSW({ immediate: true });
 
