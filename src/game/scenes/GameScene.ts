@@ -21,7 +21,7 @@ import {
 } from '../../systems/QuestSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { NpcManager } from '../NpcManager';
-import { createVillageStreetPresentation } from '../../presentation/VillageStreetRenderer';
+import { createVillageStreetPresentation } from '../../presentation/world';
 
 interface GameSceneData {
   continueGame?: boolean;
