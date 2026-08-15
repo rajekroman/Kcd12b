@@ -19,6 +19,55 @@ const createObstacle = (
   blocker.body?.setSize(width, height);
 };
 
+const installPlayerPresentationProxy = (scene: Phaser.Scene): void => {
+  const logicalPlayer = scene.children.list.find(
+    (gameObject): gameObject is Phaser.Physics.Arcade.Sprite =>
+      gameObject instanceof Phaser.Physics.Arcade.Sprite && gameObject.texture.key === 'player'
+  );
+  if (!logicalPlayer) return;
+
+  const logicalOrigin = new Phaser.Math.Vector2(logicalPlayer.x, logicalPlayer.y);
+  const presentationAnchor = new Phaser.Math.Vector2(480, 405);
+
+  scene.time.delayedCall(0, () => {
+    if (!logicalPlayer.active || !scene.sys.isActive()) return;
+
+    const proxy = scene.add
+      .sprite(presentationAnchor.x, presentationAnchor.y, logicalPlayer.texture.key, logicalPlayer.frame.name)
+      .setScale(3.1)
+      .setDepth(18)
+      .setData('presentationOnly', true)
+      .setData('presentationRole', 'player-proxy');
+
+    logicalPlayer
+      .setPosition(logicalOrigin.x, logicalOrigin.y)
+      .setScale(1)
+      .setVisible(false);
+    logicalPlayer.body?.setSize(12, 12).setOffset(2, 8);
+
+    const syncProxy = (): void => {
+      if (!logicalPlayer.active || !proxy.active) return;
+      proxy
+        .setPosition(
+          presentationAnchor.x + (logicalPlayer.x - logicalOrigin.x),
+          presentationAnchor.y + (logicalPlayer.y - logicalOrigin.y)
+        )
+        .setFrame(logicalPlayer.frame.name)
+        .setFlipX(logicalPlayer.flipX)
+        .setFlipY(logicalPlayer.flipY);
+    };
+
+    scene.events.on(Phaser.Scenes.Events.UPDATE, syncProxy);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.events.off(Phaser.Scenes.Events.UPDATE, syncProxy);
+      proxy.destroy();
+    });
+
+    syncProxy();
+    document.body.dataset.playerPresentationProxy = 'decoupled';
+  });
+};
+
 export const createVillageStreetPresentation = (
   scene: Phaser.Scene,
   obstacles: Phaser.Physics.Arcade.StaticGroup
@@ -41,6 +90,7 @@ export const createVillageStreetPresentation = (
   // Collision silhouettes are invisible gameplay scaffolding, independent of art assets.
   createObstacle(obstacles, 120, 320, 150, 118);
   createObstacle(obstacles, 900, 278, 90, 92);
+  installPlayerPresentationProxy(scene);
 
   scene.data.set('visualReboot', 'authored-village-street');
   scene.data.set('presentationLayers', 4);
