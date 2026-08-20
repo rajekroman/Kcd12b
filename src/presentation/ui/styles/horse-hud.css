@@ -57,6 +57,23 @@
   border-color: rgba(210, 104, 88, 0.92);
 }
 
+body[data-visual-reboot='village-street-authored-assets'] .horse-hud {
+  top: 8px;
+  right: 8px;
+  width: 190px;
+  padding: 5px 7px;
+  border: 2px solid #17100b;
+  border-radius: 2px;
+  outline: 1px solid #a98245;
+  background: rgba(28, 19, 13, 0.9);
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+body[data-visual-reboot='village-street-authored-assets'] .horse-hud__row + .horse-hud__row {
+  margin-top: 2px;
+}
+
 @media (orientation: portrait) and (max-width: 520px) {
   .horse-hud {
     top: max(8px, env(safe-area-inset-top));

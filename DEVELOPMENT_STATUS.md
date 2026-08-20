@@ -1,8 +1,21 @@
 # Development Status
 
+## Visual reboot checkpoint A4
+
+- Aktivní větev `agent/a4-runtime-visual-slice` dodává authored runtime village-street slice pro issue #70 a gate #68.
+- Runtime screenshot obsahuje 3/4 perspektivu, road depth, vzdálený kostel, dvě historické fasády, vrstvené prostředí, hráče, čtyři profesně odlišené NPC a koně.
+- Denní a večerní varianta používají samostatné authored pixel-art assety v `public/assets/world/`.
+- Přetrvávající funkční systémy a save kontrakty nebyly změněny.
+
+### Visual evidence
+
+- Desktop daylight: ověřeno z live runtime screenshotu 2026-08-09.
+- Desktop evening: ověřeno z live runtime screenshotu 2026-08-09; večerní asset a světelná vrstva se přepnou podle světového času.
+- Mobile portrait/landscape: čeká na A5 UI integration gate; tento A4 balík nemění HUD layout.
+
 ## Aktuální fáze
 
-M4.3 Alchemy and Smithing — Anežka a Bohdan nyní zpřístupňují dvě kontextové řemeslné stanice. Pět datových receptů atomicky spotřebovává suroviny, respektuje nosnost a stack limity a ukládá léčiva, materiály i vylepšené vybavení přes existující ekonomický save verze 5.
+VISUAL REBOOT ACTIVE — A4 připravuje production-quality village-street composition checkpoint pro gate #68. Starší gameplay a crafting milestone zůstávají funkčním základem, ale další world/content expansion je do vizuálního schválení pozastavena.
 
 ## Funguje
 

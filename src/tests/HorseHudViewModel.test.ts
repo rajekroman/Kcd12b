@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createHorseHudViewModel,
   type HorseHudPresentationInput,
-} from '../game/ui/HorseHudViewModel';
+} from '../presentation/ui/horse/HorseHudViewModel';
 
 const presentation = (
   overrides: Partial<HorseHudPresentationInput> = {},

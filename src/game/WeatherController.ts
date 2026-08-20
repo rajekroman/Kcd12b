@@ -139,7 +139,8 @@ export class WeatherController {
       })
       .setOrigin(1, 0)
       .setScrollFactor(0)
-      .setDepth(120);
+      .setDepth(120)
+      .setVisible(document.body.dataset.visualReboot !== 'village-street-authored-assets');
 
     return {
       scene,

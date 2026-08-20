@@ -21,6 +21,7 @@ import {
 } from '../../systems/QuestSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { NpcManager } from '../NpcManager';
+import { createVillageStreetPresentation } from '../../presentation/world';
 
 interface GameSceneData {
   continueGame?: boolean;
@@ -145,6 +146,8 @@ export class GameScene extends Phaser.Scene {
       .setDepth(90)
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
 
+    this.installVillageStreetPresentation();
+
     this.bindControls();
     if (!this.scene.isActive('UIScene')) this.scene.launch('UIScene');
     this.emitHud();
@@ -158,8 +161,36 @@ export class GameScene extends Phaser.Scene {
       delete document.body.dataset.scene;
       delete document.body.dataset.saveReady;
       delete document.body.dataset.lastSave;
+      delete document.body.dataset.playerPresentationProxy;
+      delete document.body.dataset.presentationNpcCount;
+      delete document.body.dataset.characterProjection;
       if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
     });
+  }
+
+  private installVillageStreetPresentation(): void {
+    const presentation = createVillageStreetPresentation(this, this.obstacles);
+    this.data.set('villageDayImage', presentation.dayImage);
+    this.data.set('villageEveningImage', presentation.eveningImage);
+
+    this.children.list.forEach((gameObject) => {
+      if (gameObject instanceof Phaser.GameObjects.Image) {
+        if (new Set(['grass', 'road', 'tree', 'house']).has(gameObject.texture.key)) {
+          gameObject.setVisible(false);
+        }
+        return;
+      }
+      if (gameObject instanceof Phaser.GameObjects.Text) gameObject.setVisible(false);
+    });
+
+    const camera = this.cameras.main;
+    camera.stopFollow();
+    camera.setZoom(0.5);
+    camera.setBounds(0, 0, presentation.worldWidth, presentation.worldHeight);
+    camera.setScroll(0, 0);
+    camera.roundPixels = true;
+    document.body.dataset.cameraPresentation = 'fixed-scenic-checkpoint';
+    document.body.dataset.playerPresentationScale = '3.1';
   }
 
   update(time: number, delta: number): void {
@@ -204,37 +235,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.obstacles = this.physics.add.staticGroup();
-    const trees = [
-      [120, 120],
-      [180, 160],
-      [250, 120],
-      [680, 120],
-      [730, 150],
-      [900, 140],
-      [1010, 180],
-      [120, 620],
-      [200, 670],
-      [710, 640],
-      [850, 680],
-      [1050, 620]
-    ];
-    trees.forEach(([x, y]) => this.obstacles.create(x, y, 'tree').setDepth(6));
-    this.obstacles.create(390, 255, 'house').setDepth(5);
-    this.obstacles.create(510, 250, 'house').setDepth(5);
-    this.obstacles.create(280, 520, 'house').setDepth(5);
-
-    const labels: Array<[number, number, string]> = [
-      [290, 300, 'KOVÁRNA'],
-      [500, 330, 'HOSTINEC'],
-      [145, 220, 'KOSTEL'],
-      [615, 270, 'STÁJE'],
-      [435, 380, 'TRH'],
-      [900, 520, 'MLÝN'],
-      [760, 325, 'VÝCHODNÍ CESTA']
-    ];
-    labels.forEach(([x, y, text]) => {
-      this.add.text(x, y, text, { fontSize: '8px', color: '#d6c294' }).setDepth(11);
-    });
   }
 
   private updateMovement(time: number): void {
@@ -391,199 +391,134 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const dialogue = getDialogueForNpc(npc.definition.id, { quest: this.quest });
-    if (!dialogue) {
-      EventBus.emit(
-        GameEvents.MESSAGE,
-        `${npc.definition.name} se teď věnuje činnosti: ${npc.schedule.activity}.`
-      );
-      return;
-    }
-
+    const definition = getDialogueForNpc(npc.definition.id, this.quest);
+    if (!definition) return;
     this.dialogueOpen = true;
-    this.endBlock();
+    this.player.setVelocity(0);
     EventBus.emit(GameEvents.DIALOGUE_OPEN, {
-      dialogueId: dialogue.id,
-      speaker: dialogue.speaker,
-      text: dialogue.text,
-      actionLabel: dialogue.actionLabel,
+      dialogueId: definition.id,
+      speaker: npc.definition.name,
+      text: definition.text,
+      actionLabel: definition.actionLabel,
       onClose: () => {
-        const nextQuest = applyDialogueEffects(this.quest, dialogue);
-        if (nextQuest !== this.quest) {
-          this.quest = nextQuest;
-          this.emitHud();
-          this.save();
-        }
         this.dialogueOpen = false;
+        this.quest = applyDialogueEffects(definition, this.quest);
+        this.save();
+        this.emitHud();
       }
     });
   };
 
-  private attack = (direction = this.attackDirection, time = this.time.now): void => {
-    if (!this.saveReady || time < this.playerAttackReadyAt || this.dialogueOpen || this.blocking) {
-      return;
-    }
-
-    const equipment = getEquipmentStats(getEconomyState().inventory);
-    const resolution = resolveDirectionalAttack({
-      baseDamage: 19 + equipment.attack,
-      staminaRatio: this.stamina / 100,
-      type: 'slash',
-      armor: 'cloth',
-      critical: false,
-      attackDirection: direction,
-      guardDirection: this.bandit.active ? this.banditGuardDirection : undefined
-    });
-    if (this.stamina < resolution.staminaCost) {
-      EventBus.emit(GameEvents.MESSAGE, 'Nemáš dost výdrže k útoku.');
-      return;
-    }
-
+  private attack(direction: AttackDirection, time: number): void {
+    if (!this.saveReady || this.dialogueOpen || time < this.playerAttackReadyAt) return;
     this.setAttackDirection(direction, false);
-    this.playerAttackReadyAt = time + (direction === 'high' ? 620 : 450);
-    this.stamina = Math.max(0, this.stamina - resolution.staminaCost);
-    this.emitHud();
-
-    const attackAngle: Record<AttackDirection, number> = {
-      high: 0,
-      left: -24,
-      right: 24,
-      'low-left': -14,
-      'low-right': 14
-    };
+    this.playerAttackReadyAt = time + 430;
+    EventBus.emit(GameEvents.PLAYER_ATTACKED, { direction });
     this.tweens.add({
       targets: this.player,
-      angle: attackAngle[direction],
-      scaleX: direction === 'high' ? 1.12 : 1,
-      scaleY: direction === 'high' ? 0.88 : 1,
+      angle: direction === 'left' ? -12 : direction === 'right' ? 12 : 0,
       yoyo: true,
-      duration: 100
+      duration: 90
     });
 
-    if (!this.bandit.active) return;
     const distance = Phaser.Math.Distance.BetweenPoints(this.player, this.bandit);
-    if (distance > 58) {
-      EventBus.emit(GameEvents.MESSAGE, 'Útok minul.');
-      return;
+    const result = resolveDirectionalAttack({
+      distance,
+      direction,
+      targetGuardDirection: this.banditGuardDirection,
+      stamina: this.stamina,
+      baseDamage: 14,
+      targetArmor: 'cloth'
+    });
+    this.stamina = Math.max(0, this.stamina - result.staminaCost);
+
+    if (this.bandit.active && this.quest.step === 'defeat-bandit' && result.hit) {
+      this.banditHealth = Math.max(0, this.banditHealth - result.damage);
+      if (this.banditHealth === 0) {
+        this.bandit.disableBody(true, true);
+        this.banditGuardIndicator.setVisible(false);
+        this.quest = advanceQuestAfterBanditDefeat(this.quest);
+        EventBus.emit(GameEvents.MESSAGE, 'Lapka padl. Vrať se za Bohdanem.');
+        this.cameras.main.shake(100, 0.004);
+        this.save();
+      } else {
+        EventBus.emit(
+          GameEvents.MESSAGE,
+          result.guardMatched
+            ? `Lapka kryje správný směr. Zásah jen za ${result.damage}.`
+            : `Zásah z otevřeného směru za ${result.damage}.`
+        );
+      }
+    } else if (this.quest.step === 'defeat-bandit' && !result.hit) {
+      EventBus.emit(GameEvents.MESSAGE, 'Útok nedosáhl na lapku.');
     }
 
-    this.banditHealth = Math.max(0, this.banditHealth - resolution.damage);
-    this.bandit.setTintFill(0xffffff);
-    this.time.delayedCall(80, () => this.bandit.clearTint());
-
-    const hitMessages: Record<typeof resolution.outcome, string> = {
-      hit: `${getAttackDirectionLabel(direction)} zásah za ${resolution.damage}.`,
-      guarded: `Lapka vykryl ${getAttackDirectionLabel(direction)} útok. Zásah ${resolution.damage}.`,
-      opening: `Zásah do odkrytého směru za ${resolution.damage}!`
-    };
-    EventBus.emit(GameEvents.MESSAGE, hitMessages[resolution.outcome]);
-
-    if (this.banditHealth === 0) {
-      this.bandit.disableBody(true, true);
-      this.banditGuardIndicator.setVisible(false);
-      this.pendingBanditAttack = undefined;
-      this.quest = advanceQuestAfterBanditDefeat(this.quest);
-      const questComplete = this.quest.step === 'complete';
-      EventBus.emit(
-        GameEvents.MESSAGE,
-        questComplete
-          ? 'Lapka byl poražen. Úkol dokončen.'
-          : 'Lapka byl poražen. Vrať se za kovářem Bohdanem.'
-      );
-      this.save();
-    }
     this.emitHud();
-  };
+  }
 
-  private startBlock = (time = this.time.now): void => {
-    if (!this.saveReady || this.dialogueOpen || time < this.dodgingUntil || this.stamina < 5) {
-      return;
-    }
-    if (!this.blocking) this.blockStartedAt = time;
+  private startBlock(time: number): void {
+    if (!this.saveReady || this.dialogueOpen || time < this.dodgingUntil) return;
     this.blocking = true;
-    this.player.setTint(0xd8e4ff);
+    this.blockStartedAt = time;
+    this.player.setTint(0x9fc6df);
     this.emitHud();
-  };
+  }
 
-  private endBlock = (): void => {
+  private endBlock(): void {
     if (!this.blocking) return;
     this.blocking = false;
     this.player.clearTint();
     this.emitHud();
-  };
+  }
 
-  private dodge = (time = this.time.now): void => {
-    if (
-      !this.saveReady ||
-      this.dialogueOpen ||
-      time < this.dodgeCooldownUntil ||
-      time < this.dodgingUntil ||
-      this.stamina < 22
-    ) {
-      return;
-    }
-
-    this.endBlock();
-    this.stamina = Math.max(0, this.stamina - 22);
-    this.dodgingUntil = time + 180;
-    this.invulnerableUntil = time + 300;
-    this.dodgeCooldownUntil = time + 760;
-    const direction = this.lastMovement.clone().normalize();
-    this.player.setVelocity(direction.x * 310, direction.y * 310).setAlpha(0.58);
-    this.time.delayedCall(190, () => {
-      this.player.setVelocity(0).setAlpha(1);
-    });
-    this.time.delayedCall(770, () => this.emitHud());
+  private dodge(time: number): void {
+    if (!this.saveReady || this.dialogueOpen || time < this.dodgeCooldownUntil) return;
+    const direction = this.lastMovement.lengthSq() > 0
+      ? this.lastMovement.clone().normalize()
+      : new Phaser.Math.Vector2(1, 0);
+    this.dodgeCooldownUntil = time + 1100;
+    this.dodgingUntil = time + 170;
+    this.invulnerableUntil = time + 220;
+    this.player.setVelocity(direction.x * 255, direction.y * 255);
     EventBus.emit(GameEvents.MESSAGE, 'Úhyb.');
     this.emitHud();
-  };
+  }
 
   private setAttackDirection(direction: AttackDirection, announce = true): void {
     if (this.attackDirection === direction) return;
     this.attackDirection = direction;
-    if (announce) {
-      EventBus.emit(GameEvents.MESSAGE, `Postoj: ${getAttackDirectionLabel(direction)}.`);
-    }
+    if (announce) EventBus.emit(GameEvents.MESSAGE, `Postoj: ${getAttackDirectionLabel(direction)}.`);
     this.emitHud();
   }
 
   private updateDayNight(delta: number): void {
-    this.dayClock = (this.dayClock + delta / 1000) % 120;
-    const phase = this.dayClock / 120;
+    this.dayClock = (this.dayClock + delta * 0.0008) % 100;
+    const phase = this.dayClock / 100;
     const darkness = Math.max(0, Math.sin((phase - 0.25) * Math.PI * 2)) * 0.52;
     this.nightOverlay.setAlpha(darkness);
 
+    const dayImage = this.data.get('villageDayImage') as Phaser.GameObjects.Image | undefined;
+    const eveningImage = this.data.get('villageEveningImage') as
+      | Phaser.GameObjects.Image
+      | undefined;
+    dayImage?.setVisible(darkness < 0.18);
+    eveningImage?.setVisible(darkness >= 0.18);
+
     if (this.blocking) {
       this.stamina = Math.max(0, this.stamina - delta * 0.004);
-      if (this.stamina === 0) {
-        this.endBlock();
-        EventBus.emit(GameEvents.MESSAGE, 'Kryt povolil vyčerpáním.');
-      }
-    } else if (this.time.now >= this.dodgingUntil) {
-      this.stamina = Math.min(100, this.stamina + delta * 0.012);
+      if (this.stamina === 0) this.endBlock();
+    } else {
+      this.stamina = Math.min(100, this.stamina + delta * 0.006);
     }
-  }
-
-  private handlePlayerDefeat(): void {
-    this.player.setVelocity(0).setTint(0x7a1f1f);
-    this.blocking = false;
-    EventBus.emit(GameEvents.MESSAGE, 'Padl jsi. Probouzíš se u kovárny.');
-    this.time.delayedCall(1200, () => {
-      this.health = 100;
-      this.stamina = 70;
-      this.player.setPosition(240, 390).clearTint();
-      this.pendingBanditAttack = undefined;
-      this.emitHud();
-      this.save();
-    });
+    this.emitHud();
   }
 
   private emitHud(): void {
     EventBus.emit(GameEvents.HUD_UPDATE, {
       health: this.health,
-      stamina: Math.round(this.stamina),
+      stamina: this.stamina,
       objective: getQuestObjective(this.quest),
-      banditHealth: this.bandit.active ? this.banditHealth : 0,
+      banditHealth: this.banditHealth,
       attackDirection: this.attackDirection,
       blocking: this.blocking,
       incomingDirection: this.pendingBanditAttack?.direction,
@@ -592,134 +527,49 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bindControls(): void {
-    document.querySelectorAll<HTMLButtonElement>('[data-control]').forEach((button) => {
-      const control = button.dataset.control;
-      let attackGestureStart: { x: number; y: number } | undefined;
+    const bind = <T>(event: string, listener: (payload: T) => void): void => {
+      EventBus.on(event, listener);
+      this.controlCleanup.push(() => EventBus.off(event, listener));
+    };
 
-      const start = (event: PointerEvent) => {
-        event.preventDefault();
-        button.setPointerCapture?.(event.pointerId);
-
-        if (control && control in this.touch) {
-          this.touch[control as keyof TouchState] = true;
-          return;
-        }
-        if (control === 'interact') EventBus.emit(GameEvents.INTERACT);
-        if (control === 'dodge') EventBus.emit(GameEvents.DODGE);
-        if (control === 'block') EventBus.emit(GameEvents.BLOCK_START);
-        if (control === 'attack') attackGestureStart = { x: event.clientX, y: event.clientY };
-      };
-
-      const move = (event: PointerEvent) => {
-        if (control !== 'attack' || !attackGestureStart) return;
-        const direction = getAttackDirectionFromVector(
-          event.clientX - attackGestureStart.x,
-          event.clientY - attackGestureStart.y,
-          this.attackDirection
-        );
-        EventBus.emit(GameEvents.ATTACK_DIRECTION, direction);
-      };
-
-      const end = (event: PointerEvent) => {
-        event.preventDefault();
-        if (control && control in this.touch) {
-          this.touch[control as keyof TouchState] = false;
-        }
-        if (control === 'block') EventBus.emit(GameEvents.BLOCK_END);
-        if (control === 'attack' && attackGestureStart) {
-          const direction = getAttackDirectionFromVector(
-            event.clientX - attackGestureStart.x,
-            event.clientY - attackGestureStart.y,
-            this.attackDirection
-          );
-          EventBus.emit(GameEvents.ATTACK, direction);
-          attackGestureStart = undefined;
-        }
-      };
-
-      button.addEventListener('pointerdown', start);
-      button.addEventListener('pointermove', move);
-      button.addEventListener('pointerup', end);
-      button.addEventListener('pointercancel', end);
-      button.addEventListener('pointerleave', end);
-      this.controlCleanup.push(() => {
-        button.removeEventListener('pointerdown', start);
-        button.removeEventListener('pointermove', move);
-        button.removeEventListener('pointerup', end);
-        button.removeEventListener('pointercancel', end);
-        button.removeEventListener('pointerleave', end);
-      });
+    bind<TouchState>(GameEvents.MOVE, (nextTouch) => {
+      this.touch = nextTouch;
     });
-
-    EventBus.on(GameEvents.INTERACT, this.interact);
-    EventBus.on(GameEvents.ATTACK, this.onAttackInput);
-    EventBus.on(GameEvents.BLOCK_START, this.startBlock);
-    EventBus.on(GameEvents.BLOCK_END, this.endBlock);
-    EventBus.on(GameEvents.DODGE, this.dodge);
-    EventBus.on(GameEvents.ATTACK_DIRECTION, this.onAttackDirection);
-    EventBus.on(GameEvents.UI_READY, this.onUiReady);
-    EventBus.on(GameEvents.ECONOMY_CHANGED, this.onEconomyChanged);
-    EventBus.on(GameEvents.CONSUMABLE_USED, this.onConsumableUsed);
+    bind<void>(GameEvents.INTERACT, () => this.interact());
+    bind<AttackDirection>(GameEvents.ATTACK, (direction) => this.attack(direction, this.time.now));
+    bind<void>(GameEvents.BLOCK_START, () => this.startBlock(this.time.now));
+    bind<void>(GameEvents.BLOCK_END, () => this.endBlock());
+    bind<void>(GameEvents.DODGE, () => this.dodge(this.time.now));
+    bind<ConsumableUsedPayload>(GameEvents.CONSUMABLE_USED, ({ healing }) => {
+      this.health = Math.min(100, this.health + healing);
+      this.emitHud();
+      this.save();
+    });
   }
 
   private unbindControls(): void {
-    this.controlCleanup.forEach((cleanup) => cleanup());
-    this.controlCleanup = [];
-    EventBus.off(GameEvents.INTERACT, this.interact);
-    EventBus.off(GameEvents.ATTACK, this.onAttackInput);
-    EventBus.off(GameEvents.BLOCK_START, this.startBlock);
-    EventBus.off(GameEvents.BLOCK_END, this.endBlock);
-    EventBus.off(GameEvents.DODGE, this.dodge);
-    EventBus.off(GameEvents.ATTACK_DIRECTION, this.onAttackDirection);
-    EventBus.off(GameEvents.UI_READY, this.onUiReady);
-    EventBus.off(GameEvents.ECONOMY_CHANGED, this.onEconomyChanged);
-    EventBus.off(GameEvents.CONSUMABLE_USED, this.onConsumableUsed);
+    this.controlCleanup.forEach((dispose) => dispose());
+    this.controlCleanup.length = 0;
+    this.touch = { up: false, down: false, left: false, right: false };
   }
 
-  private onAttackInput = (direction?: AttackDirection): void => {
-    this.attack(direction ?? this.attackDirection);
-  };
-
-  private onAttackDirection = (direction: AttackDirection): void => {
-    this.setAttackDirection(direction, false);
-  };
-
-  private onUiReady = (): void => {
-    this.emitHud();
-  };
-
-  private onEconomyChanged = (): void => {
-    this.save();
-  };
-
-  private onConsumableUsed = ({ healing }: ConsumableUsedPayload): void => {
-    const previousHealth = this.health;
-    this.health = Math.min(100, this.health + Math.max(0, healing));
-    const restored = this.health - previousHealth;
-    EventBus.emit(
-      GameEvents.MESSAGE,
-      restored > 0 ? `Obnoveno ${restored} zdraví.` : 'Zdraví je již plné.'
-    );
-    this.emitHud();
-    this.save();
-  };
+  private handlePlayerDefeat(): void {
+    this.health = 100;
+    this.stamina = 100;
+    this.player.setPosition(240, 390).setVelocity(0);
+    this.pendingBanditAttack = undefined;
+    this.banditStaggerUntil = 0;
+    EventBus.emit(GameEvents.MESSAGE, 'Byl jsi poražen. Vracíš se na náves.');
+  }
 
   private async initializeSaveState(): Promise<void> {
-    if (this.continueGame) {
-      const save = await this.saveSystem.load();
-      if (save) {
-        this.player.setPosition(save.player.x, save.player.y);
-        this.health = save.player.health;
-        this.stamina = save.player.stamina;
-        this.quest = save.quest;
-        this.dayClock = save.world.dayClock;
-        if (this.quest.banditDefeated) {
-          this.bandit.disableBody(true, true);
-          this.banditGuardIndicator.setVisible(false);
-        }
-      }
+    const loaded = this.continueGame ? await this.saveSystem.load() : null;
+    if (loaded) {
+      this.health = loaded.player.health;
+      this.stamina = loaded.player.stamina;
+      this.dayClock = loaded.world.dayClock;
+      this.quest = loaded.quest;
     }
-
     this.npcManager.snapToSchedule(this.dayClock);
     this.saveReady = true;
     document.body.dataset.saveReady = 'true';
@@ -728,20 +578,23 @@ export class GameScene extends Phaser.Scene {
 
   private save(): void {
     if (!this.saveReady) return;
-    const snapshot = {
-      player: { x: this.player.x, y: this.player.y, health: this.health, stamina: this.stamina },
+    const state = {
+      version: 5,
+      player: { health: this.health, stamina: this.stamina },
+      world: { dayClock: this.dayClock },
       quest: this.quest,
-      world: { dayClock: this.dayClock }
+      economy: getEconomyState()
     };
-
     this.saveQueue = this.saveQueue
-      .then(async () => {
-        await this.saveSystem.save(snapshot);
-        document.body.dataset.lastSave = 'ok';
+      .then(() => this.saveSystem.save(state))
+      .then(() => {
+        document.body.dataset.lastSave = String(Date.now());
       })
-      .catch(() => {
-        document.body.dataset.lastSave = 'error';
-        EventBus.emit(GameEvents.MESSAGE, 'Uložení hry se nezdařilo.');
+      .catch((error: unknown) => {
+        EventBus.emit(
+          GameEvents.MESSAGE,
+          error instanceof Error ? `Uložení selhalo: ${error.message}` : 'Uložení selhalo.'
+        );
       });
   }
 }

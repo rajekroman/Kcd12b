@@ -64,7 +64,7 @@ export class HorseGameScene extends GameScene {
   private horseCoordinator!: HorseGameplayCoordinator;
   private horseMovement?: HorseSceneMovementAdapter;
   private horseReady = false;
-  private horseVisual?: Phaser.GameObjects.Rectangle;
+  private horseVisual?: Phaser.GameObjects.Image;
   private horseLabel?: Phaser.GameObjects.Text;
   private horseWorldPosition: Point = { ...HORSE_HOME };
   private mobileHorseSprint = false;
@@ -183,9 +183,9 @@ export class HorseGameScene extends GameScene {
 
   private createHorseWorldMarkers(): void {
     this.horseVisual = this.add
-      .rectangle(HORSE_HOME.x, HORSE_HOME.y, 20, 11, 0x8b5a2b)
-      .setDepth(12)
-      .setStrokeStyle(2, 0xe3c38b);
+      .image(HORSE_HOME.x, HORSE_HOME.y, 'horse-jiskra')
+      .setDepth(17)
+      .setScale(1.5);
     this.horseLabel = this.add
       .text(HORSE_HOME.x, HORSE_HOME.y - 15, "JISKRA", {
         fontFamily: "monospace",
@@ -196,6 +196,7 @@ export class HorseGameScene extends GameScene {
       })
       .setOrigin(0.5)
       .setDepth(13);
+    this.horseLabel.setVisible(false);
 
     const markers: Array<[Point, string, number]> = [
       [LAWFUL_GATE, "BRÁNA", 0x7b9c63],
@@ -205,18 +206,20 @@ export class HorseGameScene extends GameScene {
       [STABLE_HAZARD, "NEBEZPEČNÝ BOX", 0x8f4f48],
     ];
     for (const [point, label, color] of markers) {
-      this.add.circle(point.x, point.y, 6, color, 0.55).setDepth(4);
+      this.add.circle(point.x, point.y, 6, color, 0.55).setDepth(4).setVisible(false);
       this.add
         .text(point.x, point.y - 12, label, { fontSize: "6px", color: "#e8d5ad" })
         .setOrigin(0.5)
-        .setDepth(12);
+        .setDepth(12)
+        .setVisible(false);
     }
     TRIAL_POINTS.forEach((point, index) => {
-      this.add.circle(point.x, point.y, 9, 0xc5a45a, 0.35).setDepth(3);
+      this.add.circle(point.x, point.y, 9, 0xc5a45a, 0.35).setDepth(3).setVisible(false);
       this.add
         .text(point.x, point.y - 13, `CP${index + 1}`, { fontSize: "7px", color: "#f1d58c" })
         .setOrigin(0.5)
-        .setDepth(12);
+        .setDepth(12)
+        .setVisible(false);
     });
   }
 

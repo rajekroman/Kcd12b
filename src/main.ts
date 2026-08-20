@@ -5,7 +5,7 @@ import { CharacterAnimationController } from './game/CharacterAnimationControlle
 import { ConfirmedAttackController } from './game/ConfirmedAttackController';
 import { CraftingUiController } from './game/CraftingUiController';
 import { gameConfig } from './game/config';
-import { HorseHudPresentationBridge } from './game/ui/HorseHudPresentationBridge';
+import { HorseHudPresentationBridge } from './presentation/ui';
 import { HuntingController } from './game/HuntingController';
 import { InventoryUiController } from './game/InventoryUiController';
 import { KeyboardInputFallbackController } from './game/KeyboardInputFallbackController';
@@ -13,9 +13,6 @@ import { ReputationController } from './game/ReputationController';
 import { StealthController } from './game/StealthController';
 import { WeatherController } from './game/WeatherController';
 import './styles/main.css';
-import './styles/reputation.css';
-import './styles/audio.css';
-import './styles/crafting.css';
 
 registerSW({ immediate: true });
 

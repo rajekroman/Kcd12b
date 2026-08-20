@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { FirstHorseGameScene } from './scenes/FirstHorseGameScene';
 import { MenuScene } from './scenes/MenuScene';
-import { UIScene } from './scenes/UIScene';
+import { UIScene } from '../presentation/ui';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

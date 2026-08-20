@@ -20,6 +20,10 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleAtlasLoadError, this);
     queueStaticAtlasPreloads(this.load);
+    this.load.image('village-street-day', 'assets/world/village-street-day.svg');
+    this.load.image('village-street-authored-day', 'assets/world/village-street-authored-day.png');
+    this.load.image('village-street-evening', 'assets/world/village-street-evening.svg');
+    this.load.image('horse-jiskra', 'assets/world/horse-jiskra.svg');
   }
 
   create(): void {
